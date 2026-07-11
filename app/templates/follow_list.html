@@ -10,7 +10,7 @@
   {% if rows %}
   <div class="follow-list-rows">
     {% for r in rows %}
-    <div class="follow-list-row">
+    <div class="follow-list-row {% if r.id in mutual_ids %}follow-list-row-mutual{% endif %}">
       <a href="/concert-tracker/u/{{ r.username }}" class="follow-list-user">
         {% if r.avatar_url %}
         <img src="{{ r.avatar_url }}" class="follow-list-avatar" width="40" height="40" alt="{{ r.username }}">
