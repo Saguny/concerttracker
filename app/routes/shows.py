@@ -1,3 +1,4 @@
+import os
 import time
 import json
 
@@ -11,6 +12,8 @@ import app.setlistfm as setlistfm
 import app.spotify as spotify
 import app.musicbrainz as musicbrainz
 import app.ticketmaster as ticketmaster
+
+_GOOGLE_PLACES_KEY = os.environ.get("GOOGLE_PLACES_KEY", "")
 
 router = APIRouter()
 
@@ -172,7 +175,7 @@ async def add_show_page(request: Request, user=Depends(require_user), pool=Depen
         )
     return templates.TemplateResponse(
         "show_form.html",
-        _ctx(request, user, show=None, friends=friends, csrf=get_csrf_token(request), errors={}),
+        _ctx(request, user, show=None, friends=friends, csrf=get_csrf_token(request), errors={}, google_places_key=_GOOGLE_PLACES_KEY),
     )
 
 
@@ -267,7 +270,7 @@ async def edit_show_page(show_id: int, request: Request, pool=Depends(get_pool),
         )
     return templates.TemplateResponse(
         "show_form.html",
-        _ctx(request, user, show=show, friends=friends, csrf=get_csrf_token(request), errors={}),
+        _ctx(request, user, show=show, friends=friends, csrf=get_csrf_token(request), errors={}, google_places_key=_GOOGLE_PLACES_KEY),
     )
 
 
