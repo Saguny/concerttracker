@@ -9,8 +9,8 @@
   <form method="post" action="/concert-tracker/shows/festival/{{ festival_id }}/edit" class="show-form">
     <input type="hidden" name="_csrf" value="{{ csrf }}">
     <div class="field-group">
-      <label>Thoughts</label>
-      <textarea name="festival_notes" rows="6" maxlength="2000" placeholder="Write about the festival…" class="comment-input" style="width:100%;resize:vertical">{{ festival_notes }}</textarea>
+      <label>Notes</label>
+      <textarea name="festival_notes" rows="4" maxlength="2000" placeholder="How was it?">{{ festival_notes or '' }}</textarea>
     </div>
     <div class="form-actions">
       <button type="submit" class="btn btn-accent">Save</button>

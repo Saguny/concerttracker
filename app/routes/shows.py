@@ -362,6 +362,7 @@ async def add_festival(request: Request, pool=Depends(get_pool), user=Depends(re
     festival_name = str(form.get("festival_name", "")).strip()[:200]
     venue = festival_name  # for festivals the name IS the venue
     city = str(form.get("city", "")).strip()[:200]
+    festival_notes = str(form.get("festival_notes", "")).strip()[:2000] or None
     artists_raw = str(form.get("artists_json", "")).strip()
 
     selected: list[dict] = []
@@ -389,8 +390,8 @@ async def add_festival(request: Request, pool=Depends(get_pool), user=Depends(re
 
     async with pool.acquire() as conn:
         festival_id = await conn.fetchval(
-            "INSERT INTO festivals (user_id, festival_name, city, created_at) VALUES ($1,$2,$3,$4) RETURNING id",
-            user["id"], festival_name, city, now,
+            "INSERT INTO festivals (user_id, festival_name, city, festival_notes, created_at) VALUES ($1,$2,$3,$4,$5) RETURNING id",
+            user["id"], festival_name, city, festival_notes, now,
         )
         for artist_data, sp, sl in zip(selected, sp_results, sl_results):
             sp = sp if isinstance(sp, dict) else None
