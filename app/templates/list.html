@@ -84,6 +84,13 @@
       </div>
     </a>
     <button class="festival-toggle btn btn-sm btn-ghost" type="button" onclick="toggleFestival(this)" onmouseenter="this.closest('.festival-group-card').classList.add('toggle-hover')" onmouseleave="this.closest('.festival-group-card').classList.remove('toggle-hover')">▾ Show acts</button>
+    <div class="show-card-actions">
+      <a href="/concert-tracker/shows/festival/{{ f.festival_id }}/edit" class="btn btn-sm btn-ghost">Edit</a>
+      <form method="post" action="/concert-tracker/shows/festival/{{ f.festival_id }}/delete" onsubmit="return confirm('Delete {{ f.festival_name }}?')">
+        <input type="hidden" name="_csrf" value="{{ csrf }}">
+        <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+      </form>
+    </div>
     <div class="show-date">
       <span class="date-day">{{ f.date.strftime('%d') }}</span>
       <span class="date-mon">{{ f.date.strftime('%b') }}</span>
