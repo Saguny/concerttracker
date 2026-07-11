@@ -1,5 +1,6 @@
 import os
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.responses import RedirectResponse
@@ -46,7 +47,7 @@ app.add_middleware(
 
 _base = "/concert-tracker"
 
-app.mount(f"{_base}/static", StaticFiles(directory="app/static"), name="static")
+app.mount(f"{_base}/static", StaticFiles(directory=str(Path(__file__).parent / "static")), name="static")
 
 app.include_router(auth.router, prefix=_base)
 app.include_router(shows.router, prefix=_base)

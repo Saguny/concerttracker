@@ -1,8 +1,9 @@
 import datetime
+from pathlib import Path
 from urllib.parse import quote
 from fastapi.templating import Jinja2Templates
 
-templates = Jinja2Templates(directory="app/templates")
+templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
 
 
 def _timestamp_fmt(ts) -> str:
