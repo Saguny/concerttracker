@@ -178,19 +178,19 @@
     <section class="social-section">
       <h2>Top Artists</h2>
       {% for r in top_artists %}
-      <div class="mini-bar-row">
+      <a href="/concert-tracker/artists/{{ r.artist | urlquote }}" class="mini-bar-row mini-bar-link">
         <span class="mini-bar-label">{{ r.artist }}</span>
         <span class="mini-bar-count">{{ r.count }}</span>
-      </div>
+      </a>
       {% else %}<p class="muted small">None yet.</p>{% endfor %}
     </section>
     <section class="social-section">
       <h2>Top Venues</h2>
       {% for r in top_venues %}
-      <div class="mini-bar-row">
+      <a href="https://maps.google.com/?q={{ r.venue | urlquote }}" target="_blank" rel="noopener" class="mini-bar-row mini-bar-link">
         <span class="mini-bar-label">{{ r.venue }}</span>
         <span class="mini-bar-count">{{ r.count }}</span>
-      </div>
+      </a>
       {% else %}<p class="muted small">None yet.</p>{% endfor %}
     </section>
   </aside>
