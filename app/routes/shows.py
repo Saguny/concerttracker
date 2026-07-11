@@ -195,15 +195,30 @@ async def festival_edit_page(
 ):
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
-            "SELECT festival_name, festival_notes FROM festivals WHERE id = $1 AND user_id = $2",
+            "SELECT festival_name, city, festival_notes FROM festivals WHERE id = $1 AND user_id = $2",
             festival_id, user["id"],
         )
-    if not row:
-        flash(request, "Festival not found", "error")
-        return RedirectResponse("/concert-tracker/shows", status_code=302)
+        if not row:
+            flash(request, "Festival not found", "error")
+            return RedirectResponse("/concert-tracker/shows", status_code=302)
+        shows = await conn.fetch(
+            "SELECT id, artist, date::text AS date, artist_thumb_url FROM shows "
+            "WHERE festival_id = $1 AND user_id = $2 ORDER BY date, artist",
+            festival_id, user["id"],
+        )
+    existing_shows = [
+        {"show_id": s["id"], "name": s["artist"], "date": s["date"], "thumb": s["artist_thumb_url"] or ""}
+        for s in shows
+    ]
     return templates.TemplateResponse(
         "festival_edit.html",
-        _ctx(request, user, festival_id=festival_id, festival_name=row["festival_name"], festival_notes=row["festival_notes"] or "", csrf=get_csrf_token(request)),
+        _ctx(request, user,
+             festival_id=festival_id,
+             festival_name=row["festival_name"],
+             city=row["city"] or "",
+             festival_notes=row["festival_notes"] or "",
+             existing_shows=existing_shows,
+             csrf=get_csrf_token(request)),
     )
 
 
@@ -211,14 +226,83 @@ async def festival_edit_page(
 async def festival_edit_save(
     festival_id: int, request: Request, pool=Depends(get_pool), user=Depends(require_user)
 ):
+    import asyncio, datetime as _dt
     await verify_csrf(request)
     form = await request.form()
+
+    festival_name = str(form.get("festival_name", "")).strip()[:200]
+    city = str(form.get("city", "")).strip()[:200]
     notes = str(form.get("festival_notes", "")).strip()[:2000] or None
+    artists_raw = str(form.get("artists_json", "")).strip()
+
+    submitted: list[dict] = []
+    if artists_raw:
+        try:
+            submitted = [a for a in json.loads(artists_raw) if a.get("name") and a.get("date")]
+        except Exception:
+            pass
+
+    if not festival_name:
+        flash(request, "Festival name is required.", "error")
+        return RedirectResponse(f"/concert-tracker/shows/festival/{festival_id}/edit", status_code=302)
+
+    now = int(time.time())
+    new_artists = [a for a in submitted if not a.get("show_id")]
+
+    sp_results = []
+    if new_artists:
+        sp_results = list(await asyncio.gather(
+            *[spotify.search_artist(a["name"]) for a in new_artists], return_exceptions=True
+        ))
+
     async with pool.acquire() as conn:
+        row = await conn.fetchrow("SELECT id FROM festivals WHERE id = $1 AND user_id = $2", festival_id, user["id"])
+        if not row:
+            flash(request, "Festival not found", "error")
+            return RedirectResponse("/concert-tracker/shows", status_code=302)
+
         await conn.execute(
-            "UPDATE festivals SET festival_notes = $1 WHERE id = $2 AND user_id = $3",
-            notes, festival_id, user["id"],
+            "UPDATE festivals SET festival_name = $1, city = $2, festival_notes = $3 WHERE id = $4",
+            festival_name, city, notes, festival_id,
         )
+        await conn.execute(
+            "UPDATE shows SET festival_name = $1, venue = $1, city = $2 WHERE festival_id = $3 AND user_id = $4",
+            festival_name, city, festival_id, user["id"],
+        )
+
+        kept_ids = [int(a["show_id"]) for a in submitted if a.get("show_id")]
+        if kept_ids:
+            await conn.execute(
+                "DELETE FROM shows WHERE festival_id = $1 AND user_id = $2 AND id <> ALL($3)",
+                festival_id, user["id"], kept_ids,
+            )
+            for a in submitted:
+                if a.get("show_id"):
+                    await conn.execute(
+                        "UPDATE shows SET date = $1 WHERE id = $2 AND festival_id = $3",
+                        _dt.date.fromisoformat(str(a["date"])), int(a["show_id"]), festival_id,
+                    )
+        else:
+            await conn.execute(
+                "DELETE FROM shows WHERE festival_id = $1 AND user_id = $2", festival_id, user["id"]
+            )
+
+        for a, sp in zip(new_artists, sp_results):
+            sp = sp if isinstance(sp, dict) else None
+            await conn.execute(
+                "INSERT INTO shows (user_id, artist, venue, city, date, is_festival, festival_name, festival_id, "
+                "artist_spotify_id, artist_image_url, artist_thumb_url, artist_genres, created_at) "
+                "VALUES ($1,$2,$3,$4,$5,TRUE,$6,$7,$8,$9,$10,$11,$12)",
+                user["id"], str(a["name"])[:200], festival_name, city,
+                _dt.date.fromisoformat(str(a["date"])), festival_name, festival_id,
+                sp["id"] if sp else None,
+                sp["image_url"] if sp else None,
+                sp["thumb_url"] if sp else None,
+                sp["genres"] if sp else [],
+                now,
+            )
+
+    flash(request, "Festival updated!", "success")
     return RedirectResponse(f"/concert-tracker/shows/festival/{festival_id}", status_code=302)
 
 

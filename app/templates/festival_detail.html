@@ -3,6 +3,7 @@
 {% block content %}
 <div class="detail-wrap">
 
+  <div class="detail-top">
   <div class="detail-card">
     <div class="detail-square">
       {% if shows[0].artist_image_url %}
@@ -80,23 +81,6 @@
         {% if is_own %}
         <div class="detail-owner-actions">
           <a href="/concert-tracker/shows/festival/{{ festival_id }}/edit" class="btn btn-sm btn-ghost">Edit</a>
-          <form method="post" action="/concert-tracker/shows/festival/{{ festival_id }}/delete"
-                onsubmit="return confirm('Delete all {{ festival_name }} shows?')" style="display:inline">
-            <input type="hidden" name="_csrf" value="{{ csrf }}">
-            <button type="submit" class="btn btn-sm btn-danger">Delete Festival</button>
-          </form>
-          {% if taggable %}
-          <form method="post" action="/concert-tracker/shows/festival/{{ festival_id }}/tag" class="tag-friend-form">
-            <input type="hidden" name="_csrf" value="{{ csrf }}">
-            <select name="friend_id" class="tag-friend-select">
-              <option value="">Tag a friend…</option>
-              {% for f in taggable %}
-              <option value="{{ f.id }}">{{ f.username }}</option>
-              {% endfor %}
-            </select>
-            <button type="submit" class="btn btn-sm btn-ghost">Tag</button>
-          </form>
-          {% endif %}
         </div>
         {% endif %}
 
@@ -105,82 +89,75 @@
     </div>
   </div>
 
-  <!-- Below-card columns -->
-  <div class="detail-columns">
-    <div class="detail-col-main">
-
-      {% if festival_notes %}
-      <div class="detail-notes">{{ festival_notes }}</div>
-      {% endif %}
-
-      <!-- Comments -->
-      <div class="detail-section comments-section">
-        <h3>Comments <span class="muted">{{ comments | length }}</span></h3>
-
-        {% if comments %}
-        <div class="comment-list">
-          {% for c in comments %}
-          <div class="comment">
-            <div class="comment-avatar">
-              {% if c.avatar_url %}<img src="{{ c.avatar_url }}" alt="{{ c.username }}">
-              {% else %}<div class="comment-avatar-ph">{{ c.username[0] | upper }}</div>{% endif %}
-            </div>
-            <div class="comment-body">
-              <div class="comment-meta">
-                <a href="/concert-tracker/u/{{ c.username }}" class="comment-author">{{ c.username }}</a>
-                <span class="muted small">{{ c.created_at | int | timestamp_fmt }}</span>
-              </div>
-              <div class="comment-text">{{ c.body }}</div>
-            </div>
-            {% if c.username == user.username %}
-            <form method="post" action="/concert-tracker/shows/festival/{{ festival_id }}/comments/{{ c.id }}/delete" class="comment-delete-form">
-              <input type="hidden" name="_csrf" value="{{ csrf }}">
-              <button type="submit" class="btn-icon-danger" title="Delete">×</button>
-            </form>
-            {% endif %}
-          </div>
-          {% endfor %}
-        </div>
+  <aside class="detail-artists-aside detail-section">
+    <h3>Artists seen <span class="muted">{{ shows | length }}</span></h3>
+    <div class="detail-support-list">
+      {% for show in shows %}
+      <a href="/concert-tracker/shows/{{ show.id }}" class="detail-support-row">
+        {% if show.artist_thumb_url %}
+        <img src="{{ show.artist_thumb_url }}" class="detail-support-img" alt="{{ show.artist }}">
+        {% else %}
+        <div class="detail-support-img detail-support-ph">{{ show.artist[0] | upper }}</div>
         {% endif %}
-
-        <form method="post" action="/concert-tracker/shows/festival/{{ festival_id }}/comments" class="comment-form">
-          <input type="hidden" name="_csrf" value="{{ csrf }}">
-          <div class="comment-input-wrap">
-            <div class="comment-avatar">
-              {% if user.avatar_url %}<img src="{{ user.avatar_url }}" alt="{{ user.username }}">
-              {% else %}<div class="comment-avatar-ph">{{ user.username[0] | upper }}</div>{% endif %}
-            </div>
-            <textarea name="body" rows="2" maxlength="500" placeholder="Add a comment…" required class="comment-input"></textarea>
-          </div>
-          <div class="comment-form-actions">
-            <button type="submit" class="btn btn-sm btn-accent">Post</button>
-          </div>
-        </form>
-      </div>
-
-    </div>
-    <aside class="detail-col-side">
-      <div class="detail-section">
-        <h3>Artists seen <span class="muted">{{ shows | length }}</span></h3>
-        <div class="detail-support-list">
-          {% for show in shows %}
-          <a href="/concert-tracker/shows/{{ show.id }}" class="detail-support-row">
-            {% if show.artist_thumb_url %}
-            <img src="{{ show.artist_thumb_url }}" class="detail-support-img" alt="{{ show.artist }}">
-            {% else %}
-            <div class="detail-support-img detail-support-ph">{{ show.artist[0] | upper }}</div>
-            {% endif %}
-            <div>
-              <div class="detail-support-name">{{ show.artist }}</div>
-              {% if show.setlist and show.setlist.songs %}
-              <div style="font-size:.7rem;color:var(--muted)">{{ show.setlist.songs | length }} songs</div>
-              {% endif %}
-            </div>
-          </a>
-          {% endfor %}
+        <div>
+          <div class="detail-support-name">{{ show.artist }}</div>
+          {% if show.setlist and show.setlist.songs %}
+          <div style="font-size:.7rem;color:var(--muted)">{{ show.setlist.songs | length }} songs</div>
+          {% endif %}
         </div>
+      </a>
+      {% endfor %}
+    </div>
+  </aside>
+
+  </div><!-- /detail-top -->
+
+  {% if festival_notes %}
+  <div class="detail-notes">{{ festival_notes }}</div>
+  {% endif %}
+
+  <div class="detail-section comments-section">
+    <h3>Comments <span class="muted">{{ comments | length }}</span></h3>
+
+    {% if comments %}
+    <div class="comment-list">
+      {% for c in comments %}
+      <div class="comment">
+        <div class="comment-avatar">
+          {% if c.avatar_url %}<img src="{{ c.avatar_url }}" alt="{{ c.username }}">
+          {% else %}<div class="comment-avatar-ph">{{ c.username[0] | upper }}</div>{% endif %}
+        </div>
+        <div class="comment-body">
+          <div class="comment-meta">
+            <a href="/concert-tracker/u/{{ c.username }}" class="comment-author">{{ c.username }}</a>
+            <span class="muted small">{{ c.created_at | int | timestamp_fmt }}</span>
+          </div>
+          <div class="comment-text">{{ c.body }}</div>
+        </div>
+        {% if c.username == user.username %}
+        <form method="post" action="/concert-tracker/shows/festival/{{ festival_id }}/comments/{{ c.id }}/delete" class="comment-delete-form">
+          <input type="hidden" name="_csrf" value="{{ csrf }}">
+          <button type="submit" class="btn-icon-danger" title="Delete">×</button>
+        </form>
+        {% endif %}
       </div>
-    </aside>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <form method="post" action="/concert-tracker/shows/festival/{{ festival_id }}/comments" class="comment-form">
+      <input type="hidden" name="_csrf" value="{{ csrf }}">
+      <div class="comment-input-wrap">
+        <div class="comment-avatar">
+          {% if user.avatar_url %}<img src="{{ user.avatar_url }}" alt="{{ user.username }}">
+          {% else %}<div class="comment-avatar-ph">{{ user.username[0] | upper }}</div>{% endif %}
+        </div>
+        <textarea name="body" rows="2" maxlength="500" placeholder="Add a comment…" required class="comment-input"></textarea>
+      </div>
+      <div class="comment-form-actions">
+        <button type="submit" class="btn btn-sm btn-accent">Post</button>
+      </div>
+    </form>
   </div>
 
 </div>
