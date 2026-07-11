@@ -98,6 +98,19 @@ async def social_page(request: Request, pool=Depends(get_pool), user=Depends(req
     following_ids = {r["id"] for r in following}
     follower_ids = {r["id"] for r in followers}
     mutuals = [r for r in following if r["id"] in follower_ids]
+    mutual_ids = [r["id"] for r in mutuals]
+
+    shared_artists = []
+    if mutual_ids:
+        async with pool.acquire() as conn:
+            shared_artists = await conn.fetch(
+                "SELECT s.artist, COUNT(DISTINCT s2.user_id)::int AS mutual_count "
+                "FROM shows s "
+                "JOIN shows s2 ON s2.artist = s.artist AND s2.user_id = ANY($2) "
+                "WHERE s.user_id = $1 "
+                "GROUP BY s.artist ORDER BY mutual_count DESC, s.artist LIMIT 6",
+                uid, mutual_ids,
+            )
 
     return templates.TemplateResponse(
         "social.html",
@@ -108,9 +121,9 @@ async def social_page(request: Request, pool=Depends(get_pool), user=Depends(req
             leaderboard_all=leaderboard_all,
             leaderboard_year=leaderboard_year,
             following=following,
-            followers=followers,
             mutuals=mutuals,
             following_ids=following_ids,
+            shared_artists=shared_artists,
             csrf=get_csrf_token(request),
         ),
     )

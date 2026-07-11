@@ -87,14 +87,14 @@
     <section class="social-section">
       <h2>Following <span class="muted">{{ following | length }}</span></h2>
       {% for f in following %}
-      <div class="follow-row">
+      <div class="follow-row {% if f.id in (mutuals | map(attribute='id') | list) %}follow-row-mutual{% endif %}">
         {% if f.avatar_url %}
         <img src="{{ f.avatar_url }}" class="follow-avatar" alt="{{ f.username }}">
         {% else %}
-        <span class="follow-avatar follow-avatar-ph">{{ f.username[0] | upper }}</span>
+        <div class="follow-avatar follow-avatar-ph">{{ f.username[0] | upper }}</div>
         {% endif %}
         <a href="/concert-tracker/u/{{ f.username }}">{{ f.username }}</a>
-        {% if f.id in following_ids and f.id in (followers | map(attribute='id') | list) %}
+        {% if f.id in (mutuals | map(attribute='id') | list) %}
         <span class="badge badge-mutual">mutual</span>
         {% endif %}
       </div>
@@ -103,28 +103,33 @@
       {% endfor %}
     </section>
 
+    {% if mutuals %}
     <section class="social-section">
-      <h2>Followers <span class="muted">{{ followers | length }}</span></h2>
-      {% for f in followers %}
-      <div class="follow-row">
-        {% if f.avatar_url %}
-        <img src="{{ f.avatar_url }}" class="follow-avatar" alt="{{ f.username }}">
-        {% else %}
-        <span class="follow-avatar follow-avatar-ph">{{ f.username[0] | upper }}</span>
-        {% endif %}
-        <a href="/concert-tracker/u/{{ f.username }}">{{ f.username }}</a>
-        {% if f.id not in following_ids %}
-        <form method="post" action="/concert-tracker/u/follow" style="display:inline">
-          <input type="hidden" name="_csrf" value="{{ csrf }}">
-          <input type="hidden" name="username" value="{{ f.username }}">
-          <button class="btn btn-sm btn-ghost">Follow back</button>
-        </form>
-        {% endif %}
+      <h2>Your Circle <span class="muted">{{ mutuals | length }}</span></h2>
+      <div class="circle-avatars">
+        {% for m in mutuals %}
+        <a href="/concert-tracker/u/{{ m.username }}" class="circle-avatar-link" title="{{ m.username }}">
+          {% if m.avatar_url %}
+          <img src="{{ m.avatar_url }}" class="circle-avatar" width="36" height="36" alt="{{ m.username }}">
+          {% else %}
+          <div class="circle-avatar circle-avatar-ph">{{ m.username[0] | upper }}</div>
+          {% endif %}
+        </a>
+        {% endfor %}
       </div>
-      {% else %}
-      <p class="muted small">No followers yet.</p>
+      {% if shared_artists %}
+      <p class="muted small" style="margin:.75rem 0 .4rem">Artists in common</p>
+      {% for r in shared_artists %}
+      <div class="mini-bar-row">
+        <span class="mini-bar-label">{{ r.artist }}</span>
+        <span class="mini-bar-count">{{ r.mutual_count }} friend{{ 's' if r.mutual_count != 1 else '' }}</span>
+      </div>
       {% endfor %}
+      {% else %}
+      <p class="muted small" style="margin-top:.5rem">No shared artists yet.</p>
+      {% endif %}
     </section>
+    {% endif %}
   </aside>
 </div>
 {% endblock %}
