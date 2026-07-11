@@ -182,19 +182,19 @@
       {% if shared_artists %}
       <p class="muted small circle-subsection-label">Artists in common</p>
       {% for r in shared_artists %}
-      <div class="mini-bar-row">
+      <a href="/concert-tracker/artists/{{ r.artist | urlquote }}" class="mini-bar-row mini-bar-link">
         <span class="mini-bar-label">{{ r.artist }}</span>
         <span class="mini-bar-count">{{ r.mutual_count }} friend{{ 's' if r.mutual_count != 1 else '' }}</span>
-      </div>
+      </a>
       {% endfor %}
       {% endif %}
       {% if shared_cities %}
       <p class="muted small circle-subsection-label">Cities in common</p>
       {% for r in shared_cities %}
-      <div class="mini-bar-row">
+      <a href="https://maps.google.com/?q={{ r.city | urlquote }}" target="_blank" rel="noopener" class="mini-bar-row mini-bar-link">
         <span class="mini-bar-label">{{ r.city }}</span>
         <span class="mini-bar-count">{{ r.mutual_count }} friend{{ 's' if r.mutual_count != 1 else '' }}</span>
-      </div>
+      </a>
       {% endfor %}
       {% endif %}
       {% if not shared_artists and not shared_cities %}
