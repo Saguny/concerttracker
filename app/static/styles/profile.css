@@ -62,7 +62,10 @@
 .festival-act-row {
   display: flex; align-items: center; gap: .65rem;
   padding: .5rem 1rem; border-bottom: 1px solid var(--border);
+  text-decoration: none; color: var(--text);
+  transition: background .12s;
 }
+.festival-act-row:hover { background: var(--surface2); text-decoration: none; }
 .festival-act-row:last-child { border-bottom: none; }
 .festival-act-thumb {
   width: 28px; height: 28px; border-radius: 50%; object-fit: cover; flex-shrink: 0;

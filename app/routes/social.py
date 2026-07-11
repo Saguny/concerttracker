@@ -293,13 +293,32 @@ async def friend_profile(
         follower_count = await conn.fetchval("SELECT COUNT(*) FROM follows WHERE target_id=$1", pid)
         following_count = await conn.fetchval("SELECT COUNT(*) FROM follows WHERE user_id=$1", pid)
 
+    seen_festivals: dict = {}
+    items: list = []
+    for row in shows:
+        if row["is_festival"] and row["festival_name"]:
+            fname = row["festival_name"]
+            if fname not in seen_festivals:
+                entry: dict = {
+                    "type": "festival",
+                    "festival_name": fname,
+                    "city": row["city"],
+                    "date": row["date"],
+                    "shows": [],
+                }
+                seen_festivals[fname] = entry
+                items.append(entry)
+            seen_festivals[fname]["shows"].append(row)
+        else:
+            items.append({"type": "show", "show": row})
+
     return templates.TemplateResponse(
         "profile.html",
         _ctx(
             request,
             user,
             profile=profile,
-            shows=shows,
+            items=items,
             show_count=show_count,
             follower_count=follower_count,
             following_count=following_count,
