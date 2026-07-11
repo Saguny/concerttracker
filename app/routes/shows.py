@@ -824,6 +824,17 @@ async def _handle_save(request: Request, pool, user: dict, show_id: int | None):
 
     async with pool.acquire() as conn:
         if show_id is None:
+            existing_id = await conn.fetchval(
+                "SELECT id FROM shows WHERE user_id = $1 AND LOWER(artist) = LOWER($2) AND date = $3 LIMIT 1",
+                user["id"], artist, date,
+            )
+            if existing_id:
+                flash(
+                    request,
+                    f'You already logged this show. <a href="/concert-tracker/shows/{existing_id}">View it here →</a>',
+                    "warning",
+                )
+                return RedirectResponse("/concert-tracker/shows/add", status_code=302)
             show_id = await conn.fetchval(
                 "INSERT INTO shows (user_id, artist, venue, city, date, is_festival, festival_name, "
                 "notes, setlist, support_acts, artist_mbid, artist_spotify_id, artist_image_url, "

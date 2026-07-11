@@ -42,7 +42,9 @@ img { max-width: 100%; }
 .flash { padding: .65rem 1rem; border-radius: var(--radius-sm); margin-bottom: 1rem; font-size: .875rem; }
 .flash-info    { background: rgba(59,130,246,.15); border: 1px solid rgba(59,130,246,.3); color: var(--blue); }
 .flash-error   { background: rgba(239,68,68,.15);  border: 1px solid rgba(239,68,68,.3);  color: var(--danger); }
-.flash-success { background: rgba(34,197,94,.15);  border: 1px solid rgba(34,197,94,.3);  color: var(--success); }
+.flash-success  { background: rgba(34,197,94,.15);  border: 1px solid rgba(34,197,94,.3);  color: var(--success); }
+.flash-warning  { background: rgba(245,158,11,.15); border: 1px solid rgba(245,158,11,.3); color: var(--accent); }
+.flash-warning a { color: var(--accent); font-weight: 600; }
 
 .muted    { color: var(--muted); }
 .small    { font-size: .8rem; }
