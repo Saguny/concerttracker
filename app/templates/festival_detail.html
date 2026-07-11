@@ -52,19 +52,19 @@
         </div>
 
         <div class="detail-actions-row">
-          <form method="post" action="/concert-tracker/shows/festival/{{ festival_name | urlquote }}/like" class="like-form">
+          <form method="post" action="/concert-tracker/shows/festival/{{ festival_id }}/like" class="like-form">
             <input type="hidden" name="_csrf" value="{{ csrf }}">
             <button type="submit" class="btn-like {% if user_liked %}liked{% endif %}">
               {% if user_liked %}♥{% else %}♡{% endif %} <span>{{ like_count }}</span>
             </button>
           </form>
-          <a href="/concert-tracker/u/{{ user.username }}" class="post-author-chip">
-            {% if user.avatar_url %}
-            <img src="{{ user.avatar_url }}" class="post-author-avatar" width="26" height="26" alt="{{ user.username }}">
+          <a href="/concert-tracker/u/{{ owner_user.username }}" class="post-author-chip">
+            {% if owner_user.avatar_url %}
+            <img src="{{ owner_user.avatar_url }}" class="post-author-avatar" width="26" height="26" alt="{{ owner_user.username }}">
             {% else %}
-            <span class="post-author-avatar-ph">{{ user.username[0] | upper }}</span>
+            <span class="post-author-avatar-ph">{{ owner_user.username[0] | upper }}</span>
             {% endif %}
-            {{ user.username }}
+            {{ owner_user.username }}
           </a>
         </div>
 
@@ -77,15 +77,16 @@
         </div>
         {% endif %}
 
+        {% if is_own %}
         <div class="detail-owner-actions">
-          <a href="/concert-tracker/shows/festival/{{ festival_name | urlquote }}/edit" class="btn btn-sm btn-ghost">Edit</a>
-          <form method="post" action="/concert-tracker/shows/festival/{{ festival_name | urlquote }}/delete"
+          <a href="/concert-tracker/shows/festival/{{ festival_id }}/edit" class="btn btn-sm btn-ghost">Edit</a>
+          <form method="post" action="/concert-tracker/shows/festival/{{ festival_id }}/delete"
                 onsubmit="return confirm('Delete all {{ festival_name }} shows?')" style="display:inline">
             <input type="hidden" name="_csrf" value="{{ csrf }}">
             <button type="submit" class="btn btn-sm btn-danger">Delete Festival</button>
           </form>
           {% if taggable %}
-          <form method="post" action="/concert-tracker/shows/festival/{{ festival_name | urlquote }}/tag" class="tag-friend-form">
+          <form method="post" action="/concert-tracker/shows/festival/{{ festival_id }}/tag" class="tag-friend-form">
             <input type="hidden" name="_csrf" value="{{ csrf }}">
             <select name="friend_id" class="tag-friend-select">
               <option value="">Tag a friend…</option>
@@ -97,6 +98,7 @@
           </form>
           {% endif %}
         </div>
+        {% endif %}
 
       </div>
 
@@ -152,7 +154,7 @@
               <div class="comment-text">{{ c.body }}</div>
             </div>
             {% if c.username == user.username %}
-            <form method="post" action="/concert-tracker/shows/festival/{{ festival_name | urlquote }}/comments/{{ c.id }}/delete" class="comment-delete-form">
+            <form method="post" action="/concert-tracker/shows/festival/{{ festival_id }}/comments/{{ c.id }}/delete" class="comment-delete-form">
               <input type="hidden" name="_csrf" value="{{ csrf }}">
               <button type="submit" class="btn-icon-danger" title="Delete">×</button>
             </form>
@@ -162,7 +164,7 @@
         </div>
         {% endif %}
 
-        <form method="post" action="/concert-tracker/shows/festival/{{ festival_name | urlquote }}/comments" class="comment-form">
+        <form method="post" action="/concert-tracker/shows/festival/{{ festival_id }}/comments" class="comment-form">
           <input type="hidden" name="_csrf" value="{{ csrf }}">
           <div class="comment-input-wrap">
             <div class="comment-avatar">

@@ -96,6 +96,30 @@ CREATE TABLE IF NOT EXISTS artist_comments (
 );
 CREATE INDEX IF NOT EXISTS idx_artist_comments_name ON artist_comments(artist_name);
 
+-- stable UUID per festival submission (one UUID shared across all acts in the same festival log)
+ALTER TABLE shows ADD COLUMN IF NOT EXISTS festival_id UUID;
+
+-- backfill: assign a shared UUID to each (user_id, festival_name) group that lacks one
+DO $$
+DECLARE
+    rec RECORD;
+BEGIN
+    FOR rec IN
+        SELECT DISTINCT user_id, festival_name
+        FROM shows
+        WHERE is_festival = TRUE AND festival_name IS NOT NULL AND festival_id IS NULL
+    LOOP
+        UPDATE shows
+        SET festival_id = gen_random_uuid()
+        WHERE user_id = rec.user_id AND festival_name = rec.festival_name AND festival_id IS NULL;
+    END LOOP;
+END $$;
+
+CREATE INDEX IF NOT EXISTS idx_shows_festival_id ON shows(festival_id);
+
+-- username change history tracking
+ALTER TABLE users ADD COLUMN IF NOT EXISTS prev_username TEXT;
+
 -- global artist catalogue
 CREATE TABLE IF NOT EXISTS artists (
     name TEXT PRIMARY KEY,

@@ -32,9 +32,15 @@ async def edit_profile_page(request: Request, pool=Depends(get_pool), user=Depen
 
 @router.post("/profile/edit")
 async def save_profile(request: Request, pool=Depends(get_pool), user=Depends(require_user)):
+    import re
     await verify_csrf(request)
     form = await request.form()
     bio = str(form.get("bio", "")).strip()[:300] or None
+    new_username = str(form.get("username", "")).strip()[:30]
+
+    if not re.fullmatch(r"[A-Za-z0-9_]{2,30}", new_username):
+        flash(request, "Username must be 2–30 characters: letters, numbers, underscores only.", "error")
+        return RedirectResponse("/concert-tracker/profile/edit", status_code=302)
 
     avatar_url = None
     avatar_file = form.get("avatar")
@@ -49,6 +55,20 @@ async def save_profile(request: Request, pool=Depends(get_pool), user=Depends(re
             return RedirectResponse("/concert-tracker/profile/edit", status_code=302)
 
     async with pool.acquire() as conn:
+        if new_username != user["username"]:
+            existing = await conn.fetchval(
+                "SELECT id FROM users WHERE username = $1 AND id != $2", new_username, user["id"]
+            )
+            if existing:
+                flash(request, "That username is already taken.", "error")
+                return RedirectResponse("/concert-tracker/profile/edit", status_code=302)
+            await conn.execute(
+                "UPDATE users SET prev_username = username, username = $1 WHERE id = $2",
+                new_username, user["id"],
+            )
+            request.session["username"] = new_username
+            user["username"] = new_username
+
         if avatar_url:
             await conn.execute(
                 "UPDATE users SET bio = $1, avatar_url = $2 WHERE id = $3",
@@ -132,11 +152,13 @@ async def social_page(request: Request, pool=Depends(get_pool), user=Depends(req
     feed_items: list = []
     seen_festival_keys: dict = {}
     for row in feed:
-        if row["is_festival"] and row["festival_name"]:
-            key = (row["username"], row["festival_name"])
+        fid = row["festival_id"] if row["is_festival"] and row["festival_name"] else None
+        if fid:
+            key = str(fid)
             if key not in seen_festival_keys:
                 entry: dict = {
                     "type": "festival",
+                    "festival_id": key,
                     "festival_name": row["festival_name"],
                     "city": row["city"],
                     "date": row["date"],
@@ -317,19 +339,21 @@ async def friend_profile(
     seen_festivals: dict = {}
     items: list = []
     for row in shows:
-        if row["is_festival"] and row["festival_name"]:
-            fname = row["festival_name"]
-            if fname not in seen_festivals:
+        fid = row["festival_id"] if row["is_festival"] and row["festival_name"] else None
+        if fid:
+            key = str(fid)
+            if key not in seen_festivals:
                 entry: dict = {
                     "type": "festival",
-                    "festival_name": fname,
+                    "festival_id": key,
+                    "festival_name": row["festival_name"],
                     "city": row["city"],
                     "date": row["date"],
                     "shows": [],
                 }
-                seen_festivals[fname] = entry
+                seen_festivals[key] = entry
                 items.append(entry)
-            seen_festivals[fname]["shows"].append(row)
+            seen_festivals[key]["shows"].append(row)
         else:
             items.append({"type": "show", "show": row})
 

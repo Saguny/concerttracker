@@ -3,10 +3,16 @@
 {% block content %}
 <div class="auth-wrap" style="max-width:520px">
   <h1 class="auth-title">Edit Profile</h1>
-  <p class="auth-sub">Upload an avatar and write a bio.</p>
+  <p class="auth-sub">Update your username, avatar, and bio.</p>
 
   <form method="post" action="/concert-tracker/profile/edit" class="auth-form" enctype="multipart/form-data">
     <input type="hidden" name="_csrf" value="{{ csrf }}">
+
+    <label>
+      Username
+      <input type="text" name="username" value="{{ me.username }}" maxlength="30" pattern="[A-Za-z0-9_]+" title="Letters, numbers, and underscores only" required>
+      <span class="muted small">Letters, numbers, underscores · 2–30 chars</span>
+    </label>
 
     <label>
       Avatar

@@ -12,7 +12,9 @@
 .show-card-link { display: flex; align-items: center; gap: 1rem; flex: 1; min-width: 0; color: var(--text); text-decoration: none; }
 .show-card-link:hover { text-decoration: none; }
 .show-card-actions { display: flex; gap: .4rem; flex-shrink: 0; margin-left: .5rem; }
-.show-card:has(.show-card-link):hover { border-color: var(--accent); background: var(--surface2); }
+.show-card:has(.show-card-link):not(.festival-group-card):hover { border-color: var(--accent); background: var(--surface2); }
+.festival-group-card:hover { border-color: var(--border); background: var(--surface); }
+.festival-group-card:has(.show-card-link:hover) { border-color: var(--accent); background: var(--surface2); }
 .show-upcoming { border-left: 3px solid var(--accent); }
 .show-thumb { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
 .show-thumb-placeholder { width: 48px; height: 48px; border-radius: 50%; background: var(--surface2); display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0; }

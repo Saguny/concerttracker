@@ -4,9 +4,9 @@
 <div class="detail-wrap">
   <div class="page-header">
     <h1>{{ festival_name }}</h1>
-    <a href="/concert-tracker/shows/festival/{{ festival_name | urlquote }}" class="btn btn-ghost">Cancel</a>
+    <a href="/concert-tracker/shows/festival/{{ festival_id }}" class="btn btn-ghost">Cancel</a>
   </div>
-  <form method="post" action="/concert-tracker/shows/festival/{{ festival_name | urlquote }}/edit" class="show-form">
+  <form method="post" action="/concert-tracker/shows/festival/{{ festival_id }}/edit" class="show-form">
     <input type="hidden" name="_csrf" value="{{ csrf }}">
     <div class="field-group">
       <label>Thoughts</label>

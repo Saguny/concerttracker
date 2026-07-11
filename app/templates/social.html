@@ -59,7 +59,7 @@
       {% else %}
       {% set f = item %}
       <div class="show-card festival-group-card">
-        <a href="/concert-tracker/shows/festival/{{ f.festival_name | urlquote }}" class="show-card-link">
+        <a href="/concert-tracker/shows/festival/{{ f.festival_id }}" class="show-card-link">
           {% if f.shows[0].artist_thumb_url %}
           <img class="show-thumb" src="{{ f.shows[0].artist_thumb_url }}" alt="{{ f.festival_name }}" loading="lazy">
           {% else %}
