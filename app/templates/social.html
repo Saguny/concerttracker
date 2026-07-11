@@ -5,14 +5,13 @@
   <div class="social-main">
     <div class="social-top-bar">
       <h2>Activity Feed</h2>
-      <form class="follow-form" method="post" action="/concert-tracker/u/follow" id="follow-form" onsubmit="return !!document.getElementById('follow-user-input').value.trim()">
-        <input type="hidden" name="_csrf" value="{{ csrf }}">
+      <div class="follow-form">
         <div class="follow-input-wrap autocomplete-wrap">
-          <input type="search" name="follow_user" id="follow-user-input" placeholder="Find a user…" required autocomplete="new-password" onkeydown="if(event.key==='Enter')event.preventDefault()">
+          <input type="text" id="follow-user-input" placeholder="Find a user…" autocomplete="off" spellcheck="false">
           <ul class="autocomplete-list" id="follow-dropdown"></ul>
         </div>
-        <button type="submit" class="btn btn-sm btn-accent" style="align-self:flex-start">Search</button>
-      </form>
+        <button type="button" class="btn btn-sm btn-accent" id="follow-search-btn">Search</button>
+      </div>
     </div>
 
     {% if not feed %}
@@ -142,9 +141,20 @@ function switchTab(tab, btn) {
 (function() {
   const input = document.getElementById('follow-user-input');
   const dropdown = document.getElementById('follow-dropdown');
+  const searchBtn = document.getElementById('follow-search-btn');
   if (!input) return;
 
   function esc(s) { return s.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+  function goTo(username) { window.location.href = `/concert-tracker/u/${encodeURIComponent(username)}`; }
+
+  searchBtn.addEventListener('click', function() {
+    const q = input.value.trim();
+    if (q) goTo(q);
+  });
+
+  input.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') { e.preventDefault(); const q = input.value.trim(); if (q) goTo(q); }
+  });
 
   let timer;
   input.addEventListener('input', function() {
@@ -166,8 +176,7 @@ function switchTab(tab, btn) {
       dropdown.querySelectorAll('.ac-item').forEach(li => {
         li.addEventListener('mousedown', function(e) {
           e.preventDefault();
-          input.value = this.dataset.val;
-          dropdown.style.display = 'none';
+          goTo(this.dataset.val);
         });
       });
     }, 200);

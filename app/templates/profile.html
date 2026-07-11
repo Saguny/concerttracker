@@ -36,7 +36,7 @@
     {% else %}
     <form method="post" action="/concert-tracker/u/follow">
       <input type="hidden" name="_csrf" value="{{ csrf }}">
-      <input type="hidden" name="username" value="{{ profile.username }}">
+      <input type="hidden" name="follow_user" value="{{ profile.username }}">
       <button class="btn btn-accent">Follow</button>
     </form>
     {% endif %}
