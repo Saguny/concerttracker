@@ -187,7 +187,7 @@
     <section class="social-section">
       <h2>Top Venues</h2>
       {% for r in top_venues %}
-      <a href="https://maps.google.com/?q={{ r.venue | urlquote }}" target="_blank" rel="noopener" class="mini-bar-row mini-bar-link">
+      <a href="https://maps.google.com/maps?q={{ r.venue | urlquote }}" target="_blank" rel="noopener" class="mini-bar-row mini-bar-link">
         <span class="mini-bar-label">{{ r.venue }}</span>
         <span class="mini-bar-count">{{ r.count }}</span>
       </a>

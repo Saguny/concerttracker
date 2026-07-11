@@ -5,6 +5,7 @@ from pathlib import Path
 from fastapi import FastAPI, Request
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
 from app.db import init_pool, close_pool
@@ -55,6 +56,23 @@ app.include_router(artists.router, prefix=_base)
 app.include_router(stats.router, prefix=_base)
 app.include_router(social.router, prefix=_base)
 app.include_router(cal.router, prefix=_base)
+
+
+class _CSPMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        response.headers["Content-Security-Policy"] = (
+            "default-src 'self'; "
+            "script-src 'self' 'unsafe-inline' https://maps.googleapis.com https://maps.gstatic.com; "
+            "connect-src 'self' https://*.googleapis.com https://*.gstatic.com; "
+            "img-src 'self' data: https://*.googleapis.com https://*.gstatic.com https://*.ggpht.com https://i.scdn.co https://lastfm.freetls.fastly.net; "
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+            "font-src 'self' https://fonts.gstatic.com; "
+            "frame-src 'none';"
+        )
+        return response
+
+app.add_middleware(_CSPMiddleware)
 
 
 @app.exception_handler(NotAuthenticatedException)

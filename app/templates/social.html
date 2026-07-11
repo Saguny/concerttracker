@@ -191,7 +191,7 @@
       {% if shared_cities %}
       <p class="muted small circle-subsection-label">Cities in common</p>
       {% for r in shared_cities %}
-      <a href="https://maps.google.com/?q={{ r.city | urlquote }}" target="_blank" rel="noopener" class="mini-bar-row mini-bar-link">
+      <a href="https://maps.google.com/maps?q={{ r.city | urlquote }}" target="_blank" rel="noopener" class="mini-bar-row mini-bar-link">
         <span class="mini-bar-label">{{ r.city }}</span>
         <span class="mini-bar-count">{{ r.mutual_count }} friend{{ 's' if r.mutual_count != 1 else '' }}</span>
       </a>

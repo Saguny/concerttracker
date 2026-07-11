@@ -611,11 +611,20 @@ showForm.addEventListener('submit', e => {
 {% if google_places_key %}
 <script>
 async function _initVenuePlaces() {
+  console.log('[Places] callback fired, google=', !!window.google);
   const input   = document.getElementById('venue-input');
   const cityInp = document.getElementById('city-input');
-  if (!input || !window.google) return;
+  if (!input || !window.google) { console.warn('[Places] early exit'); return; }
 
-  const { AutocompleteSuggestion } = await google.maps.importLibrary('places');
+  let AutocompleteSuggestion;
+  try {
+    ({ AutocompleteSuggestion } = await google.maps.importLibrary('places'));
+    console.log('[Places] library ready');
+  } catch(e) {
+    console.error('[Places] importLibrary failed:', e);
+    return;
+  }
+
   let timer, lastSuggestions = [];
 
   function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;'); }
@@ -636,7 +645,7 @@ async function _initVenuePlaces() {
         if (!city && t.includes('administrative_area_level_2')) { city = c.longText; }
       }
       if (city) cityInp.value = city;
-    } catch(_) {}
+    } catch(e) { console.warn('[Places] fetchFields error:', e); }
   }
 
   input.addEventListener('input', function() {
@@ -668,9 +677,10 @@ async function _initVenuePlaces() {
             pickPlace(lastSuggestions[+li.dataset.idx].placePrediction);
           });
         });
-      } catch(_) { hideList(venueList); }
+      } catch(e) { console.error('[Places] fetch error:', e); hideList(venueList); }
     }, 200);
   });
+  console.log('[Places] input listener attached');
 }
 </script>
 <script async src="https://maps.googleapis.com/maps/api/js?key={{ google_places_key }}&loading=async&callback=_initVenuePlaces"></script>
