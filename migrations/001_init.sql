@@ -61,6 +61,9 @@ CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 -- show lineup
 ALTER TABLE shows ADD COLUMN IF NOT EXISTS support_acts TEXT[];
 
+-- festival-level notes (stored on one representative row, keyed by festival_name)
+ALTER TABLE shows ADD COLUMN IF NOT EXISTS festival_notes TEXT;
+
 -- profile extensions
 ALTER TABLE users ADD COLUMN IF NOT EXISTS bio TEXT;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url TEXT;

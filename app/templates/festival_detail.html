@@ -78,6 +78,7 @@
         {% endif %}
 
         <div class="detail-owner-actions">
+          <a href="/concert-tracker/shows/festival/{{ festival_name | urlquote }}/edit" class="btn btn-sm btn-ghost">Edit</a>
           <form method="post" action="/concert-tracker/shows/festival/{{ festival_name | urlquote }}/delete"
                 onsubmit="return confirm('Delete all {{ festival_name }} shows?')" style="display:inline">
             <input type="hidden" name="_csrf" value="{{ csrf }}">
@@ -126,6 +127,10 @@
   <!-- Below-card columns -->
   <div class="detail-columns">
     <div class="detail-col-main">
+
+      {% if festival_notes %}
+      <div class="detail-notes">{{ festival_notes }}</div>
+      {% endif %}
 
       <!-- Comments -->
       <div class="detail-section comments-section">

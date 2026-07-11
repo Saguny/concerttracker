@@ -157,6 +157,9 @@ async def festival_detail(
             "WHERE c.show_id = $1 ORDER BY c.created_at ASC",
             rep_id,
         )
+        festival_notes = await conn.fetchval(
+            "SELECT festival_notes FROM shows WHERE id = $1", rep_id
+        )
     shows = [_parse_show(r) for r in rows]
     return templates.TemplateResponse(
         "festival_detail.html",
@@ -171,9 +174,43 @@ async def festival_detail(
             like_count=like_count,
             user_liked=bool(user_liked),
             comments=list(comments),
+            festival_notes=festival_notes,
             csrf=get_csrf_token(request),
         ),
     )
+
+
+@router.get("/shows/festival/{festival_name}/edit", response_class=HTMLResponse)
+async def festival_edit_page(
+    festival_name: str, request: Request, pool=Depends(get_pool), user=Depends(require_user)
+):
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            "SELECT id, festival_notes FROM shows WHERE user_id = $1 AND festival_name = $2 ORDER BY date ASC LIMIT 1",
+            user["id"], festival_name,
+        )
+    if not row:
+        flash(request, "Festival not found", "error")
+        return RedirectResponse("/concert-tracker/shows", status_code=302)
+    return templates.TemplateResponse(
+        "festival_edit.html",
+        _ctx(request, user, festival_name=festival_name, festival_notes=row["festival_notes"] or "", csrf=get_csrf_token(request)),
+    )
+
+
+@router.post("/shows/festival/{festival_name}/edit")
+async def festival_edit_save(
+    festival_name: str, request: Request, pool=Depends(get_pool), user=Depends(require_user)
+):
+    await verify_csrf(request)
+    form = await request.form()
+    notes = str(form.get("festival_notes", "")).strip()[:2000] or None
+    async with pool.acquire() as conn:
+        await conn.execute(
+            "UPDATE shows SET festival_notes = $1 WHERE user_id = $2 AND festival_name = $3",
+            notes, user["id"], festival_name,
+        )
+    return RedirectResponse(f"/concert-tracker/shows/festival/{festival_name}", status_code=302)
 
 
 @router.post("/shows/festival/{festival_name}/like")

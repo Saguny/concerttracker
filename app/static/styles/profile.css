@@ -49,23 +49,19 @@
 .circle-subsection-label { margin: .65rem 0 .35rem; }
 
 /* ── Festival group card ── */
-.festival-group-card { flex-direction: column; align-items: stretch; padding: 0; overflow: hidden; }
-.festival-group-card .show-card-link { padding: .75rem 1rem; }
+.festival-group-card { flex-wrap: wrap; align-items: center; }
+.festival-group-card .show-card-link { flex: 1; min-width: 0; }
 .festival-thumb { font-size: 1.25rem; display: flex; align-items: center; justify-content: center; }
-.festival-toggle {
-  margin: 0 1rem .5rem;
-  align-self: flex-start;
-  font-size: .78rem;
-}
-.festival-acts { display: flex; flex-direction: column; border-top: 1px solid var(--border); }
+.festival-toggle { flex-shrink: 0; font-size: .78rem; margin: 0; }
+.festival-acts { flex-basis: 100%; display: flex; flex-direction: column; border-top: 1px solid var(--border); margin-top: .4rem; }
 .festival-acts-hidden { display: none; }
 .festival-act-row {
   display: flex; align-items: center; gap: .65rem;
-  padding: .5rem 1rem; border-bottom: 1px solid var(--border);
+  padding: .45rem 0; border-bottom: 1px solid var(--border);
   text-decoration: none; color: var(--text);
   transition: background .12s;
 }
-.festival-act-row:hover { background: var(--surface2); text-decoration: none; }
+.festival-act-row:hover { background: rgba(255,255,255,.03); text-decoration: none; }
 .festival-act-row:last-child { border-bottom: none; }
 .festival-act-thumb {
   width: 28px; height: 28px; border-radius: 50%; object-fit: cover; flex-shrink: 0;

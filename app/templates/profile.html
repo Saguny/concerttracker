@@ -138,13 +138,13 @@
               <div class="show-artist">{{ f.festival_name }} <span class="badge badge-festival">Festival</span></div>
               <div class="show-meta">{{ f.city }} · {{ f.shows | length }} act{{ 's' if f.shows | length != 1 else '' }}</div>
             </div>
-            <div class="show-date">
-              <span class="date-day">{{ f.date.strftime('%d') }}</span>
-              <span class="date-mon">{{ f.date.strftime('%b') }}</span>
-              <span class="date-year">{{ f.date.strftime('%Y') }}</span>
-            </div>
           </a>
           <button class="festival-toggle btn btn-sm btn-ghost" type="button" onclick="toggleFestival(this)">▾ Show acts</button>
+          <div class="show-date">
+            <span class="date-day">{{ f.date.strftime('%d') }}</span>
+            <span class="date-mon">{{ f.date.strftime('%b') }}</span>
+            <span class="date-year">{{ f.date.strftime('%Y') }}</span>
+          </div>
           <div class="festival-acts festival-acts-hidden">
             {% for show in f.shows %}
             <a href="/concert-tracker/shows/{{ show.id }}" class="festival-act-row">
@@ -211,7 +211,7 @@ if (perYear.length) {
 }
 
 function toggleFestival(btn) {
-  const acts = btn.nextElementSibling;
+  const acts = btn.closest('.festival-group-card').querySelector('.festival-acts');
   const open = !acts.classList.contains('festival-acts-hidden');
   acts.classList.toggle('festival-acts-hidden', !open);
   btn.textContent = open ? '▾ Show acts' : '▴ Hide acts';
