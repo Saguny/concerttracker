@@ -96,26 +96,52 @@ CREATE TABLE IF NOT EXISTS artist_comments (
 );
 CREATE INDEX IF NOT EXISTS idx_artist_comments_name ON artist_comments(artist_name);
 
--- stable UUID per festival submission (one UUID shared across all acts in the same festival log)
-ALTER TABLE shows ADD COLUMN IF NOT EXISTS festival_id UUID;
+-- festivals table: one row per festival submission per user
+CREATE TABLE IF NOT EXISTS festivals (
+    id SERIAL PRIMARY KEY,
+    user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    festival_name TEXT NOT NULL,
+    city TEXT,
+    festival_notes TEXT,
+    created_at BIGINT NOT NULL DEFAULT EXTRACT(EPOCH FROM NOW())::BIGINT,
+    UNIQUE(user_id, festival_name)
+);
 
--- backfill: assign a shared UUID to each (user_id, festival_name) group that lacks one
+-- remove the broken UUID column if it exists, then add INT FK
 DO $$
-DECLARE
-    rec RECORD;
 BEGIN
-    FOR rec IN
-        SELECT DISTINCT user_id, festival_name
-        FROM shows
-        WHERE is_festival = TRUE AND festival_name IS NOT NULL AND festival_id IS NULL
-    LOOP
-        UPDATE shows
-        SET festival_id = gen_random_uuid()
-        WHERE user_id = rec.user_id AND festival_name = rec.festival_name AND festival_id IS NULL;
-    END LOOP;
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'shows' AND column_name = 'festival_id' AND udt_name = 'uuid'
+    ) THEN
+        ALTER TABLE shows DROP COLUMN festival_id;
+    END IF;
 END $$;
 
+ALTER TABLE shows ADD COLUMN IF NOT EXISTS festival_id INT REFERENCES festivals(id);
+
+-- backfill festivals from shows (idempotent: ON CONFLICT DO NOTHING)
+INSERT INTO festivals (user_id, festival_name, city, festival_notes, created_at)
+SELECT
+    s.user_id,
+    s.festival_name,
+    MIN(s.city),
+    MIN(s.festival_notes),
+    MIN(s.created_at)
+FROM shows s
+WHERE s.is_festival = TRUE AND s.festival_name IS NOT NULL
+GROUP BY s.user_id, s.festival_name
+ON CONFLICT (user_id, festival_name) DO NOTHING;
+
+-- link shows to their festival row (idempotent: only updates NULL rows)
+UPDATE shows s
+SET festival_id = f.id
+FROM festivals f
+WHERE s.user_id = f.user_id AND s.festival_name = f.festival_name
+  AND s.festival_id IS NULL AND s.is_festival = TRUE;
+
 CREATE INDEX IF NOT EXISTS idx_shows_festival_id ON shows(festival_id);
+CREATE INDEX IF NOT EXISTS idx_festivals_user ON festivals(user_id);
 
 -- username change history tracking
 ALTER TABLE users ADD COLUMN IF NOT EXISTS prev_username TEXT;

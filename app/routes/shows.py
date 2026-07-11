@@ -124,48 +124,48 @@ async def list_shows(
 
 @router.get("/shows/festival/{festival_id}", response_class=HTMLResponse)
 async def festival_detail(
-    festival_id: str, request: Request, pool=Depends(get_pool), user=Depends(require_user),
+    festival_id: int, request: Request, pool=Depends(get_pool), user=Depends(require_user),
 ):
     async with pool.acquire() as conn:
-        rows = await conn.fetch(
-            "SELECT s.*, u.username AS owner_username, u.avatar_url AS owner_avatar "
-            "FROM shows s JOIN users u ON u.id = s.user_id "
-            "WHERE s.festival_id = $1 ORDER BY s.date ASC, s.artist ASC",
+        fest = await conn.fetchrow(
+            "SELECT f.*, u.username AS owner_username, u.avatar_url AS owner_avatar "
+            "FROM festivals f JOIN users u ON u.id = f.user_id WHERE f.id = $1",
             festival_id,
         )
-        if not rows:
+        if not fest:
             flash(request, "Festival not found", "error")
             return RedirectResponse("/concert-tracker/shows", status_code=302)
-        is_own = rows[0]["user_id"] == user["id"]
-        owner_user = {"username": rows[0]["owner_username"], "avatar_url": rows[0]["owner_avatar"]} if not is_own else user
+        rows = await conn.fetch(
+            "SELECT * FROM shows WHERE festival_id = $1 ORDER BY date ASC, artist ASC",
+            festival_id,
+        )
+        is_own = fest["user_id"] == user["id"]
+        owner_user = {"username": fest["owner_username"], "avatar_url": fest["owner_avatar"]} if not is_own else user
+        festival_name = fest["festival_name"]
+        festival_notes = fest["festival_notes"]
         show_ids = [r["id"] for r in rows]
-        rep_id = rows[0]["id"]
-        festival_name = rows[0]["festival_name"]
+        rep_id = rows[0]["id"] if rows else None
         attendees = await conn.fetch(
             "SELECT DISTINCT u.id, u.username, u.avatar_url FROM show_attendees sa "
             "JOIN users u ON u.id = sa.user_id WHERE sa.show_id = ANY($1)",
             show_ids,
-        )
+        ) if show_ids else []
         already_tagged = {a["id"] for a in attendees}
         following = await conn.fetch(
-            "SELECT u.id, u.username FROM follows f JOIN users u ON u.id = f.target_id "
-            "WHERE f.user_id = $1",
+            "SELECT u.id, u.username FROM follows f JOIN users u ON u.id = f.target_id WHERE f.user_id = $1",
             user["id"],
         )
         taggable = [f for f in following if f["id"] not in already_tagged] if is_own else []
-        like_count = await conn.fetchval("SELECT COUNT(*) FROM show_likes WHERE show_id = $1", rep_id)
+        like_count = await conn.fetchval("SELECT COUNT(*) FROM show_likes WHERE show_id = $1", rep_id) if rep_id else 0
         user_liked = await conn.fetchval(
             "SELECT 1 FROM show_likes WHERE show_id = $1 AND user_id = $2", rep_id, user["id"]
-        )
+        ) if rep_id else None
         comments = await conn.fetch(
             "SELECT c.id, c.body, c.created_at, u.username, u.avatar_url "
             "FROM show_comments c JOIN users u ON u.id = c.user_id "
             "WHERE c.show_id = $1 ORDER BY c.created_at ASC",
             rep_id,
-        )
-        festival_notes = await conn.fetchval(
-            "SELECT festival_notes FROM shows WHERE id = $1", rep_id
-        )
+        ) if rep_id else []
     shows = [_parse_show(r) for r in rows]
     return templates.TemplateResponse(
         "festival_detail.html",
@@ -191,11 +191,11 @@ async def festival_detail(
 
 @router.get("/shows/festival/{festival_id}/edit", response_class=HTMLResponse)
 async def festival_edit_page(
-    festival_id: str, request: Request, pool=Depends(get_pool), user=Depends(require_user)
+    festival_id: int, request: Request, pool=Depends(get_pool), user=Depends(require_user)
 ):
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
-            "SELECT festival_name, festival_notes FROM shows WHERE festival_id = $1 AND user_id = $2 LIMIT 1",
+            "SELECT festival_name, festival_notes FROM festivals WHERE id = $1 AND user_id = $2",
             festival_id, user["id"],
         )
     if not row:
@@ -209,14 +209,14 @@ async def festival_edit_page(
 
 @router.post("/shows/festival/{festival_id}/edit")
 async def festival_edit_save(
-    festival_id: str, request: Request, pool=Depends(get_pool), user=Depends(require_user)
+    festival_id: int, request: Request, pool=Depends(get_pool), user=Depends(require_user)
 ):
     await verify_csrf(request)
     form = await request.form()
     notes = str(form.get("festival_notes", "")).strip()[:2000] or None
     async with pool.acquire() as conn:
         await conn.execute(
-            "UPDATE shows SET festival_notes = $1 WHERE festival_id = $2 AND user_id = $3",
+            "UPDATE festivals SET festival_notes = $1 WHERE id = $2 AND user_id = $3",
             notes, festival_id, user["id"],
         )
     return RedirectResponse(f"/concert-tracker/shows/festival/{festival_id}", status_code=302)
@@ -224,7 +224,7 @@ async def festival_edit_save(
 
 @router.post("/shows/festival/{festival_id}/like")
 async def festival_like(
-    festival_id: str, request: Request, pool=Depends(get_pool), user=Depends(require_user)
+    festival_id: int, request: Request, pool=Depends(get_pool), user=Depends(require_user)
 ):
     await verify_csrf(request)
     async with pool.acquire() as conn:
@@ -250,7 +250,7 @@ async def festival_like(
 
 @router.post("/shows/festival/{festival_id}/comments")
 async def festival_add_comment(
-    festival_id: str, request: Request, pool=Depends(get_pool), user=Depends(require_user)
+    festival_id: int, request: Request, pool=Depends(get_pool), user=Depends(require_user)
 ):
     await verify_csrf(request)
     form = await request.form()
@@ -271,7 +271,7 @@ async def festival_add_comment(
 
 @router.post("/shows/festival/{festival_id}/comments/{comment_id}/delete")
 async def festival_delete_comment(
-    festival_id: str, comment_id: int, request: Request, pool=Depends(get_pool), user=Depends(require_user)
+    festival_id: int, comment_id: int, request: Request, pool=Depends(get_pool), user=Depends(require_user)
 ):
     await verify_csrf(request)
     async with pool.acquire() as conn:
@@ -283,7 +283,7 @@ async def festival_delete_comment(
 
 @router.post("/shows/festival/{festival_id}/tag")
 async def tag_festival_friend(
-    festival_id: str, request: Request, pool=Depends(get_pool), user=Depends(require_user)
+    festival_id: int, request: Request, pool=Depends(get_pool), user=Depends(require_user)
 ):
     from app.auth import verify_csrf
     await verify_csrf(request)
@@ -303,7 +303,7 @@ async def tag_festival_friend(
 
 @router.post("/shows/festival/{festival_id}/untag")
 async def untag_festival_friend(
-    festival_id: str, request: Request, pool=Depends(get_pool), user=Depends(require_user)
+    festival_id: int, request: Request, pool=Depends(get_pool), user=Depends(require_user)
 ):
     from app.auth import verify_csrf
     await verify_csrf(request)
@@ -323,18 +323,19 @@ async def untag_festival_friend(
 
 @router.post("/shows/festival/{festival_id}/delete")
 async def delete_festival(
-    festival_id: str, request: Request, pool=Depends(get_pool), user=Depends(require_user)
+    festival_id: int, request: Request, pool=Depends(get_pool), user=Depends(require_user)
 ):
     from app.auth import verify_csrf
     await verify_csrf(request)
     async with pool.acquire() as conn:
         name_row = await conn.fetchrow(
-            "SELECT festival_name FROM shows WHERE festival_id = $1 AND user_id = $2 LIMIT 1",
+            "SELECT festival_name FROM festivals WHERE id = $1 AND user_id = $2",
             festival_id, user["id"],
         )
         display_name = name_row["festival_name"] if name_row else "Festival"
+        await conn.execute("DELETE FROM shows WHERE festival_id = $1", festival_id)
         await conn.execute(
-            "DELETE FROM shows WHERE festival_id = $1 AND user_id = $2",
+            "DELETE FROM festivals WHERE id = $1 AND user_id = $2",
             festival_id, user["id"],
         )
     flash(request, f"{display_name} deleted", "info")
@@ -380,8 +381,6 @@ async def add_festival(request: Request, pool=Depends(get_pool), user=Depends(re
     now = int(time.time())
 
     import asyncio
-    import uuid as _uuid
-    festival_id = str(_uuid.uuid4())
 
     sp_results, sl_results = await asyncio.gather(
         asyncio.gather(*[spotify.search_artist(a["name"]) for a in selected], return_exceptions=True),
@@ -389,6 +388,10 @@ async def add_festival(request: Request, pool=Depends(get_pool), user=Depends(re
     )
 
     async with pool.acquire() as conn:
+        festival_id = await conn.fetchval(
+            "INSERT INTO festivals (user_id, festival_name, city, created_at) VALUES ($1,$2,$3,$4) RETURNING id",
+            user["id"], festival_name, city, now,
+        )
         for artist_data, sp, sl in zip(selected, sp_results, sl_results):
             sp = sp if isinstance(sp, dict) else None
             sl = sl if isinstance(sl, dict) else None
