@@ -14,8 +14,8 @@
 .show-card-actions { display: flex; gap: .4rem; flex-shrink: 0; margin-left: .5rem; }
 .show-card:has(.show-card-link):not(.festival-group-card):hover { border-color: var(--accent); background: var(--surface2); }
 .festival-group-card:hover { border-color: var(--accent); background: var(--surface2); }
-.festival-group-card:has(.festival-toggle:hover) { border-color: var(--border); background: var(--surface); }
-.festival-toggle:hover { border-color: var(--accent) !important; color: var(--accent); }
+.festival-group-card.toggle-hover { border-color: var(--border) !important; background: var(--surface) !important; }
+.festival-group-card.toggle-hover .festival-toggle { border-color: var(--accent) !important; color: var(--accent); }
 .show-upcoming { border-left: 3px solid var(--accent); }
 .show-thumb { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
 .show-thumb-placeholder { width: 48px; height: 48px; border-radius: 50%; background: var(--surface2); display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0; }
