@@ -15,7 +15,7 @@
         {% if r.avatar_url %}
         <img src="{{ r.avatar_url }}" class="follow-list-avatar" width="40" height="40" alt="{{ r.username }}">
         {% else %}
-        <span class="follow-list-avatar follow-list-avatar-ph">{{ r.username[0] | upper }}</span>
+        <div class="follow-list-avatar follow-list-avatar-ph">{{ r.username[0] | upper }}</div>
         {% endif %}
         <span class="follow-list-name">{{ r.username }}</span>
       </a>
