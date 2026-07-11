@@ -15,6 +15,7 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_KEY }}
           script: |
+            git config --global --add safe.directory /opt/concert-tracker
             cd /opt/concert-tracker
             git pull
             sudo systemctl restart concert-tracker
