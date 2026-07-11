@@ -97,6 +97,28 @@
 
     <section class="social-section">
       <h2>All Shows</h2>
+      {% if years is defined %}
+      <form class="filter-bar" method="get" action="/concert-tracker/u/{{ profile.username }}">
+        <select name="year" onchange="this.form.submit()">
+          <option value="">All Years</option>
+          {% for y in years %}
+          <option value="{{ y }}" {% if filters.year == y|string %}selected{% endif %}>{{ y }}</option>
+          {% endfor %}
+        </select>
+        <input type="text" name="artist_filter" placeholder="Filter by artist…" value="{{ filters.artist }}" onblur="this.form.submit()">
+        <select name="kind" onchange="this.form.submit()">
+          <option value="">All</option>
+          <option value="standalone" {% if filters.kind == 'standalone' %}selected{% endif %}>Standalone</option>
+          <option value="festival" {% if filters.kind == 'festival' %}selected{% endif %}>Festival</option>
+        </select>
+        <select name="sort" onchange="this.form.submit()">
+          <option value="date_desc" {% if filters.sort == 'date_desc' %}selected{% endif %}>Date ↓</option>
+          <option value="date_asc" {% if filters.sort == 'date_asc' %}selected{% endif %}>Date ↑</option>
+          <option value="artist" {% if filters.sort == 'artist' %}selected{% endif %}>Artist</option>
+          <option value="venue" {% if filters.sort == 'venue' %}selected{% endif %}>Venue</option>
+        </select>
+      </form>
+      {% endif %}
       {% if not items %}
       <p class="muted">No shows logged yet.</p>
       {% else %}

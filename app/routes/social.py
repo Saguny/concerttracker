@@ -286,8 +286,22 @@ async def following_page(username: str, request: Request, pool=Depends(get_pool)
 
 @router.get("/u/{username}", response_class=HTMLResponse)
 async def friend_profile(
-    username: str, request: Request, pool=Depends(get_pool), user=Depends(require_user)
+    username: str,
+    request: Request,
+    pool=Depends(get_pool),
+    user=Depends(require_user),
+    year: str = "",
+    artist_filter: str = "",
+    kind: str = "",
+    sort: str = "date_desc",
 ):
+    order = {
+        "date_desc": "date DESC",
+        "date_asc": "date ASC",
+        "artist": "artist ASC",
+        "venue": "venue ASC",
+    }.get(sort, "date DESC")
+
     async with pool.acquire() as conn:
         profile = await conn.fetchrow(
             "SELECT id, username, bio, avatar_url, created_at FROM users WHERE username = $1", username
@@ -299,11 +313,29 @@ async def friend_profile(
         pid = profile["id"]
         uid = user["id"]
 
+        clauses = ["s.user_id = $1"]
+        params: list = [pid]
+        if year:
+            params.append(int(year))
+            clauses.append(f"EXTRACT(YEAR FROM s.date) = ${len(params)}")
+        if artist_filter:
+            params.append(f"%{artist_filter.lower()}%")
+            clauses.append(f"LOWER(s.artist) LIKE ${len(params)}")
+        if kind == "festival":
+            clauses.append("s.is_festival = TRUE")
+        elif kind == "standalone":
+            clauses.append("s.is_festival = FALSE")
+        where = " AND ".join(clauses)
+
         shows = await conn.fetch(
-            "SELECT s.*, "
+            f"SELECT s.*, "
             "(SELECT COUNT(*) FROM show_likes l WHERE l.show_id = s.id) AS like_count, "
             "(SELECT COUNT(*) FROM show_comments c WHERE c.show_id = s.id) AS comment_count "
-            "FROM shows s WHERE s.user_id = $1 ORDER BY s.date DESC",
+            f"FROM shows s WHERE {where} ORDER BY {order}",
+            *params,
+        )
+        years = await conn.fetch(
+            "SELECT DISTINCT EXTRACT(YEAR FROM date)::int AS y FROM shows WHERE user_id = $1 ORDER BY y DESC",
             pid,
         )
         is_following = await conn.fetchval(
@@ -383,6 +415,8 @@ async def friend_profile(
             top_artists=top_artists,
             top_venues=top_venues,
             shared=shared,
+            years=[r["y"] for r in years],
+            filters={"year": year, "artist": artist_filter, "kind": kind, "sort": sort},
             csrf=get_csrf_token(request),
         ),
     )
