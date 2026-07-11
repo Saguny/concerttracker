@@ -117,7 +117,7 @@ async def social_page(request: Request, pool=Depends(get_pool), user=Depends(req
             circle_shows_row = await conn.fetchrow(
                 "SELECT COALESCE(SUM(c),0)::int AS total FROM "
                 "(SELECT COUNT(*) AS c FROM shows WHERE user_id = ANY($1) GROUP BY user_id) sub",
-                mutual_ids,
+                mutual_ids + [uid],
             )
             shared_cities = await conn.fetch(
                 "SELECT s.city, COUNT(DISTINCT s2.user_id)::int AS mutual_count "

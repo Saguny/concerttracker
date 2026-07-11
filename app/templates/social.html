@@ -105,22 +105,26 @@
 
     {% if mutuals %}
     <section class="social-section">
-      <h2>Your Circle <span class="muted">{{ mutuals | length }}</span></h2>
+      <h2>Your Circle</h2>
       <div class="circle-avatars">
+        <a href="/concert-tracker/u/{{ user.username }}" class="circle-avatar-link" title="{{ user.username }} (you)">
+          {% if user.avatar_url %}
+          <img src="{{ user.avatar_url }}" width="36" height="36" alt="{{ user.username }}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid var(--accent);opacity:.6">
+          {% else %}
+          <div style="width:36px;height:36px;border-radius:50%;border:2px solid var(--accent);background:var(--accent);color:#000;display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:800;opacity:.6">{{ user.username[0] | upper }}</div>
+          {% endif %}
+        </a>
         {% for m in mutuals %}
         <a href="/concert-tracker/u/{{ m.username }}" class="circle-avatar-link" title="{{ m.username }}">
           {% if m.avatar_url %}
-          <img src="{{ m.avatar_url }}" class="circle-avatar" width="36" height="36" alt="{{ m.username }}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid var(--accent)">
+          <img src="{{ m.avatar_url }}" width="36" height="36" alt="{{ m.username }}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid var(--accent)">
           {% else %}
-          <div class="circle-avatar-ph" style="width:36px;height:36px;border-radius:50%;border:2px solid var(--accent);background:var(--accent);color:#000;display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:800">{{ m.username[0] | upper }}</div>
+          <div style="width:36px;height:36px;border-radius:50%;border:2px solid var(--accent);background:var(--accent);color:#000;display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:800">{{ m.username[0] | upper }}</div>
           {% endif %}
         </a>
         {% endfor %}
       </div>
-      <div class="circle-stat-row">
-        <div class="circle-stat"><span class="circle-stat-num">{{ circle_shows }}</span><span class="circle-stat-label">shows in circle</span></div>
-        <div class="circle-stat"><span class="circle-stat-num">{{ shared_artists | length }}</span><span class="circle-stat-label">shared artists</span></div>
-      </div>
+      <p class="muted small" style="margin:.5rem 0 .75rem">{{ circle_shows }} show{{ 's' if circle_shows != 1 else '' }} across {{ mutuals | length + 1 }} people</p>
       {% if shared_artists %}
       <p class="muted small circle-subsection-label">Artists in common</p>
       {% for r in shared_artists %}
@@ -140,7 +144,7 @@
       {% endfor %}
       {% endif %}
       {% if not shared_artists and not shared_cities %}
-      <p class="muted small" style="margin-top:.5rem">No shared shows yet.</p>
+      <p class="muted small">No shared shows yet.</p>
       {% endif %}
     </section>
     {% endif %}
