@@ -24,9 +24,21 @@
 .follow-form        { display: flex; gap: .5rem; align-items: flex-start; }
 .follow-input-wrap  { position: relative; }
 .follow-input-wrap input { min-width: 180px; width: auto; }
-.follow-dropdown    { display: none; position: absolute; top: 100%; left: 0; right: 0; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); margin-top: 2px; z-index: 100; list-style: none; padding: 0; max-height: 220px; overflow-y: auto; }
-.follow-drop-item   { padding: .45rem .75rem; font-size: .875rem; cursor: pointer; }
-.follow-drop-item:hover { background: var(--accent-dim); color: var(--accent); }
+
+/* ── Follow list page ── */
+.follow-list-page   { max-width: 560px; margin: 0 auto; }
+.follow-list-header { display: flex; align-items: center; gap: 1rem; margin-bottom: 1.25rem; }
+.follow-list-header h1 { font-size: 1.25rem; font-weight: 800; margin: 0; }
+.back-link          { color: var(--muted); text-decoration: none; font-size: .875rem; }
+.back-link:hover    { color: var(--accent); }
+.follow-list-rows   { display: flex; flex-direction: column; gap: 0; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+.follow-list-row    { display: flex; align-items: center; gap: .75rem; padding: .75rem 1rem; background: var(--surface); border-bottom: 1px solid var(--border); }
+.follow-list-row:last-child { border-bottom: none; }
+.follow-list-user   { display: flex; align-items: center; gap: .65rem; text-decoration: none; color: var(--text); flex: 1; min-width: 0; }
+.follow-list-user:hover .follow-list-name { color: var(--accent); }
+.follow-list-avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+.follow-list-avatar-ph { width: 40px; height: 40px; border-radius: 50%; background: var(--accent); color: #000; display: inline-flex; align-items: center; justify-content: center; font-size: .95rem; font-weight: 800; flex-shrink: 0; }
+.follow-list-name   { font-weight: 600; font-size: .9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* ── Profile stats row ── */
 .profile-stats-row  { display: flex; gap: 1.25rem; margin-bottom: .35rem; font-size: .9rem; }

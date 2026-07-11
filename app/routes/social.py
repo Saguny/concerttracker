@@ -122,10 +122,10 @@ async def user_search(q: str = "", pool=Depends(get_pool), user=Depends(require_
         return []
     async with pool.acquire() as conn:
         rows = await conn.fetch(
-            "SELECT username FROM users WHERE username ILIKE $1 AND id != $2 ORDER BY username LIMIT 8",
+            "SELECT username, avatar_url FROM users WHERE username ILIKE $1 AND id != $2 ORDER BY username LIMIT 8",
             f"{q}%", user["id"],
         )
-    return [r["username"] for r in rows]
+    return [{"username": r["username"], "avatar_url": r["avatar_url"]} for r in rows]
 
 
 @router.post("/u/follow")
@@ -161,6 +161,46 @@ async def unfollow(request: Request, pool=Depends(get_pool), user=Depends(requir
             )
 
     return RedirectResponse(f"/concert-tracker/u/{username}", status_code=302)
+
+
+@router.get("/u/{username}/followers", response_class=HTMLResponse)
+async def followers_page(username: str, request: Request, pool=Depends(get_pool), user=Depends(require_user)):
+    async with pool.acquire() as conn:
+        profile = await conn.fetchrow("SELECT id, username, avatar_url FROM users WHERE username = $1", username)
+        if not profile:
+            flash(request, "User not found", "error")
+            return RedirectResponse("/concert-tracker/social", status_code=302)
+        rows = await conn.fetch(
+            "SELECT u.id, u.username, u.avatar_url FROM follows f JOIN users u ON u.id = f.user_id "
+            "WHERE f.target_id = $1 ORDER BY u.username", profile["id"],
+        )
+        following_ids = {r["target_id"] for r in await conn.fetch(
+            "SELECT target_id FROM follows WHERE user_id = $1", user["id"],
+        )}
+    return templates.TemplateResponse("follow_list.html", _ctx(
+        request, user, profile=profile, rows=rows, following_ids=following_ids,
+        list_type="followers", csrf=get_csrf_token(request),
+    ))
+
+
+@router.get("/u/{username}/following", response_class=HTMLResponse)
+async def following_page(username: str, request: Request, pool=Depends(get_pool), user=Depends(require_user)):
+    async with pool.acquire() as conn:
+        profile = await conn.fetchrow("SELECT id, username, avatar_url FROM users WHERE username = $1", username)
+        if not profile:
+            flash(request, "User not found", "error")
+            return RedirectResponse("/concert-tracker/social", status_code=302)
+        rows = await conn.fetch(
+            "SELECT u.id, u.username, u.avatar_url FROM follows f JOIN users u ON u.id = f.target_id "
+            "WHERE f.user_id = $1 ORDER BY u.username", profile["id"],
+        )
+        following_ids = {r["target_id"] for r in await conn.fetch(
+            "SELECT target_id FROM follows WHERE user_id = $1", user["id"],
+        )}
+    return templates.TemplateResponse("follow_list.html", _ctx(
+        request, user, profile=profile, rows=rows, following_ids=following_ids,
+        list_type="following", csrf=get_csrf_token(request),
+    ))
 
 
 @router.get("/u/{username}", response_class=HTMLResponse)

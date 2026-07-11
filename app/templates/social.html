@@ -5,13 +5,13 @@
   <div class="social-main">
     <div class="social-top-bar">
       <h2>Activity Feed</h2>
-      <form class="follow-form" method="post" action="/concert-tracker/u/follow" id="follow-form" onsubmit="return !!document.getElementById('follow-user-input').value">
+      <form class="follow-form" method="post" action="/concert-tracker/u/follow" id="follow-form" onsubmit="return !!document.getElementById('follow-user-input').value.trim()">
         <input type="hidden" name="_csrf" value="{{ csrf }}">
-        <div class="follow-input-wrap">
-          <input type="text" name="follow_user" id="follow-user-input" placeholder="Follow by username…" required autocomplete="off" onkeydown="if(event.key==='Enter')event.preventDefault()">
-          <ul class="follow-dropdown" id="follow-dropdown"></ul>
+        <div class="follow-input-wrap autocomplete-wrap">
+          <input type="search" name="follow_user" id="follow-user-input" placeholder="Find a user…" required autocomplete="new-password" onkeydown="if(event.key==='Enter')event.preventDefault()">
+          <ul class="autocomplete-list" id="follow-dropdown"></ul>
         </div>
-        <button type="submit" class="btn btn-sm btn-accent">Search</button>
+        <button type="submit" class="btn btn-sm btn-accent" style="align-self:flex-start">Search</button>
       </form>
     </div>
 
@@ -144,6 +144,8 @@ function switchTab(tab, btn) {
   const dropdown = document.getElementById('follow-dropdown');
   if (!input) return;
 
+  function esc(s) { return s.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+
   let timer;
   input.addEventListener('input', function() {
     clearTimeout(timer);
@@ -153,9 +155,15 @@ function switchTab(tab, btn) {
       const res = await fetch(`/concert-tracker/api/user-search?q=${encodeURIComponent(q)}`);
       const users = await res.json();
       if (!users.length) { dropdown.innerHTML = ''; dropdown.style.display = 'none'; return; }
-      dropdown.innerHTML = users.map(u => `<li class="follow-drop-item" data-val="${u}">${u}</li>`).join('');
+      dropdown.innerHTML = users.map(u => `
+        <li class="ac-item" data-val="${esc(u.username)}">
+          ${u.avatar_url
+            ? `<img src="${esc(u.avatar_url)}" class="ac-thumb" width="36" height="36" alt="${esc(u.username)}">`
+            : `<div class="ac-thumb ac-thumb-ph" style="background:var(--accent);color:#000;font-weight:700;font-size:.8rem">${esc(u.username[0].toUpperCase())}</div>`}
+          <div class="ac-info"><div class="ac-name">${esc(u.username)}</div></div>
+        </li>`).join('');
       dropdown.style.display = 'block';
-      dropdown.querySelectorAll('.follow-drop-item').forEach(li => {
+      dropdown.querySelectorAll('.ac-item').forEach(li => {
         li.addEventListener('mousedown', function(e) {
           e.preventDefault();
           input.value = this.dataset.val;
@@ -166,7 +174,7 @@ function switchTab(tab, btn) {
   });
 
   document.addEventListener('click', function(e) {
-    if (!e.target.closest('.follow-input-wrap')) dropdown.style.display = 'none';
+    if (!e.target.closest('.autocomplete-wrap')) dropdown.style.display = 'none';
   });
 })();
 </script>

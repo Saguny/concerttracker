@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}{{ profile.username }} · {{ list_type | capitalize }} · Concert Tracker{% endblock %}
+{% block content %}
+<div class="follow-list-page">
+  <div class="follow-list-header">
+    <a href="/concert-tracker/u/{{ profile.username }}" class="back-link">← {{ profile.username }}</a>
+    <h1>{{ list_type | capitalize }}</h1>
+  </div>
+
+  {% if rows %}
+  <div class="follow-list-rows">
+    {% for r in rows %}
+    <div class="follow-list-row">
+      <a href="/concert-tracker/u/{{ r.username }}" class="follow-list-user">
+        {% if r.avatar_url %}
+        <img src="{{ r.avatar_url }}" class="follow-list-avatar" width="40" height="40" alt="{{ r.username }}">
+        {% else %}
+        <span class="follow-list-avatar follow-list-avatar-ph">{{ r.username[0] | upper }}</span>
+        {% endif %}
+        <span class="follow-list-name">{{ r.username }}</span>
+      </a>
+      {% if r.username != user.username %}
+        {% if r.id in following_ids %}
+        <form method="post" action="/concert-tracker/u/unfollow" style="margin-left:auto">
+          <input type="hidden" name="_csrf" value="{{ csrf }}">
+          <input type="hidden" name="username" value="{{ r.username }}">
+          <button class="btn btn-sm btn-ghost">Unfollow</button>
+        </form>
+        {% else %}
+        <form method="post" action="/concert-tracker/u/follow" style="margin-left:auto">
+          <input type="hidden" name="_csrf" value="{{ csrf }}">
+          <input type="hidden" name="follow_user" value="{{ r.username }}">
+          <button class="btn btn-sm btn-accent">Follow</button>
+        </form>
+        {% endif %}
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <p>No {{ list_type }} yet.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
