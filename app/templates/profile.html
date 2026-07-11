@@ -137,6 +137,9 @@
             <div class="show-card-body">
               <div class="show-artist">{{ f.festival_name }} <span class="badge badge-festival">Festival</span></div>
               <div class="show-meta">{{ f.city }} · {{ f.shows | length }} act{{ 's' if f.shows | length != 1 else '' }}</div>
+              <div class="show-meta">
+                <span class="feed-interactions">♥ {{ f.like_count }} &nbsp; 💬 {{ f.comment_count }}</span>
+              </div>
             </div>
           </a>
           <button class="festival-toggle btn btn-sm btn-ghost" type="button" onclick="toggleFestival(this)" onmouseenter="this.closest('.festival-group-card').classList.add('toggle-hover')" onmouseleave="this.closest('.festival-group-card').classList.remove('toggle-hover')">▾ Show acts</button>

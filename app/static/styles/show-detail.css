@@ -87,11 +87,11 @@
 }
 
 /* ── Festival two-column layout ── */
-.festival-layout { display: grid; grid-template-columns: 1fr 260px; gap: 1.5rem; align-items: start; }
-.festival-layout-main { display: flex; flex-direction: column; gap: 1rem; min-width: 0; }
+.festival-layout { display: flex; gap: 1.5rem; align-items: flex-start; }
+.festival-layout-main { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 1rem; }
 .festival-layout-main .detail-card { margin-bottom: 0; }
-.festival-layout-side .detail-section { position: sticky; top: 1rem; }
-@media (max-width: 700px) { .festival-layout { grid-template-columns: 1fr; } .festival-layout-side { order: -1; } }
+.festival-layout-side { width: 260px; flex-shrink: 0; }
+@media (max-width: 700px) { .festival-layout { flex-direction: column; } .festival-layout-side { width: 100%; order: -1; } }
 
 /* ── Below-card columns ── */
 .detail-columns { display: grid; grid-template-columns: 1fr 280px; gap: 1.5rem; align-items: start; }

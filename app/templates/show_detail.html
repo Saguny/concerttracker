@@ -83,22 +83,6 @@
       {% if is_owner %}
       <div class="detail-owner-actions">
         <a href="/concert-tracker/shows/{{ show.id }}/edit" class="btn btn-sm btn-ghost">Edit</a>
-        <form method="post" action="/concert-tracker/shows/{{ show.id }}/delete" onsubmit="return confirm('Delete this show?')" style="display:inline">
-          <input type="hidden" name="_csrf" value="{{ csrf }}">
-          <button type="submit" class="btn btn-sm btn-danger">Delete</button>
-        </form>
-        {% if taggable_friends %}
-        <form method="post" action="/concert-tracker/shows/{{ show.id }}/tag" class="tag-friend-form">
-          <input type="hidden" name="_csrf" value="{{ csrf }}">
-          <select name="friend_id" class="tag-friend-select">
-            <option value="">Tag a friend…</option>
-            {% for f in taggable_friends %}
-            <option value="{{ f.id }}">{{ f.username }}</option>
-            {% endfor %}
-          </select>
-          <button type="submit" class="btn btn-sm btn-ghost">Tag</button>
-        </form>
-        {% endif %}
       </div>
       {% endif %}
 

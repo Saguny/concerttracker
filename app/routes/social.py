@@ -164,10 +164,14 @@ async def social_page(request: Request, pool=Depends(get_pool), user=Depends(req
                     "date": row["date"],
                     "username": row["username"],
                     "user_avatar": row["user_avatar"],
+                    "like_count": 0,
+                    "comment_count": 0,
                     "shows": [],
                 }
                 seen_festival_keys[key] = entry
                 feed_items.append(entry)
+            seen_festival_keys[key]["like_count"] += row["like_count"] or 0
+            seen_festival_keys[key]["comment_count"] += row["comment_count"] or 0
             seen_festival_keys[key]["shows"].append(row)
         else:
             feed_items.append({"type": "show", "show": row})
@@ -349,10 +353,14 @@ async def friend_profile(
                     "festival_name": row["festival_name"],
                     "city": row["city"],
                     "date": row["date"],
+                    "like_count": 0,
+                    "comment_count": 0,
                     "shows": [],
                 }
                 seen_festivals[key] = entry
                 items.append(entry)
+            seen_festivals[key]["like_count"] += row["like_count"] or 0
+            seen_festivals[key]["comment_count"] += row["comment_count"] or 0
             seen_festivals[key]["shows"].append(row)
         else:
             items.append({"type": "show", "show": row})

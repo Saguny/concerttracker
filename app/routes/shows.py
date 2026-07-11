@@ -77,7 +77,12 @@ async def list_shows(
         clauses.append("is_festival = FALSE")
 
     where = " AND ".join(clauses)
-    sql = f"SELECT * FROM shows WHERE {where} ORDER BY {order}"
+    sql = (
+        f"SELECT s.*, "
+        "(SELECT COUNT(*) FROM show_likes l WHERE l.show_id = s.id) AS like_count, "
+        "(SELECT COUNT(*) FROM show_comments c WHERE c.show_id = s.id) AS comment_count "
+        f"FROM shows s WHERE {where} ORDER BY {order}"
+    )
 
     async with pool.acquire() as conn:
         rows = await conn.fetch(sql, *params)
@@ -100,10 +105,14 @@ async def list_shows(
                     "festival_name": show["festival_name"],
                     "city": show["city"],
                     "date": show["date"],
+                    "like_count": 0,
+                    "comment_count": 0,
                     "shows": [],
                 }
                 seen_festivals[key] = entry
                 items.append(entry)
+            seen_festivals[key]["like_count"] += row["like_count"] or 0
+            seen_festivals[key]["comment_count"] += row["comment_count"] or 0
             seen_festivals[key]["shows"].append(show)
         else:
             items.append({"type": "show", "show": show})
@@ -206,6 +215,18 @@ async def festival_edit_page(
             "WHERE festival_id = $1 AND user_id = $2 ORDER BY date, artist",
             festival_id, user["id"],
         )
+        show_ids = [s["id"] for s in shows]
+        already_tagged = set()
+        if show_ids:
+            attendees = await conn.fetch(
+                "SELECT DISTINCT user_id FROM show_attendees WHERE show_id = ANY($1)", show_ids
+            )
+            already_tagged = {a["user_id"] for a in attendees}
+        following = await conn.fetch(
+            "SELECT u.id, u.username FROM follows f JOIN users u ON u.id = f.target_id WHERE f.user_id = $1",
+            user["id"],
+        )
+        taggable = [f for f in following if f["id"] not in already_tagged]
     existing_shows = [
         {"show_id": s["id"], "name": s["artist"], "date": s["date"], "thumb": s["artist_thumb_url"] or ""}
         for s in shows
@@ -218,6 +239,7 @@ async def festival_edit_page(
              city=row["city"] or "",
              festival_notes=row["festival_notes"] or "",
              existing_shows=existing_shows,
+             taggable=taggable,
              csrf=get_csrf_token(request)),
     )
 
@@ -301,6 +323,27 @@ async def festival_edit_save(
                 sp["genres"] if sp else [],
                 now,
             )
+
+    tag_uid_raw = str(form.get("_tag_friend_id", "")).strip()
+    if tag_uid_raw:
+        try:
+            tag_uid = int(tag_uid_raw)
+            if tag_uid:
+                async with pool.acquire() as conn:
+                    show_ids = await conn.fetch(
+                        "SELECT id FROM shows WHERE festival_id = $1 AND user_id = $2", festival_id, user["id"]
+                    )
+                    for s in show_ids:
+                        await conn.execute(
+                            "INSERT INTO show_attendees (show_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
+                            s["id"], tag_uid,
+                        )
+                        await conn.execute(
+                            "INSERT INTO show_attendees (show_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
+                            s["id"], user["id"],
+                        )
+        except (ValueError, TypeError):
+            pass
 
     flash(request, "Festival updated!", "success")
     return RedirectResponse(f"/concert-tracker/shows/festival/{festival_id}", status_code=302)
@@ -808,6 +851,27 @@ async def _handle_save(request: Request, pool, user: dict, show_id: int | None):
         for name, sp_result in zip(support_acts, support_sp_results):
             support_sp = sp_result if isinstance(sp_result, dict) else None
             await _upsert_artist(conn, name, support_sp, now)
+
+        # Tag a friend if submitted
+        tag_friend_id_raw = str(form.get("tag_friend_id", "")).strip()
+        if tag_friend_id_raw and show_id is not None:
+            try:
+                tag_uid = int(tag_friend_id_raw)
+                if tag_uid:
+                    actual_id = await conn.fetchval(
+                        "SELECT id FROM shows WHERE id = $1 AND user_id = $2", show_id, user["id"]
+                    )
+                    if actual_id:
+                        await conn.execute(
+                            "INSERT INTO show_attendees (show_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
+                            show_id, tag_uid,
+                        )
+                        await conn.execute(
+                            "INSERT INTO show_attendees (show_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
+                            show_id, user["id"],
+                        )
+            except (ValueError, TypeError):
+                pass
 
 
 from app.auth import verify_csrf

@@ -126,10 +126,19 @@
   {% endif %}
 
   <div class="form-actions">
-    <a href="/concert-tracker/shows" class="btn btn-ghost">Cancel</a>
+    <a href="{% if show %}/concert-tracker/shows/{{ show.id }}{% else %}/concert-tracker/shows{% endif %}" class="btn btn-ghost">Cancel</a>
     <button type="submit" class="btn btn-accent">{% if show %}Save Changes{% else %}Log Show{% endif %}</button>
   </div>
 </form>
+
+{% if show %}
+<form method="post" action="/concert-tracker/shows/{{ show.id }}/delete"
+      onsubmit="return confirm('Delete this show? This cannot be undone.')"
+      style="margin-top:2rem;padding-top:1.5rem;border-top:1px solid var(--border)">
+  <input type="hidden" name="_csrf" value="{{ csrf }}">
+  <button type="submit" class="btn btn-danger">Delete Show</button>
+</form>
+{% endif %}
 {% endblock %}
 
 {% block scripts %}
