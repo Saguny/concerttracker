@@ -125,13 +125,16 @@ async def festival_detail(
 ):
     async with pool.acquire() as conn:
         rows = await conn.fetch(
-            "SELECT * FROM shows WHERE user_id = $1 AND festival_name = $2 ORDER BY date ASC, artist ASC",
+            "SELECT s.*, u.username AS owner_username, u.avatar_url AS owner_avatar "
+            "FROM shows s JOIN users u ON u.id = s.user_id "
+            "WHERE s.user_id = $1 AND s.festival_name = $2 ORDER BY s.date ASC, s.artist ASC",
             user["id"], festival_name,
         )
         if not rows:
             flash(request, "Festival not found", "error")
             return RedirectResponse("/concert-tracker/shows", status_code=302)
         show_ids = [r["id"] for r in rows]
+        rep_id = rows[0]["id"]
         attendees = await conn.fetch(
             "SELECT DISTINCT u.id, u.username, u.avatar_url FROM show_attendees sa "
             "JOIN users u ON u.id = sa.user_id WHERE sa.show_id = ANY($1)",
@@ -144,6 +147,16 @@ async def festival_detail(
             user["id"],
         )
         taggable = [f for f in following if f["id"] not in already_tagged]
+        like_count = await conn.fetchval("SELECT COUNT(*) FROM show_likes WHERE show_id = $1", rep_id)
+        user_liked = await conn.fetchval(
+            "SELECT 1 FROM show_likes WHERE show_id = $1 AND user_id = $2", rep_id, user["id"]
+        )
+        comments = await conn.fetch(
+            "SELECT c.id, c.body, c.created_at, u.username, u.avatar_url "
+            "FROM show_comments c JOIN users u ON u.id = c.user_id "
+            "WHERE c.show_id = $1 ORDER BY c.created_at ASC",
+            rep_id,
+        )
     shows = [_parse_show(r) for r in rows]
     return templates.TemplateResponse(
         "festival_detail.html",
@@ -154,9 +167,72 @@ async def festival_detail(
             shows=shows,
             attendees=attendees,
             taggable=taggable,
+            rep_id=rep_id,
+            like_count=like_count,
+            user_liked=bool(user_liked),
+            comments=list(comments),
             csrf=get_csrf_token(request),
         ),
     )
+
+
+@router.post("/shows/festival/{festival_name}/like")
+async def festival_like(
+    festival_name: str, request: Request, pool=Depends(get_pool), user=Depends(require_user)
+):
+    await verify_csrf(request)
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            "SELECT id FROM shows WHERE user_id = $1 AND festival_name = $2 ORDER BY date ASC, artist ASC LIMIT 1",
+            user["id"], festival_name,
+        )
+        if not row:
+            return RedirectResponse("/concert-tracker/shows", status_code=302)
+        show_id = row["id"]
+        existing = await conn.fetchval(
+            "SELECT 1 FROM show_likes WHERE show_id = $1 AND user_id = $2", show_id, user["id"]
+        )
+        if existing:
+            await conn.execute("DELETE FROM show_likes WHERE show_id = $1 AND user_id = $2", show_id, user["id"])
+        else:
+            await conn.execute(
+                "INSERT INTO show_likes (show_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
+                show_id, user["id"],
+            )
+    return RedirectResponse(f"/concert-tracker/shows/festival/{festival_name}", status_code=302)
+
+
+@router.post("/shows/festival/{festival_name}/comments")
+async def festival_add_comment(
+    festival_name: str, request: Request, pool=Depends(get_pool), user=Depends(require_user)
+):
+    await verify_csrf(request)
+    form = await request.form()
+    body = str(form.get("body", "")).strip()[:500]
+    if body:
+        async with pool.acquire() as conn:
+            row = await conn.fetchrow(
+                "SELECT id FROM shows WHERE user_id = $1 AND festival_name = $2 ORDER BY date ASC, artist ASC LIMIT 1",
+                user["id"], festival_name,
+            )
+            if row:
+                await conn.execute(
+                    "INSERT INTO show_comments (show_id, user_id, body, created_at) VALUES ($1, $2, $3, $4)",
+                    row["id"], user["id"], body, int(time.time()),
+                )
+    return RedirectResponse(f"/concert-tracker/shows/festival/{festival_name}", status_code=302)
+
+
+@router.post("/shows/festival/{festival_name}/comments/{comment_id}/delete")
+async def festival_delete_comment(
+    festival_name: str, comment_id: int, request: Request, pool=Depends(get_pool), user=Depends(require_user)
+):
+    await verify_csrf(request)
+    async with pool.acquire() as conn:
+        await conn.execute(
+            "DELETE FROM show_comments WHERE id = $1 AND user_id = $2", comment_id, user["id"]
+        )
+    return RedirectResponse(f"/concert-tracker/shows/festival/{festival_name}", status_code=302)
 
 
 @router.post("/shows/festival/{festival_name}/tag")
