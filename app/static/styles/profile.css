@@ -21,7 +21,7 @@
 .social-section h2 { margin-bottom: .75rem; }
 .social-top-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; flex-wrap: wrap; gap: .75rem; }
 
-.follow-form        { display: flex; gap: .5rem; align-items: flex-start; }
+.follow-form        { display: flex; gap: .5rem; align-items: stretch; }
 .follow-input-wrap  { position: relative; }
 .follow-input-wrap input { min-width: 180px; width: auto; }
 
