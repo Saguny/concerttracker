@@ -682,7 +682,20 @@ async function _initVenuePlaces() {
   });
   console.log('[Places] input listener attached');
 }
+
+window.addEventListener('load', () => {
+  let tries = 0;
+  const poll = setInterval(async () => {
+    if (window.google?.maps?.importLibrary) {
+      clearInterval(poll);
+      await _initVenuePlaces();
+    } else if (++tries > 30) {
+      clearInterval(poll);
+      console.warn('[Places] timed out waiting for google.maps');
+    }
+  }, 100);
+});
 </script>
-<script async src="https://maps.googleapis.com/maps/api/js?key={{ google_places_key }}&loading=async&callback=_initVenuePlaces"></script>
+<script async src="https://maps.googleapis.com/maps/api/js?key={{ google_places_key }}&loading=async"></script>
 {% endif %}
 {% endblock %}
