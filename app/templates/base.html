@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Concert Tracker{% endblock %}</title>
+  <link rel="stylesheet" href="/concert-tracker/static/styles/main.css">
+  {% block head %}{% endblock %}
+</head>
+<body>
+{% if user %}
+<nav class="nav">
+  <a class="nav-brand" href="/concert-tracker/social">Concert Tracky Miao</a>
+  <div class="nav-right">
+    <a href="/concert-tracker/shows/add" class="btn btn-sm btn-accent">+ Add Show</a>
+    <div class="nav-user-wrap" id="nav-user-wrap">
+      <button class="nav-user-btn" id="nav-user-btn" type="button">
+        {% if user.avatar_url %}
+          <img class="nav-avatar" src="{{ user.avatar_url }}" alt="{{ user.username }}">
+        {% else %}
+          <div class="nav-avatar nav-avatar-ph">{{ user.username[0] | upper }}</div>
+        {% endif %}
+        <span class="nav-username">{{ user.username }}</span>
+        <span class="nav-chevron">▾</span>
+      </button>
+      <div class="nav-dropdown" id="nav-dropdown">
+        <a class="nav-drop-item" href="/concert-tracker/u/{{ user.username }}">My Profile</a>
+        <a class="nav-drop-item" href="/concert-tracker/shows">My Shows</a>
+        <a class="nav-drop-item" href="/concert-tracker/calendar">Calendar</a>
+        <a class="nav-drop-item" href="/concert-tracker/stats">Stats</a>
+        <div class="nav-drop-sep"></div>
+        <a class="nav-drop-item" href="/concert-tracker/profile/edit">Edit Profile</a>
+        <a class="nav-drop-item" href="/concert-tracker/invite/create">Invite</a>
+        <a class="nav-drop-item nav-drop-danger" href="/concert-tracker/logout">Logout</a>
+      </div>
+    </div>
+  </div>
+</nav>
+{% endif %}
+
+<main class="main">
+  {% for f in flashes %}
+  <div class="flash flash-{{ f.category }}">{{ f.message }}</div>
+  {% endfor %}
+  {% block content %}{% endblock %}
+</main>
+
+{% block scripts %}{% endblock %}
+<script>
+(function() {
+  const btn = document.getElementById('nav-user-btn');
+  const drop = document.getElementById('nav-dropdown');
+  if (!btn) return;
+  btn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    drop.classList.toggle('open');
+  });
+  document.addEventListener('click', function() {
+    drop.classList.remove('open');
+  });
+})();
+</script>
+</body>
+</html>

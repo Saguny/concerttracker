@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% block title %}{{ profile.username }} · Concert Tracker{% endblock %}
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+{% endblock %}
+{% block content %}
+<div class="profile-header">
+  <div class="profile-header-left">
+    {% if profile.avatar_url %}
+    <img class="profile-avatar" src="{{ profile.avatar_url }}" alt="{{ profile.username }}">
+    {% else %}
+    <div class="profile-avatar profile-avatar-ph">{{ profile.username[0] | upper }}</div>
+    {% endif %}
+    <div class="profile-info">
+      <h1>{{ profile.username }}
+        {% if is_mutual %}<span class="badge badge-mutual">mutual</span>
+        {% elif is_follower and not is_own_profile %}<span class="badge badge-ghost">follows you</span>{% endif %}
+      </h1>
+      <p class="muted">{{ show_count }} show{{ 's' if show_count != 1 else '' }} logged</p>
+      {% if profile.bio %}<p class="profile-bio">{{ profile.bio }}</p>{% endif %}
+    </div>
+  </div>
+  <div class="profile-actions">
+    {% if is_own_profile %}
+    <a href="/concert-tracker/profile/edit" class="btn btn-ghost">Edit Profile</a>
+    {% elif is_following %}
+    <form method="post" action="/concert-tracker/u/unfollow">
+      <input type="hidden" name="_csrf" value="{{ csrf }}">
+      <input type="hidden" name="username" value="{{ profile.username }}">
+      <button class="btn btn-ghost">Unfollow</button>
+    </form>
+    {% else %}
+    <form method="post" action="/concert-tracker/u/follow">
+      <input type="hidden" name="_csrf" value="{{ csrf }}">
+      <input type="hidden" name="username" value="{{ profile.username }}">
+      <button class="btn btn-accent">Follow</button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+
+<div class="profile-layout">
+  <div class="profile-main">
+    {% if shared and not is_own_profile %}
+    <section class="social-section">
+      <h2>Shows You Both Attended</h2>
+      <div class="show-list">
+        {% for s in shared %}
+        <div class="show-card show-card-static">
+          <div class="show-thumb show-thumb-placeholder">🎵</div>
+          <div class="show-card-body">
+            <div class="show-artist">{{ s.artist }}</div>
+            <div class="show-meta">{{ s.venue }} · {{ s.city }}</div>
+          </div>
+          <div class="show-date">
+            <span class="date-day">{{ s.date.strftime('%d') }}</span>
+            <span class="date-mon">{{ s.date.strftime('%b') }}</span>
+            <span class="date-year">{{ s.date.strftime('%Y') }}</span>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+    {% endif %}
+
+    <section class="social-section">
+      <h2>All Shows</h2>
+      {% if not shows %}
+      <p class="muted">No shows logged yet.</p>
+      {% else %}
+      <div class="show-list">
+        {% for show in shows %}
+        <a href="/concert-tracker/shows/{{ show.id }}" class="show-card">
+          {% if show.artist_thumb_url %}
+          <img class="show-thumb" src="{{ show.artist_thumb_url }}" alt="{{ show.artist }}" loading="lazy">
+          {% else %}
+          <div class="show-thumb show-thumb-placeholder">🎵</div>
+          {% endif %}
+          <div class="show-card-body">
+            <div class="show-artist">{{ show.artist }}{% if show.is_festival %} <span class="badge badge-festival">Festival</span>{% endif %}</div>
+            <div class="show-meta">{{ show.venue }} · {{ show.city }}</div>
+            <div class="show-meta">
+              <span class="feed-interactions">♥ {{ show.like_count }} &nbsp; 💬 {{ show.comment_count }}</span>
+            </div>
+          </div>
+          <div class="show-date">
+            <span class="date-day">{{ show.date.strftime('%d') }}</span>
+            <span class="date-mon">{{ show.date.strftime('%b') }}</span>
+            <span class="date-year">{{ show.date.strftime('%Y') }}</span>
+          </div>
+        </a>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </section>
+  </div>
+
+  <aside class="profile-sidebar">
+    <section class="social-section">
+      <h2>Shows Per Year</h2>
+      <canvas id="chart-years"></canvas>
+    </section>
+    <section class="social-section">
+      <h2>Top Artists</h2>
+      {% for r in top_artists %}
+      <div class="mini-bar-row">
+        <span class="mini-bar-label">{{ r.artist }}</span>
+        <span class="mini-bar-count">{{ r.count }}</span>
+      </div>
+      {% else %}<p class="muted small">None yet.</p>{% endfor %}
+    </section>
+    <section class="social-section">
+      <h2>Top Venues</h2>
+      {% for r in top_venues %}
+      <div class="mini-bar-row">
+        <span class="mini-bar-label">{{ r.venue }}</span>
+        <span class="mini-bar-count">{{ r.count }}</span>
+      </div>
+      {% else %}<p class="muted small">None yet.</p>{% endfor %}
+    </section>
+  </aside>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+Chart.defaults.color = '#e8e8e8';
+Chart.defaults.borderColor = '#2a2a2a';
+const perYear = {{ per_year | tojson }};
+if (perYear.length) {
+  new Chart(document.getElementById('chart-years'), {
+    type: 'bar',
+    data: {
+      labels: perYear.map(r => r.year),
+      datasets: [{ data: perYear.map(r => r.count), backgroundColor: '#f59e0b', borderRadius: 4 }]
+    },
+    options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
+  });
+}
+</script>
+{% endblock %}

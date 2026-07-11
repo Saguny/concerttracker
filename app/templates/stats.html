@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block title %}Stats · Concert Tracker{% endblock %}
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>Your Stats</h1>
+</div>
+
+<div class="stats-hero" id="stats-hero" style="display:none">
+  <div class="stat-tile"><span class="stat-num" id="s-total">—</span><span class="stat-label">Total Shows</span></div>
+  <div class="stat-tile"><span class="stat-num" id="s-upcoming">—</span><span class="stat-label">Upcoming</span></div>
+  <div class="stat-tile"><span class="stat-num" id="s-festival">—</span><span class="stat-label">Festivals</span></div>
+  <div class="stat-tile"><span class="stat-num" id="s-artists">—</span><span class="stat-label">Unique Artists</span></div>
+</div>
+
+<div class="charts-grid">
+  <div class="chart-card chart-wide">
+    <h3>Shows Per Year</h3>
+    <canvas id="chart-years"></canvas>
+  </div>
+  <div class="chart-card">
+    <h3>Busiest Months</h3>
+    <canvas id="chart-months"></canvas>
+  </div>
+  <div class="chart-card">
+    <h3>Festival vs Standalone</h3>
+    <canvas id="chart-kind"></canvas>
+  </div>
+  <div class="chart-card">
+    <h3>Top Artists</h3>
+    <canvas id="chart-artists"></canvas>
+  </div>
+  <div class="chart-card">
+    <h3>Top Venues</h3>
+    <canvas id="chart-venues"></canvas>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const ACCENT = '#f59e0b';
+const ACCENT2 = '#3b82f6';
+const MUTED = '#444';
+const TEXT = '#e8e8e8';
+Chart.defaults.color = TEXT;
+Chart.defaults.borderColor = '#2a2a2a';
+
+async function loadStats() {
+  const res = await fetch('/concert-tracker/api/stats');
+  const d = await res.json();
+
+  document.getElementById('s-total').textContent = d.total;
+  document.getElementById('s-upcoming').textContent = d.upcoming;
+  document.getElementById('s-festival').textContent = d.festival;
+  document.getElementById('s-artists').textContent = d.top_artists.length;
+  document.getElementById('stats-hero').style.display = 'grid';
+
+  bar('chart-years', d.per_year.map(r => r.year), d.per_year.map(r => r.count), ACCENT);
+  bar('chart-months', d.by_month.map(r => r.month), d.by_month.map(r => r.count), ACCENT2);
+  donut('chart-kind', ['Standalone', 'Festival'], [d.standalone, d.festival], [ACCENT2, ACCENT]);
+  hbar('chart-artists', d.top_artists.map(r => r.artist), d.top_artists.map(r => r.count), ACCENT);
+  hbar('chart-venues', d.top_venues.map(r => r.venue), d.top_venues.map(r => r.count), ACCENT2);
+}
+
+function bar(id, labels, data, color) {
+  new Chart(document.getElementById(id), {
+    type: 'bar',
+    data: { labels, datasets: [{ data, backgroundColor: color, borderRadius: 4 }] },
+    options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
+  });
+}
+
+function hbar(id, labels, data, color) {
+  new Chart(document.getElementById(id), {
+    type: 'bar',
+    data: { labels, datasets: [{ data, backgroundColor: color, borderRadius: 4 }] },
+    options: {
+      indexAxis: 'y',
+      plugins: { legend: { display: false } },
+      scales: { x: { beginAtZero: true, ticks: { precision: 0 } } }
+    }
+  });
+}
+
+function donut(id, labels, data, colors) {
+  new Chart(document.getElementById(id), {
+    type: 'doughnut',
+    data: { labels, datasets: [{ data, backgroundColor: colors, borderWidth: 0 }] },
+    options: { plugins: { legend: { position: 'bottom' } }, cutout: '65%' }
+  });
+}
+
+loadStats();
+</script>
+{% endblock %}

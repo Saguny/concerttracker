@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Register · Concert Tracker{% endblock %}
+{% block content %}
+<div class="auth-wrap">
+  <h1 class="auth-title">Create Account</h1>
+  <p class="auth-sub">You need an invite code to join.</p>
+  {% if error %}<div class="flash flash-error">{{ error }}</div>{% endif %}
+  <form method="post" action="/concert-tracker/register" class="auth-form">
+    <input type="hidden" name="_csrf" value="{{ csrf }}">
+    <label>Username
+      <input type="text" name="username" autocomplete="username" autofocus required pattern="[a-zA-Z0-9_]{3,32}" title="3–32 chars, letters/numbers/underscores">
+    </label>
+    <label>Email
+      <input type="email" name="email" autocomplete="email" required>
+    </label>
+    <label>Password
+      <input type="password" name="password" autocomplete="new-password" minlength="8" required>
+    </label>
+    <label>Invite Code
+      <input type="text" name="invite_code" value="{{ prefill_code or '' }}" required>
+    </label>
+    <button type="submit" class="btn btn-accent btn-full">Create Account</button>
+  </form>
+  <p class="auth-footer">Already have an account? <a href="/concert-tracker/login">Sign in</a></p>
+</div>
+{% endblock %}

@@ -1,0 +1,100 @@
+/* ── Stats hero tiles ── */
+.stats-hero { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1.5rem; }
+@media (max-width: 600px) { .stats-hero { grid-template-columns: repeat(2, 1fr); } }
+.stat-tile  { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; display: flex; flex-direction: column; gap: .25rem; }
+.stat-num   { font-size: 2rem; font-weight: 800; color: var(--accent); line-height: 1; }
+.stat-label { font-size: .75rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+
+/* ── Chart cards ── */
+.charts-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
+.chart-wide  { grid-column: 1 / -1; }
+@media (max-width: 700px) { .charts-grid { grid-template-columns: 1fr; } .chart-wide { grid-column: auto; } }
+.chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; }
+/* chart-card h3 styled via .section-title rule in base.css — margin added here */
+.chart-card h3 { margin-bottom: 1rem; }
+
+/* ── Social feed layout ── */
+.social-layout { display: grid; grid-template-columns: 1fr 280px; gap: 1.5rem; align-items: start; }
+@media (max-width: 768px) { .social-layout { grid-template-columns: 1fr; } }
+.social-section { margin-bottom: 1.5rem; }
+/* social-section h2 styled via .section-title rule in base.css — margin added here */
+.social-section h2 { margin-bottom: .75rem; }
+.social-top-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; flex-wrap: wrap; gap: .75rem; }
+
+.follow-form       { display: flex; gap: .5rem; }
+.follow-form input { min-width: 180px; width: auto; }
+
+/* ── Leaderboard sidebar ── */
+.lb-tabs { display: flex; gap: .25rem; margin-bottom: .75rem; }
+.lb-tab  { background: transparent; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: .25rem .65rem; font-size: .8rem; color: var(--muted); cursor: pointer; }
+.lb-tab.active { background: var(--accent); border-color: var(--accent); color: #000; }
+
+.lb-list { list-style: none; display: flex; flex-direction: column; gap: .25rem; }
+.lb-row  { display: flex; align-items: center; gap: .5rem; padding: .35rem .5rem; border-radius: var(--radius-sm); }
+.lb-row:hover { background: var(--surface2); }
+/* rank number — orange badge, consistent with setlist counter and mini-bar count */
+.lb-rank {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 1.4rem; height: 1.4rem;
+  background: var(--accent); border-radius: 99px;
+  font-size: .65rem; font-weight: 700; color: #000; flex-shrink: 0;
+}
+.lb-user  { flex: 1; font-size: .875rem; }
+.lb-count { font-size: .75rem; font-weight: 700; color: #000; background: var(--accent); border-radius: 99px; padding: .1rem .55rem; flex-shrink: 0; }
+
+/* ── Follow rows ── */
+.follow-row      { display: flex; align-items: center; gap: .5rem; padding: .3rem 0; font-size: .875rem; border-bottom: 1px solid var(--border); }
+.follow-row a    { flex: 1; color: var(--text); }
+.follow-row:last-child { border-bottom: none; }
+.follow-avatar   { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+.follow-avatar-ph { display: inline-flex; align-items: center; justify-content: center; background: var(--accent); color: #000; font-size: .65rem; font-weight: 700; }
+
+/* ── Feed chips ── */
+.feed-user-chip   { display: inline-flex; align-items: center; gap: .4rem; color: var(--text); font-size: .82rem; font-weight: 500; }
+.feed-user-avatar { width: 22px; height: 22px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+.feed-avatar-ph   { display: inline-flex; align-items: center; justify-content: center; background: var(--accent); color: #000; font-size: .6rem; font-weight: 700; }
+.feed-interactions { display: inline-flex; gap: .65rem; font-size: .78rem; color: var(--muted); margin-left: .5rem; }
+
+/* ── Post author chip (show detail) ── */
+.post-author-chip { display: inline-flex; align-items: center; gap: .45rem; color: var(--text); font-size: .875rem; font-weight: 500; text-decoration: none; }
+.post-author-chip:hover { color: var(--accent); }
+.post-author-avatar { width: 26px; height: 26px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+.post-author-avatar-ph { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 50%; background: var(--accent); color: #000; font-size: .7rem; font-weight: 700; flex-shrink: 0; }
+
+/* ── Profile header ── */
+.profile-header       { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 1.5rem; gap: 1rem; flex-wrap: wrap; }
+.profile-info h1      { font-size: 1.5rem; font-weight: 800; display: flex; align-items: center; gap: .5rem; }
+.profile-actions      { display: flex; gap: .5rem; }
+.profile-header-left  { display: flex; align-items: flex-start; gap: 1rem; }
+.profile-avatar       { width: 72px; height: 72px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+.profile-avatar-ph    { width: 72px; height: 72px; border-radius: 50%; background: var(--accent); color: #000; display: flex; align-items: center; justify-content: center; font-size: 1.75rem; font-weight: 800; flex-shrink: 0; }
+.profile-bio          { font-size: .875rem; color: var(--muted); margin-top: .3rem; max-width: 480px; }
+
+.profile-layout { display: grid; grid-template-columns: 1fr 260px; gap: 1.5rem; align-items: start; }
+@media (max-width: 768px) { .profile-layout { grid-template-columns: 1fr; } }
+
+/* Mini-bar rows — Top Artists / Top Venues */
+.mini-bar-row   { display: flex; align-items: center; justify-content: space-between; padding: .35rem 0; border-bottom: 1px solid var(--border); font-size: .85rem; }
+.mini-bar-row:last-child { border-bottom: none; }
+.mini-bar-label { color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px; }
+/* count shown as an orange badge, matching lb-count and setlist counter */
+.mini-bar-count { color: var(--accent); font-weight: 700; background: var(--accent-dim); border-radius: 99px; padding: .1rem .55rem; font-size: .75rem; flex-shrink: 0; }
+
+/* ── Calendar ── */
+.cal-nav { display: flex; align-items: center; gap: 1rem; }
+.cal-nav h1 { min-width: 200px; text-align: center; }
+.cal-grid { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+.cal-header-row { display: grid; grid-template-columns: repeat(7, 1fr); background: var(--surface2); }
+.cal-dow { padding: .5rem; text-align: center; font-size: .75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.cal-week { display: grid; grid-template-columns: repeat(7, 1fr); border-top: 1px solid var(--border); }
+.cal-day  { border-right: 1px solid var(--border); padding: .4rem .5rem; min-height: 90px; }
+.cal-day:last-child  { border-right: none; }
+.cal-day-empty { background: rgba(0,0,0,.2); }
+.cal-day-today { background: var(--accent-dim); }
+.cal-day-num   { font-size: .75rem; font-weight: 700; color: var(--muted); display: block; margin-bottom: .25rem; }
+.cal-day-today .cal-day-num { color: var(--accent); }
+.cal-show          { display: flex; align-items: center; gap: .3rem; background: var(--surface2); border-radius: var(--radius-sm); padding: .15rem .35rem; margin-bottom: .2rem; font-size: .7rem; color: var(--text); overflow: hidden; }
+.cal-show:hover    { background: var(--accent-dim); color: var(--accent); text-decoration: none; }
+.cal-show-upcoming { border-left: 2px solid var(--accent); }
+.cal-show-thumb    { width: 14px; height: 14px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+.cal-show span     { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

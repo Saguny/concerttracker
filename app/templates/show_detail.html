@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+{% block title %}{{ show.artist }} · Concert Tracker{% endblock %}
+{% block content %}
+<div class="detail-wrap">
+
+  <!-- Top card: square image + info -->
+  <div class="detail-card">
+    <div class="detail-square">
+      {% if show.artist_image_url %}
+      <img src="{{ show.artist_image_url }}" class="detail-sq-img" alt="{{ show.artist }}">
+      {% else %}
+      <div class="detail-sq-img detail-sq-ph">{{ show.artist[0] | upper }}</div>
+      {% endif %}
+      {% if support_artists %}
+      <div class="detail-sq-supports">
+        {% for a in support_artists[:5] %}
+        <a href="/concert-tracker/artists/{{ a.name | urlquote }}" class="detail-sq-support-thumb" title="{{ a.name }}">
+          {% if a.thumb %}
+          <img src="{{ a.thumb }}" alt="{{ a.name }}">
+          {% else %}
+          <div class="detail-sq-support-ph">{{ a.name[0] | upper }}</div>
+          {% endif %}
+        </a>
+        {% endfor %}
+        {% if support_artists | length > 5 %}
+        <div class="detail-sq-support-thumb detail-sq-support-more">+{{ (support_artists | length) - 5 }}</div>
+        {% endif %}
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="detail-info">
+    <div class="detail-info-main">
+      <div>
+        <a href="/concert-tracker/artists/{{ show.artist | urlquote }}" class="detail-artist-link">
+          <h1 class="detail-artist-name">{{ show.artist }}</h1>
+        </a>
+        {% if show.artist_genres %}
+        <div class="genre-list">{% for g in show.artist_genres[:3] %}<span class="genre-tag">{{ g }}</span>{% endfor %}</div>
+        {% endif %}
+      </div>
+
+      <div class="detail-meta-stack">
+        <span class="detail-date">{{ show.date.strftime('%B %d, %Y').replace(' 0', ' ') }}</span>
+        <a href="https://maps.google.com/?q={{ (show.venue ~ ', ' ~ show.city) | urlquote }}"
+           target="_blank" rel="noopener" class="detail-location-link">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
+          {{ show.venue }}{% if show.city %} · {{ show.city }}{% endif %}
+        </a>
+        {% if show.is_festival %}<span class="badge badge-festival">Festival{% if show.festival_name %}: {{ show.festival_name }}{% endif %}</span>{% endif %}
+      </div>
+
+      <div class="detail-actions-row">
+        <form method="post" action="/concert-tracker/shows/{{ show.id }}/like" class="like-form">
+          <input type="hidden" name="_csrf" value="{{ csrf }}">
+          <button type="submit" class="btn-like {% if user_liked %}liked{% endif %}">
+            {% if user_liked %}♥{% else %}♡{% endif %} <span>{{ like_count }}</span>
+          </button>
+        </form>
+        <a href="/concert-tracker/u/{{ show.owner_username }}" class="post-author-chip" style="display:inline-flex;align-items:center;gap:.45rem;color:var(--text);font-size:.875rem;font-weight:500;text-decoration:none;">
+          {% if show.owner_avatar %}
+          <img src="{{ show.owner_avatar }}" class="post-author-avatar" width="26" height="26" alt="{{ show.owner_username }}" style="width:26px;height:26px;border-radius:50%;object-fit:cover;flex-shrink:0;">
+          {% else %}
+          <span class="post-author-avatar-ph" style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:var(--accent);color:#000;font-size:.7rem;font-weight:700;flex-shrink:0;">{{ show.owner_username[0] | upper }}</span>
+          {% endif %}
+          {{ show.owner_username }}
+        </a>
+      </div>
+
+      {% if attendees %}
+      <div class="detail-also-there">
+        <span class="muted small">Also there:</span>
+        {% for a in attendees %}
+        <a href="/concert-tracker/u/{{ a.username }}" class="attendee-chip">{{ a.username }}</a>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      {% if is_owner %}
+      <div class="detail-owner-actions">
+        <a href="/concert-tracker/shows/{{ show.id }}/edit" class="btn btn-sm btn-ghost">Edit</a>
+        <form method="post" action="/concert-tracker/shows/{{ show.id }}/delete" onsubmit="return confirm('Delete this show?')" style="display:inline">
+          <input type="hidden" name="_csrf" value="{{ csrf }}">
+          <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+        </form>
+        {% if taggable_friends %}
+        <form method="post" action="/concert-tracker/shows/{{ show.id }}/tag" class="tag-friend-form">
+          <input type="hidden" name="_csrf" value="{{ csrf }}">
+          <select name="friend_id" class="tag-friend-select">
+            <option value="">Tag a friend…</option>
+            {% for f in taggable_friends %}
+            <option value="{{ f.id }}">{{ f.username }}</option>
+            {% endfor %}
+          </select>
+          <button type="submit" class="btn btn-sm btn-ghost">Tag</button>
+        </form>
+        {% endif %}
+      </div>
+      {% endif %}
+
+    </div>
+
+    {% if support_artists %}
+    <div class="detail-info-divider"></div>
+    <div class="detail-support-col">
+      <span class="detail-support-label">Support</span>
+      <div class="detail-support-list">
+        {% for a in support_artists %}
+        <a href="/concert-tracker/artists/{{ a.name | urlquote }}" class="detail-support-row">
+          {% if a.thumb %}<img src="{{ a.thumb }}" class="detail-support-img" alt="{{ a.name }}">
+          {% else %}<div class="detail-support-img detail-support-ph">{{ a.name[0] | upper }}</div>{% endif %}
+          <span class="detail-support-name">{{ a.name }}</span>
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+  </div><!-- /detail-info -->
+  </div><!-- /detail-card -->
+
+  <!-- Below-card two-column layout -->
+  <div class="detail-columns">
+    <div class="detail-col-main">
+      {% if show.notes %}
+      <div class="detail-notes">{{ show.notes }}</div>
+      {% endif %}
+
+      <!-- Comments -->
+      <div class="detail-section comments-section">
+        <h3>Comments <span class="muted">{{ comments | length }}</span></h3>
+
+        {% if comments %}
+        <div class="comment-list">
+          {% for c in comments %}
+          <div class="comment">
+            <div class="comment-avatar">
+              {% if c.avatar_url %}<img src="{{ c.avatar_url }}" alt="{{ c.username }}">
+              {% else %}<div class="comment-avatar-ph">{{ c.username[0] | upper }}</div>{% endif %}
+            </div>
+            <div class="comment-body">
+              <div class="comment-meta">
+                <a href="/concert-tracker/u/{{ c.username }}" class="comment-author">{{ c.username }}</a>
+                <span class="muted small">{{ c.created_at | int | timestamp_fmt }}</span>
+              </div>
+              <div class="comment-text">{{ c.body }}</div>
+            </div>
+            {% if c.username == user.username %}
+            <form method="post" action="/concert-tracker/shows/{{ show.id }}/comments/{{ c.id }}/delete" class="comment-delete-form">
+              <input type="hidden" name="_csrf" value="{{ csrf }}">
+              <button type="submit" class="btn-icon-danger" title="Delete">×</button>
+            </form>
+            {% endif %}
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        <form method="post" action="/concert-tracker/shows/{{ show.id }}/comments" class="comment-form">
+          <input type="hidden" name="_csrf" value="{{ csrf }}">
+          <div class="comment-input-wrap">
+            <div class="comment-avatar">
+              {% if user.avatar_url %}<img src="{{ user.avatar_url }}" alt="{{ user.username }}">
+              {% else %}<div class="comment-avatar-ph">{{ user.username[0] | upper }}</div>{% endif %}
+            </div>
+            <textarea name="body" rows="2" maxlength="500" placeholder="Add a comment…" required class="comment-input"></textarea>
+          </div>
+          <div class="comment-form-actions">
+            <button type="submit" class="btn btn-sm btn-accent">Post</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <aside class="detail-col-side">
+      {% if show.setlist and show.setlist.songs %}
+      <div class="detail-section">
+        <h3>{{ show.artist }} · Setlist <span>{{ show.setlist.songs | length }} songs</span></h3>
+        <ol class="setlist-songs">
+          {% for song in show.setlist.songs %}
+          <li>
+            <a href="https://open.spotify.com/search/{{ (show.artist ~ ' ' ~ song) | urlquote }}" target="_blank" rel="noopener" class="setlist-song-link">{{ song }}</a>
+          </li>
+          {% endfor %}
+        </ol>
+        {% if show.setlist.url %}
+        <a href="{{ show.setlist.url }}" target="_blank" class="setlist-link">View on Setlist.fm ↗</a>
+        {% endif %}
+      </div>
+      {% endif %}
+    </aside>
+  </div>
+
+</div>
+{% endblock %}

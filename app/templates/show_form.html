@@ -1,0 +1,601 @@
+{% extends "base.html" %}
+{% block title %}{% if show %}Edit Show{% else %}Add Show{% endif %} · Concert Tracker{% endblock %}
+{% block content %}
+{% if not show %}
+<div class="log-tabs">
+  <a href="/concert-tracker/shows/add" class="log-tab active">Log a Show</a>
+  <a href="/concert-tracker/shows/add-festival" class="log-tab">Log a Festival</a>
+</div>
+{% else %}
+<div class="page-header"><h1>Edit Show</h1></div>
+{% endif %}
+
+<form method="post" action="{% if show %}/concert-tracker/shows/{{ show.id }}/edit{% else %}/concert-tracker/shows/add{% endif %}" class="show-form" id="show-form">
+  <input type="hidden" name="_csrf" value="{{ csrf }}">
+  <input type="hidden" name="setlist_json" id="setlist-json" value="{% if show and show.setlist %}{{ show.setlist | tojson }}{% endif %}">
+  <input type="hidden" name="support_acts_json" id="support-acts-json" value="{% if show and show.support_acts %}{{ show.support_acts | tojson }}{% endif %}">
+
+  <!-- Artist autocomplete -->
+  <div class="field-group">
+    <label>Headliner <span class="required">*</span></label>
+    <div class="autocomplete-wrap" id="artist-wrap">
+      <div class="autocomplete-input-row">
+        <img id="artist-thumb" src="" alt="" style="display:none">
+        <input type="text" name="artist" id="artist-input"
+               value="{{ show.artist if show else '' }}"
+               autocomplete="off" required placeholder="Search artist…">
+      </div>
+      <ul class="autocomplete-list" id="artist-list"></ul>
+    </div>
+    <div id="artist-genres" class="genre-list" style="margin-top:.4rem"></div>
+  </div>
+
+  <!-- Upcoming events panel — appears after artist is selected -->
+  <div id="upcoming-panel" style="display:none">
+    <button type="button" id="upcoming-toggle" class="upcoming-panel-label upcoming-toggle-btn">
+      <span id="upcoming-chevron" class="upcoming-chevron">▾</span>
+      UPCOMING SHOWS — tap to autofill
+    </button>
+    <div id="upcoming-list" class="upcoming-event-list"></div>
+  </div>
+
+  <div class="form-row">
+    <div class="field-group form-col">
+      <label>Date <span class="required">*</span></label>
+      <input type="date" name="date" id="date-input" value="{{ show.date | string if show else '' }}" required>
+    </div>
+    <div class="field-group form-col">
+      <label>Venue <span class="required">*</span></label>
+      <div class="autocomplete-wrap" id="venue-wrap">
+        <input type="text" name="venue" id="venue-input"
+               value="{{ show.venue if show else '' }}"
+               autocomplete="off" required placeholder="Search or type venue…">
+        <ul class="autocomplete-list" id="venue-list"></ul>
+      </div>
+    </div>
+    <div class="field-group form-col">
+      <label>City <span class="required">*</span></label>
+      <input type="text" name="city" id="city-input" value="{{ show.city if show else '' }}" required placeholder="City">
+    </div>
+  </div>
+
+  {% if show and show.is_festival %}
+  <input type="hidden" name="is_festival" value="on">
+  <div class="form-row">
+    <div class="field-group form-col">
+      <label>Festival Name</label>
+      <input type="text" name="festival_name" value="{{ show.festival_name or '' }}" placeholder="e.g. Coachella">
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="field-group">
+    <label>Notes</label>
+    <textarea name="notes" rows="3" maxlength="1000" placeholder="How was it?">{{ show.notes if show else '' }}</textarea>
+  </div>
+
+  <!-- Support acts -->
+  <div class="setlist-panel">
+    <div class="setlist-header">
+      <span>Support Acts <span class="muted" style="font-weight:400;font-size:.8rem">— who else played</span></span>
+      <span style="display:flex;align-items:center;gap:.6rem">
+        <span id="support-status" class="setlist-status"></span>
+        <button type="button" id="support-backfill-btn" class="btn btn-ghost btn-sm">Backfill</button>
+      </span>
+    </div>
+    <div id="support-placeholder" class="fetch-placeholder">Fill in artist &amp; date to auto-fetch</div>
+    <div id="support-loading" class="fetch-loading" style="display:none">Searching Ticketmaster…</div>
+    <div id="support-editor" style="display:none">
+      <div id="support-tags" class="lineup-tags editable-tags"></div>
+      <div class="tag-add-row">
+        <div class="autocomplete-wrap support-ac-wrap" style="flex:1;position:relative">
+          <input type="text" id="support-add-input" placeholder="Search for an act…" maxlength="200" autocomplete="off">
+          <ul class="autocomplete-list" id="support-ac-list"></ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Setlist -->
+  <div class="setlist-panel">
+    <div class="setlist-header">
+      <span>Setlist <span class="muted" style="font-weight:400;font-size:.8rem">— songs played</span></span>
+      <span style="display:flex;align-items:center;gap:.6rem">
+        <span id="setlist-status" class="setlist-status"></span>
+        <button type="button" id="setlist-backfill-btn" class="btn btn-ghost btn-sm">Backfill</button>
+      </span>
+    </div>
+    <div id="setlist-placeholder" class="fetch-placeholder">Fill in artist &amp; date to auto-fetch</div>
+    <div id="setlist-loading" class="fetch-loading" style="display:none">Searching Setlist.fm…</div>
+    <div id="setlist-editor" style="display:none">
+      <textarea id="setlist-textarea" rows="10" placeholder="One song per line — edit freely" spellcheck="false"></textarea>
+      <p id="setlist-source-link" class="muted small" style="margin-top:.4rem"></p>
+    </div>
+  </div>
+
+  {% if friends %}
+  <div class="field-group">
+    <label>Tag friends who were there</label>
+    <select name="tag_friend_id">
+      <option value="">— none —</option>
+      {% for f in friends %}
+      <option value="{{ f.id }}">{{ f.username }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  {% endif %}
+
+  <div class="form-actions">
+    <a href="/concert-tracker/shows" class="btn btn-ghost">Cancel</a>
+    <button type="submit" class="btn btn-accent">{% if show %}Save Changes{% else %}Log Show{% endif %}</button>
+  </div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// ── Helpers ───────────────────────────────────────────────────────────
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function showEl(el) { el.style.display = ''; }
+function hideEl(el) { el.style.display = 'none'; }
+function showList(el) { el.style.display = 'block'; }
+function hideList(el) { el.style.display = 'none'; el.innerHTML = ''; }
+
+// ── Artist autocomplete ───────────────────────────────────────────────
+const artistInput  = document.getElementById('artist-input');
+const artistList   = document.getElementById('artist-list');
+const artistThumb  = document.getElementById('artist-thumb');
+const artistGenres = document.getElementById('artist-genres');
+const dateInput    = document.getElementById('date-input');
+const venueInput   = document.getElementById('venue-input');
+const venueList    = document.getElementById('venue-list');
+const cityInput    = document.getElementById('city-input');
+let artistDebounce;
+let upcomingCache = [];
+
+artistInput.addEventListener('input', () => {
+  clearTimeout(artistDebounce);
+  const q = artistInput.value.trim();
+  if (q.length < 2) { hideList(artistList); return; }
+  artistDebounce = setTimeout(() => fetchArtists(q), 280);
+});
+artistInput.addEventListener('keydown', e => { if (e.key === 'Escape') hideList(artistList); });
+
+async function fetchArtists(q) {
+  try {
+    const res = await fetch(`/concert-tracker/api/artist-search?q=${encodeURIComponent(q)}`);
+    const data = await res.json();
+    if (!data.length) { hideList(artistList); return; }
+    artistList.innerHTML = data.map(a => `
+      <li class="ac-item" data-name="${esc(a.name)}" data-thumb="${esc(a.thumb_url||'')}" data-genres="${esc((a.genres||[]).join(', '))}">
+        ${a.thumb_url ? `<img src="${esc(a.thumb_url)}" class="ac-thumb">` : '<div class="ac-thumb ac-thumb-ph">🎵</div>'}
+        <div class="ac-info">
+          <div class="ac-name">${esc(a.name)}</div>
+          ${a.genres && a.genres.length ? `<div class="ac-meta">${esc(a.genres.join(' · '))}</div>` : ''}
+        </div>
+      </li>`).join('');
+    showList(artistList);
+    artistList.querySelectorAll('.ac-item').forEach(el => {
+      el.addEventListener('mousedown', e => {
+        e.preventDefault();
+        selectArtist(el.dataset.name, el.dataset.thumb, el.dataset.genres);
+      });
+    });
+  } catch {}
+}
+
+function selectArtist(name, thumb, genres) {
+  artistInput.value = name;
+  hideList(artistList);
+  if (thumb) { artistThumb.src = thumb; artistThumb.style.display = 'block'; }
+  else artistThumb.style.display = 'none';
+  artistGenres.innerHTML = genres
+    ? genres.split(', ').filter(Boolean).map(g => `<span class="genre-tag">${esc(g)}</span>`).join('')
+    : '';
+  fetchUpcoming(name);
+  maybeAutoFetch();
+}
+
+// ── Venue autocomplete ────────────────────────────────────────────────
+const upcomingPanel = document.getElementById('upcoming-panel');
+const upcomingListEl = document.getElementById('upcoming-list');
+const upcomingToggle = document.getElementById('upcoming-toggle');
+const upcomingChevron = document.getElementById('upcoming-chevron');
+const UPCOMING_PAGE_SIZE = 10;
+let upcomingPage = 0;
+let upcomingCollapsed = false;
+
+function setUpcomingCollapsed(collapsed) {
+  upcomingCollapsed = collapsed;
+  upcomingListEl.style.display = collapsed ? 'none' : '';
+  upcomingChevron.textContent = collapsed ? '▸' : '▾';
+}
+
+upcomingToggle.addEventListener('click', () => setUpcomingCollapsed(!upcomingCollapsed));
+
+async function fetchUpcoming(artist) {
+  upcomingPanel.style.display = 'none';
+  upcomingListEl.innerHTML = '';
+  upcomingPage = 0;
+  try {
+    const res = await fetch(`/concert-tracker/api/upcoming?artist=${encodeURIComponent(artist)}`);
+    upcomingCache = await res.json();
+  } catch { upcomingCache = []; }
+  if (!upcomingCache.length) return;
+  setUpcomingCollapsed(false);
+  renderUpcomingPage();
+  upcomingPanel.style.display = 'block';
+}
+
+function renderUpcomingPage() {
+  const totalPages = Math.ceil(upcomingCache.length / UPCOMING_PAGE_SIZE);
+  const start = upcomingPage * UPCOMING_PAGE_SIZE;
+  const pageItems = upcomingCache.slice(start, start + UPCOMING_PAGE_SIZE);
+
+  let html = pageItems.map((e, i) => `
+    <button type="button" class="upcoming-event-card" data-i="${start + i}">
+      <span class="uec-date">${esc(e.date || 'TBA')}</span>
+      <span class="uec-venue">${esc(e.venue_name || 'Unknown venue')}</span>
+      <span class="uec-city">${esc([e.city, e.state].filter(Boolean).join(', '))}</span>
+      ${e.url ? `<a href="${esc(e.url)}" target="_blank" class="uec-tickets" onclick="event.stopPropagation()">Tickets ↗</a>` : ''}
+    </button>`).join('');
+
+  if (totalPages > 1) {
+    html += `
+      <div class="upcoming-pagination">
+        <button type="button" class="btn btn-ghost btn-sm" id="upcoming-prev" ${upcomingPage === 0 ? 'disabled' : ''}>‹ Prev</button>
+        <span class="upcoming-page-label">Page ${upcomingPage + 1} of ${totalPages}</span>
+        <button type="button" class="btn btn-ghost btn-sm" id="upcoming-next" ${upcomingPage >= totalPages - 1 ? 'disabled' : ''}>Next ›</button>
+      </div>`;
+  }
+
+  upcomingListEl.innerHTML = html;
+
+  upcomingListEl.querySelectorAll('.upcoming-event-card').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const e = upcomingCache[Number(btn.dataset.i)];
+      if (e.date)       dateInput.value  = e.date;
+      if (e.venue_name) venueInput.value = e.venue_name;
+      if (e.city)       cityInput.value  = [e.city, e.state].filter(Boolean).join(', ');
+      upcomingPanel.style.display = 'none';
+      maybeAutoFetch();
+    });
+  });
+
+  const prevBtn = document.getElementById('upcoming-prev');
+  const nextBtn = document.getElementById('upcoming-next');
+  if (prevBtn) prevBtn.addEventListener('click', () => { upcomingPage--; renderUpcomingPage(); });
+  if (nextBtn) nextBtn.addEventListener('click', () => { upcomingPage++; renderUpcomingPage(); });
+}
+
+venueInput.addEventListener('input', () => {
+  const q = venueInput.value.trim().toLowerCase();
+  if (!q || !upcomingCache.length) { hideList(venueList); return; }
+  const matches = upcomingCache.filter(e =>
+    (e.venue_name||'').toLowerCase().includes(q) ||
+    (e.city||'').toLowerCase().includes(q)
+  ).slice(0, 6);
+  if (!matches.length) { hideList(venueList); return; }
+  venueList.innerHTML = matches.map(e => `
+    <li class="ac-item" data-venue="${esc(e.venue_name||'')}" data-city="${esc(e.city||'')}" data-date="${esc(e.date||'')}">
+      <div class="ac-info">
+        <div class="ac-name">${esc(e.venue_name||'Unknown venue')}</div>
+        <div class="ac-meta">${esc(e.city||'')}${e.state ? ', '+esc(e.state) : ''} · ${esc(e.date||'TBA')}${e.url ? ` · <a href="${esc(e.url)}" target="_blank" onclick="event.stopPropagation()">Tickets ↗</a>` : ''}</div>
+      </div>
+    </li>`).join('');
+  showList(venueList);
+  venueList.querySelectorAll('.ac-item').forEach(el => {
+    el.addEventListener('mousedown', e => {
+      e.preventDefault();
+      venueInput.value = el.dataset.venue;
+      if (el.dataset.city) cityInput.value = el.dataset.city;
+      if (el.dataset.date) dateInput.value = el.dataset.date;
+      hideList(venueList);
+      maybeAutoFetch();
+    });
+  });
+});
+venueInput.addEventListener('keydown', e => { if (e.key === 'Escape') hideList(venueList); });
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('#artist-wrap')) hideList(artistList);
+  if (!e.target.closest('#venue-wrap'))  hideList(venueList);
+});
+
+// Date change triggers auto-fetch
+dateInput.addEventListener('change', () => maybeAutoFetch());
+
+// ── Auto-fetch logic ──────────────────────────────────────────────────
+let lastFetchKey = null;
+let pendingFetch = null; // Promise for any in-flight lineup+setlist fetch
+
+function maybeAutoFetch() {
+  const artist = artistInput.value.trim();
+  const date   = dateInput.value;
+  if (!artist || !date) return;
+  const key = `${artist}|${date}`;
+  if (key === lastFetchKey) return;
+  lastFetchKey = key;
+  const p = Promise.all([doFetchLineup(artist, date), doFetchSetlist(artist, date)]);
+  pendingFetch = p;
+  p.finally(() => { if (pendingFetch === p) pendingFetch = null; });
+}
+
+// ── Support acts ──────────────────────────────────────────────────────
+let supportActs = [];
+const supportPlaceholder = document.getElementById('support-placeholder');
+const supportLoading     = document.getElementById('support-loading');
+const supportEditor      = document.getElementById('support-editor');
+const supportTagsEl      = document.getElementById('support-tags');
+const supportStatus      = document.getElementById('support-status');
+const supportAddInput    = document.getElementById('support-add-input');
+
+function renderSupportTags() {
+  supportTagsEl.innerHTML = supportActs.map((a, i) => `
+    <span class="lineup-tag editable-tag">
+      ${esc(a)}
+      <button type="button" class="tag-remove" data-i="${i}" title="Remove">×</button>
+    </span>`).join('');
+  supportTagsEl.querySelectorAll('.tag-remove').forEach(btn => {
+    btn.addEventListener('click', () => {
+      supportActs.splice(Number(btn.dataset.i), 1);
+      renderSupportTags();
+    });
+  });
+}
+
+function showSupportEditor() {
+  hideEl(supportPlaceholder);
+  hideEl(supportLoading);
+  showEl(supportEditor);
+}
+
+async function doFetchLineup(artist, date) {
+  hideEl(supportPlaceholder);
+  hideEl(supportEditor);
+  showEl(supportLoading);
+  supportStatus.textContent = '';
+
+  let ticketmasterActs = [];
+  let ticketmasterFailed = false;
+  try {
+    const res = await fetch(`/concert-tracker/api/lineup?artist=${encodeURIComponent(artist)}&date=${date}`);
+    const acts = await res.json();
+    ticketmasterActs = Array.isArray(acts) ? acts : [];
+  } catch {
+    ticketmasterFailed = true;
+  }
+
+  if (ticketmasterActs.length) {
+    supportActs = ticketmasterActs;
+    supportStatus.textContent = `${supportActs.length} act${supportActs.length > 1 ? 's' : ''} found`;
+    renderSupportTags();
+    showSupportEditor();
+    return;
+  }
+
+  // Ticketmaster has no forward record of past shows, so for a date that's
+  // already happened, fall back to setlist.fm's venue+date lookup instead
+  // of giving up.
+  const isPast = date < new Date().toISOString().slice(0, 10);
+  if (!isPast) {
+    supportActs = [];
+    supportStatus.textContent = ticketmasterFailed
+      ? 'Ticketmaster unavailable — add manually'
+      : 'None found on Ticketmaster — add manually';
+    renderSupportTags();
+    showSupportEditor();
+    return;
+  }
+
+  try {
+    const res = await fetch(`/concert-tracker/api/lineup-setlistfm?artist=${encodeURIComponent(artist)}&date=${date}`);
+    const acts = await res.json();
+    supportActs = Array.isArray(acts) ? acts : [];
+    supportStatus.textContent = supportActs.length
+      ? `${supportActs.length} act${supportActs.length > 1 ? 's' : ''} found on Setlist.fm`
+      : 'None found — add manually';
+  } catch {
+    supportActs = [];
+    supportStatus.textContent = 'Setlist.fm unavailable — add manually';
+  }
+  renderSupportTags();
+  showSupportEditor();
+}
+
+// ── Support acts autocomplete ─────────────────────────────────────────
+const supportAcList = document.getElementById('support-ac-list');
+let supportAcDebounce;
+
+supportAddInput.addEventListener('input', () => {
+  clearTimeout(supportAcDebounce);
+  const q = supportAddInput.value.trim();
+  if (q.length < 2) { hideList(supportAcList); return; }
+  supportAcDebounce = setTimeout(() => fetchSupportArtists(q), 280);
+});
+
+supportAddInput.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { hideList(supportAcList); return; }
+  if (e.key === 'Enter') { e.preventDefault(); addSupportAct(); }
+});
+
+async function fetchSupportArtists(q) {
+  try {
+    const res = await fetch(`/concert-tracker/api/artist-search?q=${encodeURIComponent(q)}`);
+    const data = await res.json();
+    if (!data.length) { hideList(supportAcList); return; }
+    supportAcList.innerHTML = data.map(a => `
+      <li class="ac-item" data-name="${esc(a.name)}">
+        ${a.thumb_url ? `<img src="${esc(a.thumb_url)}" class="ac-thumb">` : '<div class="ac-thumb ac-thumb-ph">🎵</div>'}
+        <div class="ac-info">
+          <div class="ac-name">${esc(a.name)}</div>
+          ${a.genres && a.genres.length ? `<div class="ac-meta">${esc(a.genres.slice(0,2).join(' · '))}</div>` : ''}
+        </div>
+      </li>`).join('');
+    showList(supportAcList);
+    supportAcList.querySelectorAll('.ac-item').forEach(el => {
+      el.addEventListener('mousedown', e => {
+        e.preventDefault();
+        addSupportAct(el.dataset.name);
+      });
+    });
+  } catch {}
+}
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('.support-ac-wrap')) hideList(supportAcList);
+});
+
+function addSupportAct(name) {
+  const val = name || supportAddInput.value.trim();
+  if (!val) return;
+  supportActs.push(val);
+  supportAddInput.value = '';
+  hideList(supportAcList);
+  renderSupportTags();
+}
+
+// ── Setlist ───────────────────────────────────────────────────────────
+let setlistMeta = { url: null, venue: null };
+const setlistPlaceholder = document.getElementById('setlist-placeholder');
+const setlistLoading     = document.getElementById('setlist-loading');
+const setlistEditor      = document.getElementById('setlist-editor');
+const setlistTextarea    = document.getElementById('setlist-textarea');
+const setlistStatus      = document.getElementById('setlist-status');
+const setlistSourceLink  = document.getElementById('setlist-source-link');
+
+function showSetlistEditor() {
+  hideEl(setlistPlaceholder);
+  hideEl(setlistLoading);
+  showEl(setlistEditor);
+}
+
+async function doFetchSetlist(artist, date) {
+  hideEl(setlistPlaceholder);
+  hideEl(setlistEditor);
+  showEl(setlistLoading);
+  setlistStatus.textContent = '';
+  setlistSourceLink.innerHTML = '';
+  try {
+    const res = await fetch(`/concert-tracker/api/setlistfm?artist=${encodeURIComponent(artist)}&date=${date}`);
+    const d = await res.json();
+    if (d.found && d.songs && d.songs.length) {
+      setlistTextarea.value = d.songs.join('\n');
+      setlistMeta = { url: d.url || null, venue: d.venue || null };
+      setlistStatus.textContent = `${d.songs.length} songs found`;
+      if (d.url) setlistSourceLink.innerHTML = `<a href="${esc(d.url)}" target="_blank">View on Setlist.fm ↗</a>`;
+    } else {
+      setlistTextarea.value = '';
+      setlistMeta = { url: null, venue: null };
+      setlistStatus.textContent = 'No setlist found — add songs manually';
+    }
+  } catch {
+    setlistTextarea.value = '';
+    setlistMeta = { url: null, venue: null };
+    setlistStatus.textContent = 'Setlist.fm unavailable — add songs manually';
+  }
+  showSetlistEditor();
+}
+
+// ── Manual backfill buttons ─────────────────────────────────────────────
+// Editing an existing show no longer auto-fetches on load (see lastFetchKey
+// note above), and even outside that case someone may just want to re-pull
+// fresh data. These give an explicit trigger that isn't tied to changing
+// the artist or date.
+const supportBackfillBtn = document.getElementById('support-backfill-btn');
+const setlistBackfillBtn = document.getElementById('setlist-backfill-btn');
+
+function trackPendingFetch(promise) {
+  pendingFetch = promise;
+  promise.finally(() => { if (pendingFetch === promise) pendingFetch = null; });
+}
+
+supportBackfillBtn.addEventListener('click', () => {
+  const artist = artistInput.value.trim();
+  const date = dateInput.value;
+  if (!artist || !date) { supportStatus.textContent = 'Fill in artist & date above first'; return; }
+  if (supportActs.length && !confirm('Replace the current support acts with a fresh lookup?')) return;
+  trackPendingFetch(doFetchLineup(artist, date));
+});
+
+setlistBackfillBtn.addEventListener('click', () => {
+  const artist = artistInput.value.trim();
+  const date = dateInput.value;
+  if (!artist || !date) { setlistStatus.textContent = 'Fill in artist & date above first'; return; }
+  if (setlistTextarea.value.trim() && !confirm('Replace the current setlist with a fresh lookup?')) return;
+  trackPendingFetch(doFetchSetlist(artist, date));
+});
+
+// ── Pre-populate when editing an existing show ────────────────────────
+const existingSupport = {{ (show.support_acts if show and show.support_acts else []) | tojson }};
+const existingSetlist = {{ (show.setlist if show and show.setlist else None) | tojson }};
+
+console.log('[debug] existingSupport =', existingSupport, typeof existingSupport);
+console.log('[debug] existingSetlist =', existingSetlist, typeof existingSetlist);
+
+{% if show %}
+// Editing an existing show: lastFetchKey is locked to its artist/date below,
+// so maybeAutoFetch() will never fire unless the user actually changes one
+// of those fields. That's correct (we don't want to silently overwrite
+// manually-entered data) but it means the placeholder would otherwise be a
+// dead end when a show simply never had support acts / a setlist fetched or
+// saved. Open both editors straight away so editing is always possible.
+showSupportEditor();
+showSetlistEditor();
+{% endif %}
+
+if (existingSupport && existingSupport.length) {
+  supportActs = existingSupport;
+  renderSupportTags();
+  supportStatus.textContent = `${supportActs.length} act${supportActs.length > 1 ? 's' : ''}`;
+}
+
+if (existingSetlist && existingSetlist.songs && existingSetlist.songs.length) {
+  setlistTextarea.value = existingSetlist.songs.join('\n');
+  setlistMeta = { url: existingSetlist.url || null, venue: existingSetlist.venue || null };
+  if (existingSetlist.url) setlistSourceLink.innerHTML = `<a href="${esc(existingSetlist.url)}" target="_blank">View on Setlist.fm ↗</a>`;
+  setlistStatus.textContent = `${existingSetlist.songs.length} songs`;
+}
+
+// Lock fetch key for existing shows so editing venue/date doesn't wipe data unexpectedly
+{% if show and show.artist and show.date %}
+lastFetchKey = {{ show.artist | tojson }} + '|' + {{ show.date | string | tojson }};
+{% endif %}
+
+// ── Serialize hidden fields on submit ─────────────────────────────────
+const showForm = document.getElementById('show-form');
+const submitBtn = showForm.querySelector('button[type="submit"]');
+
+function serializeSetlistFields() {
+  document.getElementById('support-acts-json').value = JSON.stringify(supportActs);
+  const lines = setlistTextarea.value.split('\n').map(l => l.trim()).filter(Boolean);
+  document.getElementById('setlist-json').value = lines.length
+    ? JSON.stringify({ songs: lines, url: setlistMeta.url, venue: setlistMeta.venue })
+    : '';
+}
+
+showForm.addEventListener('submit', e => {
+  if (pendingFetch) {
+    // A lineup/setlist fetch triggered by the artist or date is still in
+    // flight -- submitting right now would save empty support/setlist
+    // fields even though the data is about to show up. Hold the submit,
+    // wait for it, then resubmit for real.
+    e.preventDefault();
+    const originalLabel = submitBtn.textContent;
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Fetching setlist…';
+    pendingFetch.finally(() => {
+      submitBtn.disabled = false;
+      submitBtn.textContent = originalLabel;
+      serializeSetlistFields();
+      showForm.requestSubmit();
+    });
+    return;
+  }
+  serializeSetlistFields();
+});
+
+// Pre-fetch upcoming if editing with an existing artist
+{% if show and show.artist %}fetchUpcoming({{ show.artist | tojson }});{% endif %}
+</script>
+{% endblock %}

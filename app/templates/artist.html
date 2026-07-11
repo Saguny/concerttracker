@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block title %}{{ artist_name }} · Concert Tracker{% endblock %}
+{% block content %}
+<div class="artist-page">
+  <div class="artist-header">
+    {% if image_url %}
+    <img src="{{ image_url }}" class="artist-page-img" alt="{{ artist_name }}">
+    {% else %}
+    <div class="artist-page-img artist-page-img-ph">{{ artist_name[0] | upper }}</div>
+    {% endif %}
+    <div class="artist-header-info">
+      <h1 class="artist-page-name">{{ artist_name }}</h1>
+      {% set all_tags = (lfm.tags if lfm and lfm.tags else []) or genres[:4] %}
+      {% if all_tags %}
+      <div class="genre-list" style="margin-bottom:.6rem">
+        {% for g in all_tags[:5] %}<span class="genre-tag">{{ g }}</span>{% endfor %}
+      </div>
+      {% endif %}
+
+      {% if lfm and lfm.listeners %}
+      <div class="artist-stats-row">
+        <span class="artist-stat"><strong>{{ "{:,}".format(lfm.listeners) }}</strong><span class="muted"> listeners</span></span>
+        <span class="artist-stat-sep">·</span>
+        <span class="artist-stat"><strong>{{ "{:,}".format(lfm.playcount) }}</strong><span class="muted"> scrobbles</span></span>
+        <span class="artist-stat-sep">·</span>
+        <span class="muted">Seen <strong style="color:var(--text)">{{ shows | length }}×</strong></span>
+      </div>
+      {% else %}
+      <div class="muted" style="font-size:.875rem">You've seen them <strong style="color:var(--text)">{{ shows | length }}×</strong></div>
+      {% endif %}
+
+      <div class="artist-link-row">
+        {% if spotify_url %}
+        <a href="{{ spotify_url }}" target="_blank" class="btn btn-sm btn-ghost artist-ext-btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="color:#1DB954"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>
+          Spotify
+        </a>
+        {% endif %}
+        {% if lfm and lfm.url %}
+        <a href="{{ lfm.url }}" target="_blank" class="btn btn-sm btn-ghost artist-ext-btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="color:#d51007"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm-1.536 16.833l-3.3-1.908v-5.85l3.3 1.908v5.85zm.732-6.99L7.9 7.935l3.296-1.904 3.296 1.904-3.296 1.908zm4.104 5.082l-3.3 1.908V10.983l3.3-1.908v5.85z"/></svg>
+          Last.fm
+        </a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  {% if lfm and lfm.bio %}
+  <div class="artist-bio">{{ lfm.bio }}</div>
+  {% endif %}
+
+  {% if lfm and lfm.similar %}
+  <div class="detail-section">
+    <h3>Similar artists</h3>
+    <div class="artist-similar-list">
+      {% for a in lfm.similar %}
+      <a href="/concert-tracker/artists/{{ a.name | urlquote }}" class="artist-similar-chip">{{ a.name }}</a>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="detail-section">
+    <h3>Comments <span class="muted">{{ comments | length }}</span></h3>
+    {% if comments %}
+    <div class="comment-list">
+      {% for c in comments %}
+      <div class="comment">
+        <div class="comment-avatar">
+          {% if c.avatar_url %}<img src="{{ c.avatar_url }}" alt="{{ c.username }}">
+          {% else %}<div class="comment-avatar-ph">{{ c.username[0] | upper }}</div>{% endif %}
+        </div>
+        <div class="comment-body">
+          <div class="comment-meta">
+            <a href="/concert-tracker/u/{{ c.username }}" class="comment-author">{{ c.username }}</a>
+            <span class="muted small">{{ c.created_at | int | timestamp_fmt }}</span>
+          </div>
+          <div class="comment-text">{{ c.body }}</div>
+        </div>
+        {% if c.username == user.username %}
+        <form method="post" action="/concert-tracker/artists/{{ artist_name | urlquote }}/comments/{{ c.id }}/delete">
+          <input type="hidden" name="_csrf" value="{{ csrf }}">
+          <button type="submit" class="btn-icon-danger" title="Delete">×</button>
+        </form>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+    <form method="post" action="/concert-tracker/artists/{{ artist_name | urlquote }}/comments" class="comment-form">
+      <input type="hidden" name="_csrf" value="{{ csrf }}">
+      <div class="comment-input-wrap">
+        <div class="comment-avatar">
+          {% if user.avatar_url %}<img src="{{ user.avatar_url }}" alt="{{ user.username }}">
+          {% else %}<div class="comment-avatar-ph">{{ user.username[0] | upper }}</div>{% endif %}
+        </div>
+        <textarea name="body" rows="2" maxlength="500" placeholder="Add a comment…" required class="comment-input"></textarea>
+      </div>
+      <div class="comment-form-actions">
+        <button type="submit" class="btn btn-sm btn-accent">Post</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="detail-section">
+    <h3>Your shows</h3>
+    <div class="artist-shows-list">
+      {% for s in shows %}
+      <a href="/concert-tracker/shows/{{ s.id }}" class="artist-show-row">
+        <span class="artist-show-date">{{ s.date.strftime('%b %d, %Y').replace(' 0', ' ') }}</span>
+        <span class="artist-show-venue">{{ s.venue }}{% if s.city %} · {{ s.city }}{% endif %}</span>
+        {% if s.is_festival %}<span class="badge badge-festival" style="font-size:.7rem">Festival</span>{% endif %}
+        {% if s.setlist and s.setlist.songs %}<span class="muted small">{{ s.setlist.songs | length }} songs</span>{% endif %}
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

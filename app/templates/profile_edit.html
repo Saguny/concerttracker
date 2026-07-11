@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Edit Profile · Concert Tracker{% endblock %}
+{% block content %}
+<div class="auth-wrap" style="max-width:520px">
+  <h1 class="auth-title">Edit Profile</h1>
+  <p class="auth-sub">Upload an avatar and write a bio.</p>
+
+  <form method="post" action="/concert-tracker/profile/edit" class="auth-form" enctype="multipart/form-data">
+    <input type="hidden" name="_csrf" value="{{ csrf }}">
+
+    <label>
+      Avatar
+      {% if me.avatar_url %}
+      <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.4rem">
+        <img src="{{ me.avatar_url }}" style="width:52px;height:52px;border-radius:50%;object-fit:cover">
+        <span class="muted small">Current avatar</span>
+      </div>
+      {% endif %}
+      <input type="file" name="avatar" accept="image/jpeg,image/png,image/webp,image/gif" style="padding:.3rem .5rem">
+      <span class="muted small">JPEG · PNG · WebP · GIF · max 5 MB</span>
+    </label>
+
+    <label>
+      Bio <span class="muted small">(max 300 chars)</span>
+      <textarea name="bio" rows="3" maxlength="300" placeholder="A sentence about yourself…">{{ me.bio or '' }}</textarea>
+    </label>
+
+    <div class="form-actions" style="justify-content:flex-start;gap:.75rem">
+      <button type="submit" class="btn btn-accent">Save</button>
+      <a href="/concert-tracker/u/{{ user.username }}" class="btn btn-ghost">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

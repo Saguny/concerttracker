@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Login · Concert Tracker{% endblock %}
+{% block content %}
+<div class="auth-wrap">
+  <h1 class="auth-title">Concert Tracker</h1>
+  <p class="auth-sub">Sign in to your account</p>
+  {% if error %}<div class="flash flash-error">{{ error }}</div>{% endif %}
+  <form method="post" action="/concert-tracker/login" class="auth-form">
+    <input type="hidden" name="_csrf" value="{{ csrf }}">
+    <label>Username
+      <input type="text" name="username" autocomplete="username" autofocus required>
+    </label>
+    <label>Password
+      <input type="password" name="password" autocomplete="current-password" required>
+    </label>
+    <button type="submit" class="btn btn-accent btn-full">Sign in</button>
+  </form>
+  <p class="auth-footer">Need an account? Ask a friend for an invite link.</p>
+</div>
+{% endblock %}

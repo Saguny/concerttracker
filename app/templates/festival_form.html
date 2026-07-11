@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+{% block title %}Log a Festival · Concert Tracker{% endblock %}
+{% block content %}
+<div class="log-tabs">
+  <a href="/concert-tracker/shows/add" class="log-tab">Log a Show</a>
+  <a href="/concert-tracker/shows/add-festival" class="log-tab active">Log a Festival</a>
+</div>
+
+<form method="post" action="/concert-tracker/shows/add-festival" class="show-form" id="festival-form">
+  <input type="hidden" name="_csrf" value="{{ csrf }}">
+  <input type="hidden" name="festival_name" id="festival-name-hidden">
+  <input type="hidden" name="artists_json" id="artists-json">
+
+  <div class="field-group">
+    <label>Festival Name <span class="required">*</span></label>
+    <input type="text" id="festival-name-input" placeholder="e.g. Graspop Metal Meeting" required>
+  </div>
+
+  <div class="form-row">
+    <div class="field-group form-col">
+      <label>City / Location</label>
+      <input type="text" name="city" placeholder="e.g. Dessel, Belgium">
+    </div>
+    <div class="field-group form-col">
+      <label>Default Date</label>
+      <input type="date" id="default-date">
+    </div>
+  </div>
+
+  <!-- Artist search -->
+  <div class="field-group">
+    <label>Artists you saw</label>
+    <div class="autocomplete-wrap" id="artist-ac-wrap">
+      <input type="text" id="artist-search" autocomplete="off" placeholder="Search and add artists…">
+      <ul class="autocomplete-list" id="artist-ac-list"></ul>
+    </div>
+  </div>
+
+  <!-- Added artists -->
+  <div class="setlist-panel" id="artists-panel" style="display:none">
+    <div class="setlist-header">
+      <span id="artists-count"></span>
+      <div style="display:flex;align-items:center;gap:.5rem">
+        <span class="muted" style="font-size:.8rem;font-weight:400">Set all dates </span>
+        <input type="date" id="set-all-date" style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:.25rem .5rem;color:var(--text);font-size:.78rem">
+      </div>
+    </div>
+    <div id="artists-list" class="festival-artist-list"></div>
+  </div>
+
+  <div class="form-actions">
+    <a href="/concert-tracker/shows" class="btn btn-ghost">Cancel</a>
+    <button type="submit" class="btn btn-accent" id="submit-btn">Log Festival</button>
+  </div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// ── State ─────────────────────────────────────────────────────────────
+let artists = []; // [{name, thumb, date}]
+
+// ── Helpers ───────────────────────────────────────────────────────────
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function showList(el) { el.style.display = 'block'; }
+function hideList(el) { el.style.display = 'none'; el.innerHTML = ''; }
+
+// ── Artist autocomplete ───────────────────────────────────────────────
+const artistSearch = document.getElementById('artist-search');
+const artistAcList = document.getElementById('artist-ac-list');
+let acDebounce;
+
+artistSearch.addEventListener('input', () => {
+  clearTimeout(acDebounce);
+  const q = artistSearch.value.trim();
+  if (q.length < 2) { hideList(artistAcList); return; }
+  acDebounce = setTimeout(() => fetchArtists(q), 280);
+});
+artistSearch.addEventListener('keydown', e => { if (e.key === 'Escape') hideList(artistAcList); });
+document.addEventListener('click', e => {
+  if (!e.target.closest('#artist-ac-wrap')) hideList(artistAcList);
+});
+
+async function fetchArtists(q) {
+  try {
+    const res = await fetch(`/concert-tracker/api/artist-search?q=${encodeURIComponent(q)}`);
+    const data = await res.json();
+    if (!data.length) { hideList(artistAcList); return; }
+    artistAcList.innerHTML = data.map(a => `
+      <li class="ac-item" data-name="${esc(a.name)}" data-thumb="${esc(a.thumb_url||'')}">
+        ${a.thumb_url ? `<img src="${esc(a.thumb_url)}" class="ac-thumb">` : '<div class="ac-thumb ac-thumb-ph">🎵</div>'}
+        <div class="ac-info">
+          <div class="ac-name">${esc(a.name)}</div>
+          ${a.genres && a.genres.length ? `<div class="ac-meta">${esc(a.genres.slice(0,2).join(' · '))}</div>` : ''}
+        </div>
+      </li>`).join('');
+    showList(artistAcList);
+    artistAcList.querySelectorAll('.ac-item').forEach(el => {
+      el.addEventListener('mousedown', e => {
+        e.preventDefault();
+        addArtist(el.dataset.name, el.dataset.thumb);
+      });
+    });
+  } catch {}
+}
+
+function addArtist(name, thumb) {
+  if (artists.find(a => a.name.toLowerCase() === name.toLowerCase())) {
+    artistSearch.value = '';
+    hideList(artistAcList);
+    return;
+  }
+  const date = document.getElementById('default-date').value || '';
+  artists.push({ name, thumb, date });
+  artistSearch.value = '';
+  hideList(artistAcList);
+  renderArtists();
+}
+
+// ── Artist list ───────────────────────────────────────────────────────
+function renderArtists() {
+  const panel = document.getElementById('artists-panel');
+  const list  = document.getElementById('artists-list');
+  const count = document.getElementById('artists-count');
+
+  if (!artists.length) { panel.style.display = 'none'; return; }
+  panel.style.display = '';
+  count.textContent = `${artists.length} artist${artists.length !== 1 ? 's' : ''}`;
+
+  list.innerHTML = artists.map((a, i) => `
+    <div class="festival-artist-row">
+      ${a.thumb ? `<img src="${esc(a.thumb)}" class="festival-artist-thumb" alt="">` : '<div class="festival-artist-thumb-ph">🎵</div>'}
+      <span class="festival-artist-name">${esc(a.name)}</span>
+      <input type="date" class="artist-date festival-artist-date" data-i="${i}" value="${esc(a.date)}">
+      <button type="button" class="btn-icon-danger festival-remove" data-i="${i}" title="Remove">×</button>
+    </div>`).join('');
+
+  list.querySelectorAll('.artist-date').forEach(inp => {
+    inp.addEventListener('change', () => { artists[Number(inp.dataset.i)].date = inp.value; });
+  });
+  list.querySelectorAll('.festival-remove').forEach(btn => {
+    btn.addEventListener('click', () => {
+      artists.splice(Number(btn.dataset.i), 1);
+      renderArtists();
+    });
+  });
+}
+
+// ── "Set all dates" control ───────────────────────────────────────────
+document.getElementById('set-all-date').addEventListener('change', function() {
+  artists.forEach(a => a.date = this.value);
+  renderArtists();
+});
+
+// ── Sync festival name hidden field ──────────────────────────────────
+document.getElementById('festival-name-input').addEventListener('input', function() {
+  document.getElementById('festival-name-hidden').value = this.value.trim();
+});
+
+// ── Submit ────────────────────────────────────────────────────────────
+document.getElementById('festival-form').addEventListener('submit', e => {
+  const name = document.getElementById('festival-name-input').value.trim();
+  if (!name) { e.preventDefault(); alert('Enter a festival name.'); return; }
+  document.getElementById('festival-name-hidden').value = name;
+
+  const payload = artists
+    .filter(a => a.name)
+    .map(a => ({ name: a.name, date: a.date || document.getElementById('default-date').value || new Date().toISOString().slice(0,10) }));
+
+  if (!payload.length) { e.preventDefault(); alert('Add at least one artist.'); return; }
+  document.getElementById('artists-json').value = JSON.stringify(payload);
+});
+</script>
+{% endblock %}

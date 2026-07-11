@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Calendar · Concert Tracker{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div class="cal-nav">
+    <a href="/concert-tracker/calendar?year={{ prev_year }}&month={{ prev_month }}" class="btn btn-ghost">‹</a>
+    <h1>{{ month_name }}</h1>
+    <a href="/concert-tracker/calendar?year={{ next_year }}&month={{ next_month }}" class="btn btn-ghost">›</a>
+  </div>
+  <a href="/concert-tracker/calendar?year={{ today.year }}&month={{ today.month }}" class="btn btn-ghost btn-sm">Today</a>
+</div>
+
+<div class="cal-grid">
+  <div class="cal-header-row">
+    {% for d in ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'] %}
+    <div class="cal-dow">{{ d }}</div>
+    {% endfor %}
+  </div>
+
+  {% for week in cal_grid %}
+  <div class="cal-week">
+    {% for day in week %}
+    <div class="cal-day {% if day == 0 %}cal-day-empty{% endif %} {% if day == today.day and month == today.month and year == today.year %}cal-day-today{% endif %}">
+      {% if day != 0 %}
+      <span class="cal-day-num">{{ day }}</span>
+      {% if day in shows_by_day %}
+        {% for show in shows_by_day[day] %}
+        <a href="/concert-tracker/shows/{{ show.id }}" class="cal-show {% if show.date | string >= today | string %}cal-show-upcoming{% endif %}">
+          {% if show.artist_thumb_url %}<img src="{{ show.artist_thumb_url }}" class="cal-show-thumb" loading="lazy">{% endif %}
+          <span>{{ show.artist }}</span>
+        </a>
+        {% endfor %}
+      {% endif %}
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

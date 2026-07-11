@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+{% block title %}Feed · Concert Tracker{% endblock %}
+{% block content %}
+<div class="social-layout">
+  <div class="social-main">
+    <div class="social-top-bar">
+      <h2>Activity Feed</h2>
+      <form class="follow-form" method="post" action="/concert-tracker/u/follow">
+        <input type="hidden" name="_csrf" value="{{ csrf }}">
+        <input type="text" name="follow_user" placeholder="Follow by username…" required autocomplete="off">
+        <button type="submit" class="btn btn-sm btn-accent">Follow</button>
+      </form>
+    </div>
+
+    {% if not feed %}
+    <div class="empty-state">
+      <span style="font-size:2rem">🎵</span>
+      <p>Follow people to see their shows here.</p>
+    </div>
+    {% else %}
+    <div class="show-list">
+      {% for show in feed %}
+      <a href="/concert-tracker/shows/{{ show.id }}" class="show-card">
+        {% if show.artist_thumb_url %}
+        <img class="show-thumb" src="{{ show.artist_thumb_url }}" alt="{{ show.artist }}" loading="lazy">
+        {% else %}
+        <div class="show-thumb show-thumb-placeholder">🎵</div>
+        {% endif %}
+        <div class="show-card-body">
+          <div class="show-artist">{{ show.artist }}</div>
+          <div class="show-meta">{{ show.venue }} · {{ show.city }}</div>
+          <div class="show-meta">
+            <span class="feed-user-chip">
+              {% if show.user_avatar %}
+              <img src="{{ show.user_avatar }}" class="feed-user-avatar">
+              {% else %}
+              <span class="feed-user-avatar feed-avatar-ph">{{ show.username[0] | upper }}</span>
+              {% endif %}
+              {{ show.username }}
+            </span>
+            <span class="feed-interactions">
+              <span title="likes">♥ {{ show.like_count }}</span>
+              <span title="comments">💬 {{ show.comment_count }}</span>
+            </span>
+          </div>
+        </div>
+        <div class="show-date">
+          <span class="date-day">{{ show.date.strftime('%d') }}</span>
+          <span class="date-mon">{{ show.date.strftime('%b') }}</span>
+          <span class="date-year">{{ show.date.strftime('%Y') }}</span>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+
+  <aside class="social-sidebar">
+    <section class="social-section">
+      <h2>Leaderboard</h2>
+      <div class="lb-tabs">
+        <button class="lb-tab active" onclick="switchTab('all', this)">All Time</button>
+        <button class="lb-tab" onclick="switchTab('year', this)">This Year</button>
+      </div>
+      <ol class="lb-list" id="lb-all">
+        {% for r in leaderboard_all %}
+        <li class="lb-row">
+          <span class="lb-rank">{{ loop.index }}</span>
+          <a href="/concert-tracker/u/{{ r.username }}" class="lb-user">{{ r.username }}</a>
+          <span class="lb-count">{{ r.count }}</span>
+        </li>
+        {% endfor %}
+      </ol>
+      <ol class="lb-list" id="lb-year" style="display:none">
+        {% for r in leaderboard_year %}
+        <li class="lb-row">
+          <span class="lb-rank">{{ loop.index }}</span>
+          <a href="/concert-tracker/u/{{ r.username }}" class="lb-user">{{ r.username }}</a>
+          <span class="lb-count">{{ r.count }}</span>
+        </li>
+        {% endfor %}
+      </ol>
+    </section>
+
+    <section class="social-section">
+      <h2>Following <span class="muted">{{ following | length }}</span></h2>
+      {% for f in following %}
+      <div class="follow-row">
+        {% if f.avatar_url %}
+        <img src="{{ f.avatar_url }}" class="follow-avatar" alt="{{ f.username }}">
+        {% else %}
+        <span class="follow-avatar follow-avatar-ph">{{ f.username[0] | upper }}</span>
+        {% endif %}
+        <a href="/concert-tracker/u/{{ f.username }}">{{ f.username }}</a>
+        {% if f.id in following_ids and f.id in (followers | map(attribute='id') | list) %}
+        <span class="badge badge-mutual">mutual</span>
+        {% endif %}
+      </div>
+      {% else %}
+      <p class="muted small">Not following anyone yet.</p>
+      {% endfor %}
+    </section>
+
+    <section class="social-section">
+      <h2>Followers <span class="muted">{{ followers | length }}</span></h2>
+      {% for f in followers %}
+      <div class="follow-row">
+        {% if f.avatar_url %}
+        <img src="{{ f.avatar_url }}" class="follow-avatar" alt="{{ f.username }}">
+        {% else %}
+        <span class="follow-avatar follow-avatar-ph">{{ f.username[0] | upper }}</span>
+        {% endif %}
+        <a href="/concert-tracker/u/{{ f.username }}">{{ f.username }}</a>
+        {% if f.id not in following_ids %}
+        <form method="post" action="/concert-tracker/u/follow" style="display:inline">
+          <input type="hidden" name="_csrf" value="{{ csrf }}">
+          <input type="hidden" name="username" value="{{ f.username }}">
+          <button class="btn btn-sm btn-ghost">Follow back</button>
+        </form>
+        {% endif %}
+      </div>
+      {% else %}
+      <p class="muted small">No followers yet.</p>
+      {% endfor %}
+    </section>
+  </aside>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function switchTab(tab, btn) {
+  document.querySelectorAll('.lb-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('lb-all').style.display = tab === 'all' ? '' : 'none';
+  document.getElementById('lb-year').style.display = tab === 'year' ? '' : 'none';
+}
+</script>
+{% endblock %}
