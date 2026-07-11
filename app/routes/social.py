@@ -278,14 +278,18 @@ async def friend_profile(
             "GROUP BY venue ORDER BY count DESC LIMIT 5", pid,
         )
         shared = await conn.fetch(
-            "SELECT s.artist, s.date, s.venue, s.city FROM shows s "
+            "SELECT s.artist, s.date, s.venue, s.city, s.artist_thumb_url, s.is_festival, s.festival_name FROM shows s "
             "WHERE s.user_id = $1 AND EXISTS ("
             "  SELECT 1 FROM shows s2 WHERE s2.user_id = $2 "
             "  AND s2.artist = s.artist AND s2.date = s.date"
             ") ORDER BY s.date DESC",
             uid, pid,
         )
-        show_count = await conn.fetchval("SELECT COUNT(*) FROM shows WHERE user_id=$1", pid)
+        show_count = await conn.fetchval(
+            "SELECT (SELECT COUNT(*) FROM shows WHERE user_id=$1 AND (is_festival = FALSE OR festival_name IS NULL))"
+            " + (SELECT COUNT(DISTINCT festival_name) FROM shows WHERE user_id=$1 AND is_festival = TRUE AND festival_name IS NOT NULL)",
+            pid,
+        )
         follower_count = await conn.fetchval("SELECT COUNT(*) FROM follows WHERE target_id=$1", pid)
         following_count = await conn.fetchval("SELECT COUNT(*) FROM follows WHERE user_id=$1", pid)
 

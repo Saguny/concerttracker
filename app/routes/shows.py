@@ -85,18 +85,139 @@ async def list_shows(
             user["id"],
         )
 
+    seen_festivals: dict = {}
+    items: list = []
+    for row in rows:
+        show = _parse_show(row)
+        if show["is_festival"] and show.get("festival_name"):
+            fname = show["festival_name"]
+            if fname not in seen_festivals:
+                entry: dict = {
+                    "type": "festival",
+                    "festival_name": fname,
+                    "city": show["city"],
+                    "date": show["date"],
+                    "shows": [],
+                }
+                seen_festivals[fname] = entry
+                items.append(entry)
+            seen_festivals[fname]["shows"].append(show)
+        else:
+            items.append({"type": "show", "show": show})
+
     return templates.TemplateResponse(
         "list.html",
         _ctx(
             request,
             user,
-            shows=rows,
+            items=items,
             years=[r["y"] for r in years],
             filters={"year": year, "artist": artist, "kind": kind, "sort": sort},
             today=time.strftime("%Y-%m-%d"),
             csrf=get_csrf_token(request),
         ),
     )
+
+
+@router.get("/shows/festival/{festival_name}", response_class=HTMLResponse)
+async def festival_detail(
+    festival_name: str, request: Request, pool=Depends(get_pool), user=Depends(require_user)
+):
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            "SELECT * FROM shows WHERE user_id = $1 AND festival_name = $2 ORDER BY date ASC, artist ASC",
+            user["id"], festival_name,
+        )
+        if not rows:
+            flash(request, "Festival not found", "error")
+            return RedirectResponse("/concert-tracker/shows", status_code=302)
+        show_ids = [r["id"] for r in rows]
+        attendees = await conn.fetch(
+            "SELECT DISTINCT u.id, u.username, u.avatar_url FROM show_attendees sa "
+            "JOIN users u ON u.id = sa.user_id WHERE sa.show_id = ANY($1)",
+            show_ids,
+        )
+        already_tagged = {a["id"] for a in attendees}
+        following = await conn.fetch(
+            "SELECT u.id, u.username FROM follows f JOIN users u ON u.id = f.target_id "
+            "WHERE f.user_id = $1",
+            user["id"],
+        )
+        taggable = [f for f in following if f["id"] not in already_tagged]
+    shows = [_parse_show(r) for r in rows]
+    return templates.TemplateResponse(
+        "festival_detail.html",
+        _ctx(
+            request, user,
+            festival_name=festival_name,
+            city=shows[0]["city"],
+            shows=shows,
+            attendees=attendees,
+            taggable=taggable,
+            csrf=get_csrf_token(request),
+        ),
+    )
+
+
+@router.post("/shows/festival/{festival_name}/tag")
+async def tag_festival_friend(
+    festival_name: str, request: Request, pool=Depends(get_pool), user=Depends(require_user)
+):
+    from app.auth import verify_csrf
+    await verify_csrf(request)
+    form = await request.form()
+    friend_id = int(form.get("friend_id", 0))
+    if not friend_id:
+        return RedirectResponse(f"/concert-tracker/shows/festival/{festival_name}", status_code=302)
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            "SELECT id FROM shows WHERE user_id = $1 AND festival_name = $2",
+            user["id"], festival_name,
+        )
+        for row in rows:
+            await conn.execute(
+                "INSERT INTO show_attendees (show_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
+                row["id"], friend_id,
+            )
+    return RedirectResponse(f"/concert-tracker/shows/festival/{festival_name}", status_code=302)
+
+
+@router.post("/shows/festival/{festival_name}/untag")
+async def untag_festival_friend(
+    festival_name: str, request: Request, pool=Depends(get_pool), user=Depends(require_user)
+):
+    from app.auth import verify_csrf
+    await verify_csrf(request)
+    form = await request.form()
+    friend_id = int(form.get("friend_id", 0))
+    if not friend_id:
+        return RedirectResponse(f"/concert-tracker/shows/festival/{festival_name}", status_code=302)
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            "SELECT id FROM shows WHERE user_id = $1 AND festival_name = $2",
+            user["id"], festival_name,
+        )
+        show_ids = [r["id"] for r in rows]
+        await conn.execute(
+            "DELETE FROM show_attendees WHERE show_id = ANY($1) AND user_id = $2",
+            show_ids, friend_id,
+        )
+    return RedirectResponse(f"/concert-tracker/shows/festival/{festival_name}", status_code=302)
+
+
+@router.post("/shows/festival/{festival_name}/delete")
+async def delete_festival(
+    festival_name: str, request: Request, pool=Depends(get_pool), user=Depends(require_user)
+):
+    from app.auth import verify_csrf
+    await verify_csrf(request)
+    async with pool.acquire() as conn:
+        await conn.execute(
+            "DELETE FROM shows WHERE user_id = $1 AND festival_name = $2",
+            user["id"], festival_name,
+        )
+    flash(request, f"{festival_name} deleted", "info")
+    return RedirectResponse("/concert-tracker/shows", status_code=302)
 
 
 @router.get("/shows/add-festival", response_class=HTMLResponse)
@@ -137,27 +258,29 @@ async def add_festival(request: Request, pool=Depends(get_pool), user=Depends(re
 
     now = int(time.time())
 
-    # Enrich all artists in parallel via Spotify, then insert sequentially
     import asyncio
-    sp_results = await asyncio.gather(
-        *[spotify.search_artist(a["name"]) for a in selected],
-        return_exceptions=True,
+    sp_results, sl_results = await asyncio.gather(
+        asyncio.gather(*[spotify.search_artist(a["name"]) for a in selected], return_exceptions=True),
+        asyncio.gather(*[setlistfm.search(a["name"], str(a["date"])) for a in selected], return_exceptions=True),
     )
 
     async with pool.acquire() as conn:
-        for artist_data, sp in zip(selected, sp_results):
+        for artist_data, sp, sl in zip(selected, sp_results, sl_results):
             sp = sp if isinstance(sp, dict) else None
+            sl = sl if isinstance(sl, dict) else None
             artist_name = str(artist_data["name"])[:200]
             date = datetime.date.fromisoformat(str(artist_data["date"]))
+            setlist_data = {"songs": sl["songs"], "url": sl.get("url"), "id": sl.get("id")} if sl and sl.get("songs") else None
             await conn.execute(
                 "INSERT INTO shows (user_id, artist, venue, city, date, is_festival, festival_name, "
-                "artist_spotify_id, artist_image_url, artist_thumb_url, artist_genres, created_at) "
-                "VALUES ($1,$2,$3,$4,$5,TRUE,$6,$7,$8,$9,$10,$11)",
+                "artist_spotify_id, artist_image_url, artist_thumb_url, artist_genres, setlist, created_at) "
+                "VALUES ($1,$2,$3,$4,$5,TRUE,$6,$7,$8,$9,$10,$11,$12)",
                 user["id"], artist_name, venue, city, date, festival_name,
                 sp["id"] if sp else None,
                 sp["image_url"] if sp else None,
                 sp["thumb_url"] if sp else None,
                 sp["genres"] if sp else [],
+                json.dumps(setlist_data) if setlist_data else None,
                 now,
             )
             await _upsert_artist(conn, artist_name, sp, now)

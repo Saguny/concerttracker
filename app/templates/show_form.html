@@ -637,7 +637,7 @@ async function _initVenuePlaces() {
     timer = setTimeout(async () => {
       try {
         const { suggestions } = await AutocompleteSuggestion.fetchAutocompleteSuggestions({
-          input: q, includedPrimaryTypes: ['establishment'],
+          input: q, includedPrimaryTypes: ['establishment'], languageCode: 'en',
         });
         lastSuggestions = suggestions || [];
         if (!lastSuggestions.length) { hideList(venueList); return; }

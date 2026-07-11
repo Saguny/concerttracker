@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}{{ festival_name }} · Concert Tracker{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>{{ festival_name }}</h1>
+    <div class="muted" style="margin-top:.25rem">{{ city }} · {{ shows | length }} act{{ 's' if shows | length != 1 else '' }}</div>
+  </div>
+  <form method="post" action="/concert-tracker/shows/festival/{{ festival_name | urlquote }}/delete" onsubmit="return confirm('Delete all {{ festival_name }} shows?')">
+    <input type="hidden" name="_csrf" value="{{ csrf }}">
+    <button type="submit" class="btn btn-danger">Delete Festival</button>
+  </form>
+</div>
+
+{% if attendees or taggable %}
+<div class="festival-people">
+  {% if attendees %}
+  <div class="festival-attendees">
+    {% for a in attendees %}
+    <div class="festival-attendee" title="{{ a.username }}">
+      {% if a.avatar_url %}
+      <img src="{{ a.avatar_url }}" width="36" height="36" alt="{{ a.username }}" style="width:36px;height:36px;border-radius:50%;object-fit:cover">
+      {% else %}
+      <div style="width:36px;height:36px;border-radius:50%;background:var(--accent);color:#000;display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:800">{{ a.username[0] | upper }}</div>
+      {% endif %}
+      <form method="post" action="/concert-tracker/shows/festival/{{ festival_name | urlquote }}/untag" style="margin:0">
+        <input type="hidden" name="_csrf" value="{{ csrf }}">
+        <input type="hidden" name="friend_id" value="{{ a.id }}">
+        <button type="submit" class="festival-untag-btn" title="Remove {{ a.username }}">×</button>
+      </form>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+  {% if taggable %}
+  <form method="post" action="/concert-tracker/shows/festival/{{ festival_name | urlquote }}/tag" class="festival-tag-form">
+    <input type="hidden" name="_csrf" value="{{ csrf }}">
+    <select name="friend_id" class="festival-tag-select">
+      <option value="">Tag a friend…</option>
+      {% for f in taggable %}
+      <option value="{{ f.id }}">{{ f.username }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit" class="btn btn-sm btn-accent">Tag</button>
+  </form>
+  {% endif %}
+</div>
+{% endif %}
+
+<div class="festival-detail-grid">
+  {% for show in shows %}
+  <a href="/concert-tracker/shows/{{ show.id }}" class="festival-detail-card">
+    {% if show.artist_image_url %}
+    <img class="festival-detail-img" src="{{ show.artist_image_url }}" alt="{{ show.artist }}" loading="lazy">
+    {% else %}
+    <div class="festival-detail-img festival-detail-img-ph">{{ show.artist[0] | upper }}</div>
+    {% endif %}
+    <div class="festival-detail-info">
+      <div class="festival-detail-artist">{{ show.artist }}</div>
+      <div class="festival-detail-meta">{{ show.date.strftime('%d %b %Y') }}</div>
+      {% if show.artist_genres %}
+      <div class="genre-list" style="margin-top:.35rem">
+        {% for g in show.artist_genres[:2] %}<span class="genre-tag">{{ g }}</span>{% endfor %}
+      </div>
+      {% endif %}
+    </div>
+    {% if show.setlist and show.setlist.songs %}
+    <span class="festival-detail-setlist-badge">{{ show.setlist.songs | length }} songs</span>
+    {% endif %}
+  </a>
+  {% endfor %}
+</div>
+{% endblock %}

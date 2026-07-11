@@ -49,9 +49,36 @@
     <section class="social-section">
       <h2>Shows You Both Attended</h2>
       <div class="show-list">
+        {% set seen_festivals = [] %}
         {% for s in shared %}
+        {% if s.is_festival and s.festival_name %}
+          {% if s.festival_name not in seen_festivals %}
+          {% set _ = seen_festivals.append(s.festival_name) %}
+          {% set fest_shows = shared | selectattr('festival_name', 'equalto', s.festival_name) | list %}
+          <div class="show-card show-card-static">
+            {% if fest_shows[0].artist_thumb_url %}
+            <img class="show-thumb" src="{{ fest_shows[0].artist_thumb_url }}" alt="{{ s.festival_name }}" loading="lazy">
+            {% else %}
+            <div class="show-thumb show-thumb-placeholder">🎪</div>
+            {% endif %}
+            <div class="show-card-body">
+              <div class="show-artist">{{ s.festival_name }} <span class="badge badge-festival">Festival</span></div>
+              <div class="show-meta">{{ s.city }} · {{ fest_shows | length }} act{{ 's' if fest_shows | length != 1 else '' }}</div>
+            </div>
+            <div class="show-date">
+              <span class="date-day">{{ s.date.strftime('%d') }}</span>
+              <span class="date-mon">{{ s.date.strftime('%b') }}</span>
+              <span class="date-year">{{ s.date.strftime('%Y') }}</span>
+            </div>
+          </div>
+          {% endif %}
+        {% else %}
         <div class="show-card show-card-static">
+          {% if s.artist_thumb_url %}
+          <img class="show-thumb" src="{{ s.artist_thumb_url }}" alt="{{ s.artist }}" loading="lazy">
+          {% else %}
           <div class="show-thumb show-thumb-placeholder">🎵</div>
+          {% endif %}
           <div class="show-card-body">
             <div class="show-artist">{{ s.artist }}</div>
             <div class="show-meta">{{ s.venue }} · {{ s.city }}</div>
@@ -62,6 +89,7 @@
             <span class="date-year">{{ s.date.strftime('%Y') }}</span>
           </div>
         </div>
+        {% endif %}
         {% endfor %}
       </div>
     </section>
