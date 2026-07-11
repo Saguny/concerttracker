@@ -824,11 +824,11 @@ async def _handle_save(request: Request, pool, user: dict, show_id: int | None):
 
     async with pool.acquire() as conn:
         if show_id is None:
-            await conn.execute(
+            show_id = await conn.fetchval(
                 "INSERT INTO shows (user_id, artist, venue, city, date, is_festival, festival_name, "
                 "notes, setlist, support_acts, artist_mbid, artist_spotify_id, artist_image_url, "
                 "artist_thumb_url, artist_genres, created_at) VALUES "
-                "($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)",
+                "($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) RETURNING id",
                 user["id"], artist, venue, city, date, is_festival, festival_name,
                 notes, _json.dumps(setlist_data) if setlist_data else None,
                 support_acts or None,
