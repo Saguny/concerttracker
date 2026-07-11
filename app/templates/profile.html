@@ -16,7 +16,11 @@
         {% if is_mutual %}<span class="badge badge-mutual">mutual</span>
         {% elif is_follower and not is_own_profile %}<span class="badge badge-ghost">follows you</span>{% endif %}
       </h1>
-      <p class="muted">{{ show_count }} show{{ 's' if show_count != 1 else '' }} logged</p>
+      <div class="profile-stats-row">
+        <span><strong>{{ show_count }}</strong> <span class="muted">show{{ 's' if show_count != 1 else '' }}</span></span>
+        <a href="/concert-tracker/social" class="profile-stat-link"><strong>{{ follower_count }}</strong> <span class="muted">follower{{ 's' if follower_count != 1 else '' }}</span></a>
+        <a href="/concert-tracker/social" class="profile-stat-link"><strong>{{ following_count }}</strong> <span class="muted">following</span></a>
+      </div>
       {% if profile.bio %}<p class="profile-bio">{{ profile.bio }}</p>{% endif %}
     </div>
   </div>

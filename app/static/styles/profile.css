@@ -21,8 +21,17 @@
 .social-section h2 { margin-bottom: .75rem; }
 .social-top-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; flex-wrap: wrap; gap: .75rem; }
 
-.follow-form       { display: flex; gap: .5rem; }
-.follow-form input { min-width: 180px; width: auto; }
+.follow-form        { display: flex; gap: .5rem; align-items: flex-start; }
+.follow-input-wrap  { position: relative; }
+.follow-input-wrap input { min-width: 180px; width: auto; }
+.follow-dropdown    { display: none; position: absolute; top: 100%; left: 0; right: 0; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); margin-top: 2px; z-index: 100; list-style: none; padding: 0; max-height: 220px; overflow-y: auto; }
+.follow-drop-item   { padding: .45rem .75rem; font-size: .875rem; cursor: pointer; }
+.follow-drop-item:hover { background: var(--accent-dim); color: var(--accent); }
+
+/* ── Profile stats row ── */
+.profile-stats-row  { display: flex; gap: 1.25rem; margin-bottom: .35rem; font-size: .9rem; }
+.profile-stat-link  { color: var(--text); text-decoration: none; }
+.profile-stat-link:hover { color: var(--accent); }
 
 /* ── Leaderboard sidebar ── */
 .lb-tabs { display: flex; gap: .25rem; margin-bottom: .75rem; }

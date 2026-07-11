@@ -5,10 +5,13 @@
   <div class="social-main">
     <div class="social-top-bar">
       <h2>Activity Feed</h2>
-      <form class="follow-form" method="post" action="/concert-tracker/u/follow">
+      <form class="follow-form" method="post" action="/concert-tracker/u/follow" id="follow-form" onsubmit="return !!document.getElementById('follow-user-input').value">
         <input type="hidden" name="_csrf" value="{{ csrf }}">
-        <input type="text" name="follow_user" placeholder="Follow by username…" required autocomplete="off">
-        <button type="submit" class="btn btn-sm btn-accent">Follow</button>
+        <div class="follow-input-wrap">
+          <input type="text" name="follow_user" id="follow-user-input" placeholder="Follow by username…" required autocomplete="off" onkeydown="if(event.key==='Enter')event.preventDefault()">
+          <ul class="follow-dropdown" id="follow-dropdown"></ul>
+        </div>
+        <button type="submit" class="btn btn-sm btn-accent">Search</button>
       </form>
     </div>
 
@@ -135,5 +138,36 @@ function switchTab(tab, btn) {
   document.getElementById('lb-all').style.display = tab === 'all' ? '' : 'none';
   document.getElementById('lb-year').style.display = tab === 'year' ? '' : 'none';
 }
+
+(function() {
+  const input = document.getElementById('follow-user-input');
+  const dropdown = document.getElementById('follow-dropdown');
+  if (!input) return;
+
+  let timer;
+  input.addEventListener('input', function() {
+    clearTimeout(timer);
+    const q = this.value.trim();
+    if (!q) { dropdown.innerHTML = ''; dropdown.style.display = 'none'; return; }
+    timer = setTimeout(async () => {
+      const res = await fetch(`/concert-tracker/api/user-search?q=${encodeURIComponent(q)}`);
+      const users = await res.json();
+      if (!users.length) { dropdown.innerHTML = ''; dropdown.style.display = 'none'; return; }
+      dropdown.innerHTML = users.map(u => `<li class="follow-drop-item" data-val="${u}">${u}</li>`).join('');
+      dropdown.style.display = 'block';
+      dropdown.querySelectorAll('.follow-drop-item').forEach(li => {
+        li.addEventListener('mousedown', function(e) {
+          e.preventDefault();
+          input.value = this.dataset.val;
+          dropdown.style.display = 'none';
+        });
+      });
+    }, 200);
+  });
+
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest('.follow-input-wrap')) dropdown.style.display = 'none';
+  });
+})();
 </script>
 {% endblock %}

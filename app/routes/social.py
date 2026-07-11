@@ -116,6 +116,18 @@ async def social_page(request: Request, pool=Depends(get_pool), user=Depends(req
     )
 
 
+@router.get("/api/user-search")
+async def user_search(q: str = "", pool=Depends(get_pool), user=Depends(require_user)):
+    if len(q) < 1:
+        return []
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            "SELECT username FROM users WHERE username ILIKE $1 AND id != $2 ORDER BY username LIMIT 8",
+            f"{q}%", user["id"],
+        )
+    return [r["username"] for r in rows]
+
+
 @router.post("/u/follow")
 async def follow(request: Request, pool=Depends(get_pool), user=Depends(require_user)):
     await verify_csrf(request)
@@ -200,6 +212,8 @@ async def friend_profile(
             uid, pid,
         )
         show_count = await conn.fetchval("SELECT COUNT(*) FROM shows WHERE user_id=$1", pid)
+        follower_count = await conn.fetchval("SELECT COUNT(*) FROM follows WHERE target_id=$1", pid)
+        following_count = await conn.fetchval("SELECT COUNT(*) FROM follows WHERE user_id=$1", pid)
 
     return templates.TemplateResponse(
         "profile.html",
@@ -209,6 +223,8 @@ async def friend_profile(
             profile=profile,
             shows=shows,
             show_count=show_count,
+            follower_count=follower_count,
+            following_count=following_count,
             is_following=bool(is_following),
             is_follower=bool(is_follower),
             is_mutual=bool(is_following and is_follower),
