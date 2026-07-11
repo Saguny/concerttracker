@@ -129,12 +129,33 @@ async def social_page(request: Request, pool=Depends(get_pool), user=Depends(req
             )
         circle_shows = circle_shows_row["total"] if circle_shows_row else 0
 
+    feed_items: list = []
+    seen_festival_keys: dict = {}
+    for row in feed:
+        if row["is_festival"] and row["festival_name"]:
+            key = (row["username"], row["festival_name"])
+            if key not in seen_festival_keys:
+                entry: dict = {
+                    "type": "festival",
+                    "festival_name": row["festival_name"],
+                    "city": row["city"],
+                    "date": row["date"],
+                    "username": row["username"],
+                    "user_avatar": row["user_avatar"],
+                    "shows": [],
+                }
+                seen_festival_keys[key] = entry
+                feed_items.append(entry)
+            seen_festival_keys[key]["shows"].append(row)
+        else:
+            feed_items.append({"type": "show", "show": row})
+
     return templates.TemplateResponse(
         "social.html",
         _ctx(
             request,
             user,
-            feed=feed,
+            feed=feed_items,
             leaderboard_all=leaderboard_all,
             leaderboard_year=leaderboard_year,
             following=following,

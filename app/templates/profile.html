@@ -213,7 +213,7 @@ if (perYear.length) {
 function toggleFestival(btn) {
   const acts = btn.closest('.festival-group-card').querySelector('.festival-acts');
   const open = !acts.classList.contains('festival-acts-hidden');
-  acts.classList.toggle('festival-acts-hidden', !open);
+  acts.classList.toggle('festival-acts-hidden', open);
   btn.textContent = open ? '▾ Show acts' : '▴ Hide acts';
 }
 </script>
