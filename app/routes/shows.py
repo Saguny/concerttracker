@@ -324,7 +324,7 @@ async def festival_edit_save(
                 now,
             )
 
-    tag_uid_raw = str(form.get("_tag_friend_id", "")).strip()
+    tag_uid_raw = str(form.get("tag_friend_id", "")).strip()
     if tag_uid_raw:
         try:
             tag_uid = int(tag_uid_raw)
