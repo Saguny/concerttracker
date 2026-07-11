@@ -63,7 +63,7 @@ class _CSPMiddleware(BaseHTTPMiddleware):
         response = await call_next(request)
         response.headers["Content-Security-Policy"] = (
             "default-src 'self'; "
-            "script-src 'self' 'unsafe-inline' https://maps.googleapis.com https://maps.gstatic.com; "
+            "script-src 'self' 'unsafe-inline' https://maps.googleapis.com https://maps.gstatic.com https://cdn.jsdelivr.net; "
             "connect-src 'self' https://*.googleapis.com https://*.gstatic.com; "
             "img-src 'self' data: https://cdn.off-by-one.digital https://*.googleapis.com https://*.gstatic.com https://*.ggpht.com https://i.scdn.co https://lastfm.freetls.fastly.net; "
             "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
