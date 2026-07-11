@@ -65,7 +65,7 @@ class _CSPMiddleware(BaseHTTPMiddleware):
             "default-src 'self'; "
             "script-src 'self' 'unsafe-inline' https://maps.googleapis.com https://maps.gstatic.com; "
             "connect-src 'self' https://*.googleapis.com https://*.gstatic.com; "
-            "img-src 'self' data: https://*.googleapis.com https://*.gstatic.com https://*.ggpht.com https://i.scdn.co https://lastfm.freetls.fastly.net; "
+            "img-src 'self' data: https://cdn.off-by-one.digital https://*.googleapis.com https://*.gstatic.com https://*.ggpht.com https://i.scdn.co https://lastfm.freetls.fastly.net; "
             "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
             "font-src 'self' https://fonts.gstatic.com; "
             "frame-src 'none';"
