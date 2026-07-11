@@ -89,7 +89,7 @@
       <span class="date-mon">{{ f.date.strftime('%b') }}</span>
       <span class="date-year">{{ f.date.strftime('%Y') }}</span>
     </div>
-    <div class="show-card-actions">
+    <div class="show-card-actions" onmouseenter="this.closest('.festival-group-card').classList.add('toggle-hover')" onmouseleave="this.closest('.festival-group-card').classList.remove('toggle-hover')">
       <a href="/concert-tracker/shows/festival/{{ f.festival_id }}/edit" class="btn btn-sm btn-ghost">Edit</a>
       <form method="post" action="/concert-tracker/shows/festival/{{ f.festival_id }}/delete" onsubmit="return confirm('Delete {{ f.festival_name }}?')">
         <input type="hidden" name="_csrf" value="{{ csrf }}">
