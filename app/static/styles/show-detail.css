@@ -93,7 +93,7 @@
   font-size: .9rem; color: var(--muted); margin-bottom: 1rem; white-space: pre-wrap;
 }
 
-/* Every content section = a dark card — consistent across show detail and artist page */
+/* Every content section = a dark card - consistent across show detail and artist page */
 .detail-section {
   background: var(--surface);
   border: 1px solid var(--border);

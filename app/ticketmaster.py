@@ -135,7 +135,7 @@ async def get_event_lineup(artist: str, date: str) -> list[str]:
     attractions = event.get("_embedded", {}).get("attractions", [])
     names = [a.get("name") for a in attractions if a.get("name")]
 
-    # Exclude the headliner itself — everything else is a support act
+    # Exclude the headliner itself - everything else is a support act
     support = [n for n in names if n.lower() != artist.lower()]
 
     if r:

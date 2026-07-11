@@ -7,12 +7,12 @@
   white-space: nowrap;
 }
 .btn:hover { opacity: .85; text-decoration: none; }
-/* Primary action — solid accent */
+/* Primary action - solid accent */
 .btn-accent { background: var(--accent); color: #000; border-color: var(--accent); }
-/* Secondary / ghost — outlined */
+/* Secondary / ghost - outlined */
 .btn-ghost  { background: transparent; border-color: var(--border); color: var(--text); }
 .btn-ghost:hover { background: var(--surface2); opacity: 1; }
-/* Destructive — outlined danger, NOT solid red */
+/* Destructive - outlined danger, NOT solid red */
 .btn-danger { background: transparent; border-color: var(--danger); color: var(--danger); }
 .btn-danger:hover { background: rgba(239,68,68,.1); opacity: 1; }
 
@@ -107,6 +107,7 @@
 /* ── Setlist panel (form sidebar) ── */
 .setlist-panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem; }
 .setlist-status { font-size: .8rem; color: var(--muted); margin-bottom: .5rem; min-height: 1.2rem; }
+.setlist-header .setlist-status { margin-bottom: 0; min-height: 0; }
 .setlist-link   { font-size: .8rem; color: var(--accent); margin-top: .6rem; display: inline-block; }
 
 #setlist-textarea {
@@ -117,7 +118,7 @@
 }
 #setlist-textarea:focus { outline: none; border-color: var(--accent); }
 
-/* ── Setlist display — orange counter badges instead of plain numbers ── */
+/* ── Setlist display - orange counter badges instead of plain numbers ── */
 .setlist-songs {
   list-style: none;
   padding: 0;

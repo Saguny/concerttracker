@@ -30,11 +30,11 @@
     <div id="artist-genres" class="genre-list" style="margin-top:.4rem"></div>
   </div>
 
-  <!-- Upcoming events panel — appears after artist is selected -->
+  <!-- Upcoming events panel - appears after artist is selected -->
   <div id="upcoming-panel" style="display:none">
     <button type="button" id="upcoming-toggle" class="upcoming-panel-label upcoming-toggle-btn">
       <span id="upcoming-chevron" class="upcoming-chevron">▾</span>
-      UPCOMING SHOWS — tap to autofill
+      UPCOMING SHOWS - tap to autofill
     </button>
     <div id="upcoming-list" class="upcoming-event-list"></div>
   </div>
@@ -77,7 +77,7 @@
   <!-- Support acts -->
   <div class="setlist-panel">
     <div class="setlist-header">
-      <span>Support Acts <span class="muted" style="font-weight:400;font-size:.8rem">— who else played</span></span>
+      <span>Support Acts <span class="muted" style="font-weight:400;font-size:.8rem">- who else played</span></span>
       <span style="display:flex;align-items:center;gap:.6rem">
         <span id="support-status" class="setlist-status"></span>
         <button type="button" id="support-backfill-btn" class="btn btn-ghost btn-sm">Backfill</button>
@@ -99,7 +99,7 @@
   <!-- Setlist -->
   <div class="setlist-panel">
     <div class="setlist-header">
-      <span>Setlist <span class="muted" style="font-weight:400;font-size:.8rem">— songs played</span></span>
+      <span>Setlist <span class="muted" style="font-weight:400;font-size:.8rem">- songs played</span></span>
       <span style="display:flex;align-items:center;gap:.6rem">
         <span id="setlist-status" class="setlist-status"></span>
         <button type="button" id="setlist-backfill-btn" class="btn btn-ghost btn-sm">Backfill</button>
@@ -108,7 +108,7 @@
     <div id="setlist-placeholder" class="fetch-placeholder">Fill in artist &amp; date to auto-fetch</div>
     <div id="setlist-loading" class="fetch-loading" style="display:none">Searching Setlist.fm…</div>
     <div id="setlist-editor" style="display:none">
-      <textarea id="setlist-textarea" rows="10" placeholder="One song per line — edit freely" spellcheck="false"></textarea>
+      <textarea id="setlist-textarea" rows="10" placeholder="One song per line - edit freely" spellcheck="false"></textarea>
       <p id="setlist-source-link" class="muted small" style="margin-top:.4rem"></p>
     </div>
   </div>
@@ -117,7 +117,7 @@
   <div class="field-group">
     <label>Tag friends who were there</label>
     <select name="tag_friend_id">
-      <option value="">— none —</option>
+      <option value="">- none -</option>
       {% for f in friends %}
       <option value="{{ f.id }}">{{ f.username }}</option>
       {% endfor %}
@@ -381,8 +381,8 @@ async function doFetchLineup(artist, date) {
   if (!isPast) {
     supportActs = [];
     supportStatus.textContent = ticketmasterFailed
-      ? 'Ticketmaster unavailable — add manually'
-      : 'None found on Ticketmaster — add manually';
+      ? 'Ticketmaster unavailable - add manually'
+      : 'None found on Ticketmaster - add manually';
     renderSupportTags();
     showSupportEditor();
     return;
@@ -394,10 +394,10 @@ async function doFetchLineup(artist, date) {
     supportActs = Array.isArray(acts) ? acts : [];
     supportStatus.textContent = supportActs.length
       ? `${supportActs.length} act${supportActs.length > 1 ? 's' : ''} found on Setlist.fm`
-      : 'None found — add manually';
+      : 'None found - add manually';
   } catch {
     supportActs = [];
-    supportStatus.textContent = 'Setlist.fm unavailable — add manually';
+    supportStatus.textContent = 'Setlist.fm unavailable - add manually';
   }
   renderSupportTags();
   showSupportEditor();
@@ -487,12 +487,12 @@ async function doFetchSetlist(artist, date) {
     } else {
       setlistTextarea.value = '';
       setlistMeta = { url: null, venue: null };
-      setlistStatus.textContent = 'No setlist found — add songs manually';
+      setlistStatus.textContent = 'No setlist found - add songs manually';
     }
   } catch {
     setlistTextarea.value = '';
     setlistMeta = { url: null, venue: null };
-    setlistStatus.textContent = 'Setlist.fm unavailable — add songs manually';
+    setlistStatus.textContent = 'Setlist.fm unavailable - add songs manually';
   }
   showSetlistEditor();
 }

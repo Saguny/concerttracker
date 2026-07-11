@@ -45,7 +45,7 @@ img { max-width: 100%; }
 .badge-mutual   { background: rgba(59,130,246,.2); color: var(--blue); }
 .badge-ghost    { background: var(--surface2); color: var(--muted); }
 
-/* Shared section title — uppercase, tracked, muted */
+/* Shared section title - uppercase, tracked, muted */
 .section-title,
 .detail-section h3,
 .chart-card h3,

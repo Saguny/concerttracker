@@ -111,7 +111,7 @@ async def get_event_lineup(artist: str, date: str) -> list[str]:
     if not artist_id:
         return []
 
-    # Fetch calendar around the date — min_date/max_date narrow the window
+    # Fetch calendar around the date - min_date/max_date narrow the window
     try:
         async with _get_session().get(
             f"https://api.songkick.com/api/3.0/artists/{artist_id}/calendar.json",

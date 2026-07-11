@@ -35,7 +35,7 @@ app = FastAPI(lifespan=lifespan, docs_url=None, redoc_url=None)
 
 _secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-in-prod")
 if _secret_key == "dev-secret-change-in-prod":
-    print("WARNING: SECRET_KEY not set — using insecure default. Set SECRET_KEY in production.", flush=True)
+    print("WARNING: SECRET_KEY not set - using insecure default. Set SECRET_KEY in production.", flush=True)
 
 app.add_middleware(
     SessionMiddleware,

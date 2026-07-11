@@ -125,8 +125,8 @@ async def register(request: Request, pool=Depends(get_pool)):
     except ValueError as e:
         msg = {
             "invalid_invite": "Invite code is invalid or already used",
-            "username_taken": "That username is taken — already have an account? Try logging in",
-            "email_taken": "That email is already registered — already have an account? Try logging in",
+            "username_taken": "That username is taken - already have an account? Try logging in",
+            "email_taken": "That email is already registered - already have an account? Try logging in",
         }.get(str(e), "Something went wrong, try again")
         return err(msg)
 

@@ -394,7 +394,7 @@ async def _handle_save(request: Request, pool, user: dict, show_id: int | None):
     try:
         date = datetime.date.fromisoformat(str(form.get("date", "")).strip())
     except ValueError:
-        flash(request, "Invalid date — please use the date picker.", "error")
+        flash(request, "Invalid date - please use the date picker.", "error")
         back = f"/concert-tracker/shows/{show_id}/edit" if show_id else "/concert-tracker/shows/add"
         return RedirectResponse(back, status_code=302)
     is_festival = form.get("is_festival") == "on"

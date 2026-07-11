@@ -106,28 +106,26 @@ async def social_page(request: Request, pool=Depends(get_pool), user=Depends(req
     shared_cities = []
     if mutual_ids:
         async with pool.acquire() as conn:
-            shared_artists, circle_shows_row, shared_cities = await asyncio.gather(
-                conn.fetch(
-                    "SELECT s.artist, COUNT(DISTINCT s2.user_id)::int AS mutual_count "
-                    "FROM shows s "
-                    "JOIN shows s2 ON s2.artist = s.artist AND s2.user_id = ANY($2) "
-                    "WHERE s.user_id = $1 "
-                    "GROUP BY s.artist ORDER BY mutual_count DESC, s.artist LIMIT 5",
-                    uid, mutual_ids,
-                ),
-                conn.fetchrow(
-                    "SELECT COALESCE(SUM(c),0)::int AS total FROM "
-                    "(SELECT COUNT(*) AS c FROM shows WHERE user_id = ANY($1) GROUP BY user_id) sub",
-                    mutual_ids,
-                ),
-                conn.fetch(
-                    "SELECT s.city, COUNT(DISTINCT s2.user_id)::int AS mutual_count "
-                    "FROM shows s "
-                    "JOIN shows s2 ON s2.city = s.city AND s2.user_id = ANY($2) "
-                    "WHERE s.user_id = $1 AND s.city IS NOT NULL AND s.city != '' "
-                    "GROUP BY s.city ORDER BY mutual_count DESC LIMIT 3",
-                    uid, mutual_ids,
-                ),
+            shared_artists = await conn.fetch(
+                "SELECT s.artist, COUNT(DISTINCT s2.user_id)::int AS mutual_count "
+                "FROM shows s "
+                "JOIN shows s2 ON s2.artist = s.artist AND s2.user_id = ANY($2) "
+                "WHERE s.user_id = $1 "
+                "GROUP BY s.artist ORDER BY mutual_count DESC, s.artist LIMIT 5",
+                uid, mutual_ids,
+            )
+            circle_shows_row = await conn.fetchrow(
+                "SELECT COALESCE(SUM(c),0)::int AS total FROM "
+                "(SELECT COUNT(*) AS c FROM shows WHERE user_id = ANY($1) GROUP BY user_id) sub",
+                mutual_ids,
+            )
+            shared_cities = await conn.fetch(
+                "SELECT s.city, COUNT(DISTINCT s2.user_id)::int AS mutual_count "
+                "FROM shows s "
+                "JOIN shows s2 ON s2.city = s.city AND s2.user_id = ANY($2) "
+                "WHERE s.user_id = $1 AND s.city IS NOT NULL AND s.city != '' "
+                "GROUP BY s.city ORDER BY mutual_count DESC LIMIT 3",
+                uid, mutual_ids,
             )
         circle_shows = circle_shows_row["total"] if circle_shows_row else 0
 
@@ -204,14 +202,12 @@ async def followers_page(username: str, request: Request, pool=Depends(get_pool)
         if not profile:
             flash(request, "User not found", "error")
             return RedirectResponse("/concert-tracker/social", status_code=302)
-        rows, i_follow, they_follow_me = await asyncio.gather(
-            conn.fetch(
-                "SELECT u.id, u.username, u.avatar_url FROM follows f JOIN users u ON u.id = f.user_id "
-                "WHERE f.target_id = $1 ORDER BY u.username", profile["id"],
-            ),
-            conn.fetch("SELECT target_id FROM follows WHERE user_id = $1", user["id"]),
-            conn.fetch("SELECT user_id FROM follows WHERE target_id = $1", user["id"]),
+        rows = await conn.fetch(
+            "SELECT u.id, u.username, u.avatar_url FROM follows f JOIN users u ON u.id = f.user_id "
+            "WHERE f.target_id = $1 ORDER BY u.username", profile["id"],
         )
+        i_follow = await conn.fetch("SELECT target_id FROM follows WHERE user_id = $1", user["id"])
+        they_follow_me = await conn.fetch("SELECT user_id FROM follows WHERE target_id = $1", user["id"])
     following_ids = {r["target_id"] for r in i_follow}
     mutual_ids = following_ids & {r["user_id"] for r in they_follow_me}
     return templates.TemplateResponse("follow_list.html", _ctx(
@@ -227,14 +223,12 @@ async def following_page(username: str, request: Request, pool=Depends(get_pool)
         if not profile:
             flash(request, "User not found", "error")
             return RedirectResponse("/concert-tracker/social", status_code=302)
-        rows, i_follow, they_follow_me = await asyncio.gather(
-            conn.fetch(
-                "SELECT u.id, u.username, u.avatar_url FROM follows f JOIN users u ON u.id = f.target_id "
-                "WHERE f.user_id = $1 ORDER BY u.username", profile["id"],
-            ),
-            conn.fetch("SELECT target_id FROM follows WHERE user_id = $1", user["id"]),
-            conn.fetch("SELECT user_id FROM follows WHERE target_id = $1", user["id"]),
+        rows = await conn.fetch(
+            "SELECT u.id, u.username, u.avatar_url FROM follows f JOIN users u ON u.id = f.target_id "
+            "WHERE f.user_id = $1 ORDER BY u.username", profile["id"],
         )
+        i_follow = await conn.fetch("SELECT target_id FROM follows WHERE user_id = $1", user["id"])
+        they_follow_me = await conn.fetch("SELECT user_id FROM follows WHERE target_id = $1", user["id"])
     following_ids = {r["target_id"] for r in i_follow}
     mutual_ids = following_ids & {r["user_id"] for r in they_follow_me}
     return templates.TemplateResponse("follow_list.html", _ctx(
