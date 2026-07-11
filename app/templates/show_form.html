@@ -601,63 +601,69 @@ showForm.addEventListener('submit', e => {
 
 {% if google_places_key %}
 <script>
-function _initVenuePlaces() {
-  const input    = document.getElementById('venue-input');
-  const list     = document.getElementById('venue-list');
-  const cityInp  = document.getElementById('city-input');
+async function _initVenuePlaces() {
+  const input   = document.getElementById('venue-input');
+  const cityInp = document.getElementById('city-input');
   if (!input || !window.google) return;
 
-  const svc  = new google.maps.places.AutocompleteService();
-  const psvc = new google.maps.places.PlacesService(document.createElement('div'));
-  let timer;
+  const { AutocompleteSuggestion } = await google.maps.importLibrary('places');
+  let timer, lastSuggestions = [];
 
   function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;'); }
 
-  function pickPlace(placeId, venueName) {
-    input.value = venueName;
-    hideList(list);
-    psvc.getDetails({ placeId, fields: ['address_components'] }, (place) => {
-      if (!place) return;
+  async function pickPlace(pred) {
+    const name = pred.mainText?.toString() || pred.text?.toString() || '';
+    if (name) input.value = name;
+    hideList(venueList);
+    try {
+      const place = pred.toPlace();
+      await place.fetchFields({ fields: ['addressComponents'] });
       let city = '';
-      for (const c of (place.address_components || [])) {
-        if (c.types.includes('locality'))                         { city = c.long_name; break; }
-        if (c.types.includes('postal_town'))                      { city = c.long_name; break; }
-        if (c.types.includes('sublocality_level_1'))              { city = c.long_name; }
-        if (!city && c.types.includes('administrative_area_level_2')) { city = c.long_name; }
+      for (const c of (place.addressComponents || [])) {
+        const t = c.types || [];
+        if (t.includes('locality'))                              { city = c.longText; break; }
+        if (t.includes('postal_town'))                           { city = c.longText; break; }
+        if (t.includes('sublocality_level_1'))                   { city = c.longText; }
+        if (!city && t.includes('administrative_area_level_2')) { city = c.longText; }
       }
       if (city) cityInp.value = city;
-    });
+    } catch(_) {}
   }
 
   input.addEventListener('input', function() {
     clearTimeout(timer);
     const q = this.value.trim();
-    if (!q) { hideList(list); return; }
-    timer = setTimeout(() => {
-      svc.getPlacePredictions({ input: q, types: ['establishment'] }, (preds, status) => {
-        if (status !== google.maps.places.PlacesServiceStatus.OK || !preds?.length) { hideList(list); return; }
-        list.innerHTML = preds.slice(0, 6).map(p => {
-          const main = esc(p.structured_formatting.main_text);
-          const sub  = esc(p.structured_formatting.secondary_text || '');
-          return `<li class="ac-item" data-place-id="${esc(p.place_id)}" data-name="${main}">
+    if (!q) { hideList(venueList); return; }
+    timer = setTimeout(async () => {
+      try {
+        const { suggestions } = await AutocompleteSuggestion.fetchAutocompleteSuggestions({
+          input: q, includedPrimaryTypes: ['establishment'],
+        });
+        lastSuggestions = suggestions || [];
+        if (!lastSuggestions.length) { hideList(venueList); return; }
+        venueList.innerHTML = lastSuggestions.slice(0, 6).map((s, i) => {
+          const p    = s.placePrediction;
+          const main = esc(p.mainText?.toString() || '');
+          const sub  = esc(p.secondaryText?.toString() || '');
+          return `<li class="ac-item" data-idx="${i}">
             <div class="ac-info">
               <div class="ac-name">${main}</div>
               ${sub ? `<div class="ac-meta">${sub}</div>` : ''}
             </div>
           </li>`;
         }).join('');
-        showList(list);
-        list.querySelectorAll('.ac-item').forEach(li => {
+        showList(venueList);
+        venueList.querySelectorAll('.ac-item').forEach(li => {
           li.addEventListener('mousedown', e => {
             e.preventDefault();
-            pickPlace(li.dataset.placeId, li.dataset.name);
+            pickPlace(lastSuggestions[+li.dataset.idx].placePrediction);
           });
         });
-      });
+      } catch(_) { hideList(venueList); }
     }, 200);
   });
 }
 </script>
-<script src="https://maps.googleapis.com/maps/api/js?key={{ google_places_key }}&libraries=places&callback=_initVenuePlaces" async defer></script>
+<script async src="https://maps.googleapis.com/maps/api/js?key={{ google_places_key }}&loading=async&callback=_initVenuePlaces"></script>
 {% endif %}
 {% endblock %}
