@@ -313,6 +313,7 @@ document.addEventListener('submit', async e => {
            <button class="btn btn-sm btn-accent">Follow</button>
          </form>`;
   }
+});
 
 window._initAutocompleteKeys = function(input, list, onSelect) {
   input.addEventListener('keydown', function(e) {
@@ -341,4 +342,3 @@ window._initAutocompleteKeys = function(input, list, onSelect) {
     }
   });
 };
-});
