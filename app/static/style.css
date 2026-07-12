@@ -517,7 +517,7 @@ img { max-width: 100%; }
 .social-top-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; flex-wrap: wrap; gap: .75rem; }
 .social-top-bar h2 { font-size: 1rem; font-weight: 700; }
 .feed-user-chip { display: inline-flex; align-items: center; gap: .3rem; color: var(--muted); font-size: .78rem; }
-.feed-user-avatar { width: 16px; height: 16px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+.feed-user-avatar { display: block; width: 16px; height: 16px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
 .feed-avatar-ph {
   display: inline-flex; align-items: center; justify-content: center;
   background: var(--accent); color: #000;
