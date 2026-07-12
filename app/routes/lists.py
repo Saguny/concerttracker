@@ -152,20 +152,18 @@ async def add_shows_page(
             params.append(f"%{artist_filter.lower()}%")
             clauses.append(f"LOWER(s.artist) LIKE ${len(params)}")
         where = " AND ".join(clauses)
-        shows, in_list_rows, year_rows = await asyncio.gather(
-            conn.fetch(
-                f"SELECT s.id, s.artist, s.venue, s.city, s.date, s.artist_thumb_url, s.rating "
-                f"FROM shows s WHERE {where} ORDER BY {order}",
-                *params,
-            ),
-            conn.fetch(
-                "SELECT li.id AS item_id, li.show_id FROM list_items li WHERE li.list_id=$1",
-                list_id,
-            ),
-            conn.fetch(
-                "SELECT DISTINCT EXTRACT(YEAR FROM date)::int AS y FROM shows WHERE user_id=$1 ORDER BY y DESC",
-                user["id"],
-            ),
+        shows = await conn.fetch(
+            f"SELECT s.id, s.artist, s.venue, s.city, s.date, s.artist_thumb_url, s.rating "
+            f"FROM shows s WHERE {where} ORDER BY {order}",
+            *params,
+        )
+        in_list_rows = await conn.fetch(
+            "SELECT li.id AS item_id, li.show_id FROM list_items li WHERE li.list_id=$1",
+            list_id,
+        )
+        year_rows = await conn.fetch(
+            "SELECT DISTINCT EXTRACT(YEAR FROM date)::int AS y FROM shows WHERE user_id=$1 ORDER BY y DESC",
+            user["id"],
         )
     in_list = {r["show_id"]: r["item_id"] for r in in_list_rows}
     return templates.TemplateResponse(
