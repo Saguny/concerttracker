@@ -4,11 +4,12 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 {% endblock %}
 {% block content %}
-<div class="profile-wrap"{% if profile.accent_color %} style="--profile-accent:{{ profile.accent_color }}"{% endif %}>
+<div class="profile-wrap{% if profile.banner_url %} has-banner{% endif %}"{% if profile.accent_color %} style="--profile-accent:{{ profile.accent_color }}"{% endif %}>
 
 {% if profile.banner_url %}
-<div class="profile-banner">
+<div class="profile-banner-outer">
   <img src="{{ profile.banner_url }}" class="profile-banner-img" alt="">
+  <div class="profile-banner-scrim"></div>
 </div>
 {% endif %}
 
@@ -245,9 +246,11 @@
     {% if favorite_artists %}
     <section class="social-section">
       <h2>Favorite Artists</h2>
-      {% for artist in favorite_artists %}
-      <a href="/concert-tracker/artists/{{ artist | urlquote }}" class="mini-bar-row mini-bar-link">
-        <span class="mini-bar-label">{{ artist }}</span>
+      {% for a in favorite_artists %}
+      <a href="/concert-tracker/artists/{{ a.name | urlquote }}" class="mini-bar-row mini-bar-link">
+        {% if a.thumb_url %}<img class="mini-bar-thumb" src="{{ a.thumb_url }}" alt="" loading="lazy">
+        {% else %}<div class="mini-bar-thumb mini-bar-thumb-ph">{{ a.name[0] | upper }}</div>{% endif %}
+        <span class="mini-bar-label">{{ a.name }}</span>
       </a>
       {% endfor %}
     </section>
@@ -261,6 +264,8 @@
       <h2>Top Artists</h2>
       {% for r in top_artists %}
       <a href="/concert-tracker/artists/{{ r.artist | urlquote }}" class="mini-bar-row mini-bar-link">
+        {% if r.thumb_url %}<img class="mini-bar-thumb" src="{{ r.thumb_url }}" alt="" loading="lazy">
+        {% else %}<div class="mini-bar-thumb mini-bar-thumb-ph">{{ r.artist[0] | upper }}</div>{% endif %}
         <span class="mini-bar-label">{{ r.artist }}</span>
         <span class="mini-bar-count">{{ r.count }}</span>
       </a>

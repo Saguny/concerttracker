@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}Concert Tracker{% endblock %}</title>
   <link rel="stylesheet" href="/concert-tracker/static/styles/main.css">
+  {% if user and user.accent_color %}
+  <style>:root{--accent:{{ user.accent_color }};--accent-dim:{{ user.accent_color }}26;}</style>
+  {% endif %}
   {% block head %}{% endblock %}
 </head>
 <body>

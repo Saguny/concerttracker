@@ -226,3 +226,23 @@
 .auth-form label { display: flex; flex-direction: column; gap: .35rem; font-size: .875rem; color: var(--muted); }
 .auth-form textarea { resize: vertical; }
 .auth-footer { margin-top: 1rem; font-size: .85rem; color: var(--muted); text-align: center; }
+
+/* ── Global form element fixes (Firefox cross-browser) ── */
+/* Checkbox / radio accent follows the site accent color */
+input[type="checkbox"],
+input[type="radio"] { accent-color: var(--accent); }
+
+/* Select elements: strip native appearance so dark theme renders correctly in Firefox */
+.field-group select,
+.auth-form select,
+.show-form select,
+.filter-bar select,
+.festival-tag-select,
+.ep-field select {
+  -moz-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23888' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right .65rem center;
+  padding-right: 2.25rem;
+}

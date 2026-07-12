@@ -136,6 +136,7 @@ async def save_profile(request: Request, pool=Depends(get_pool), user=Depends(re
         )
         if avatar_url:
             request.session["avatar_url"] = avatar_url
+        request.session["accent_color"] = accent_color
 
     flash(request, "Profile updated", "success")
     return RedirectResponse(f"/concert-tracker/u/{user['username']}", status_code=302)
@@ -419,9 +420,19 @@ async def friend_profile(
             "FROM shows WHERE user_id=$1 GROUP BY year ORDER BY year", pid,
         )
         top_artists = await conn.fetch(
-            "SELECT artist, COUNT(*)::int AS count FROM shows WHERE user_id=$1 "
-            "GROUP BY artist ORDER BY count DESC LIMIT 5", pid,
+            "SELECT s.artist, COUNT(*)::int AS count, "
+            "COALESCE(MAX(a.thumb_url), MAX(s.artist_thumb_url)) AS thumb_url "
+            "FROM shows s LEFT JOIN artists a ON LOWER(a.name) = LOWER(s.artist) "
+            "WHERE s.user_id=$1 GROUP BY s.artist ORDER BY count DESC LIMIT 5",
+            pid,
         )
+        fav_names = list(profile["favorite_artists"] or [])
+        fav_thumbs: dict = {}
+        if fav_names:
+            thumb_rows = await conn.fetch(
+                "SELECT name, thumb_url FROM artists WHERE name = ANY($1)", fav_names
+            )
+            fav_thumbs = {r["name"]: r["thumb_url"] for r in thumb_rows}
         top_venues = await conn.fetch(
             "SELECT venue, COUNT(*)::int AS count FROM shows WHERE user_id=$1 "
             "GROUP BY venue ORDER BY count DESC LIMIT 5", pid,
@@ -496,7 +507,7 @@ async def friend_profile(
             filters={"year": year, "artist": artist_filter, "kind": kind, "sort": sort},
             pinned_show=pinned_show,
             social_links=dict(profile["social_links"] or {}),
-            favorite_artists=list(profile["favorite_artists"] or []),
+            favorite_artists=[{"name": n, "thumb_url": fav_thumbs.get(n)} for n in fav_names],
             csrf=get_csrf_token(request),
         ),
     )

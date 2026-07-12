@@ -1,134 +1,232 @@
 {% extends "base.html" %}
 {% block title %}Edit Profile · Concert Tracker{% endblock %}
 {% block content %}
-<div class="auth-wrap" style="max-width:640px">
+<div class="edit-profile-wrap">
+  <a href="/concert-tracker/u/{{ user.username }}" class="edit-profile-back">← Back to profile</a>
   <h1 class="auth-title">Edit Profile</h1>
+  <p class="auth-sub">Customize how you appear to others</p>
 
-  <form method="post" action="/concert-tracker/profile/edit" class="auth-form" enctype="multipart/form-data">
+  <form method="post" action="/concert-tracker/profile/edit" enctype="multipart/form-data">
     <input type="hidden" name="_csrf" value="{{ csrf }}">
 
-    <div class="edit-section-label">Account</div>
-
-    <label>
-      Username
-      <input type="text" name="username" value="{{ me.username }}" maxlength="30" pattern="[A-Za-z0-9_]+" title="Letters, numbers, and underscores only" required>
-      <span class="muted small">Letters, numbers, underscores · 2–30 chars</span>
-    </label>
-
-    <div class="edit-section-label" style="margin-top:1.25rem">Appearance</div>
-
-    <label>
-      Avatar
-      {% if me.avatar_url %}
-      <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.4rem">
-        <img src="{{ me.avatar_url }}" style="width:52px;height:52px;border-radius:50%;object-fit:cover">
-        <span class="muted small">Current avatar</span>
+    <!-- Account -->
+    <div class="edit-card">
+      <div class="edit-section-label">Account</div>
+      <div class="ep-field" style="padding-top:0">
+        <label class="ep-label" for="ep-username">Username</label>
+        <input id="ep-username" type="text" name="username" value="{{ me.username }}"
+          maxlength="30" pattern="[A-Za-z0-9_]+" title="Letters, numbers, and underscores only" required>
+        <span class="ep-hint">Letters, numbers, underscores · 2–30 characters</span>
       </div>
-      {% endif %}
-      <input type="file" name="avatar" accept="image/jpeg,image/png,image/webp,image/gif" style="padding:.3rem .5rem">
-      <span class="muted small">JPEG · PNG · WebP · GIF · max 5 MB</span>
-    </label>
+    </div>
 
-    <label>
-      Profile Banner
-      {% if me.banner_url %}
-      <div style="margin-bottom:.5rem;border-radius:var(--radius);overflow:hidden;height:100px">
-        <img src="{{ me.banner_url }}" style="width:100%;height:100%;object-fit:cover">
+    <!-- Appearance -->
+    <div class="edit-card">
+      <div class="edit-section-label">Appearance</div>
+
+      <div class="ep-field" style="padding-top:0">
+        <label class="ep-label" for="ep-avatar">Avatar</label>
+        <div class="ep-avatar-row">
+          {% if me.avatar_url %}
+          <img src="{{ me.avatar_url }}" class="ep-avatar-preview" id="ep-avatar-preview" alt="">
+          {% else %}
+          <div class="ep-avatar-ph" id="ep-avatar-preview">{{ me.username[0] | upper }}</div>
+          {% endif %}
+          <div style="flex:1;min-width:0">
+            <input id="ep-avatar" type="file" name="avatar"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              onchange="previewAvatar(this)">
+            <div class="ep-hint" style="margin-top:.35rem">JPEG · PNG · WebP · GIF · max 5 MB</div>
+          </div>
+        </div>
       </div>
-      <label style="display:inline-flex;align-items:center;gap:.4rem;font-size:.8rem;color:var(--muted);margin-bottom:.4rem;cursor:pointer">
-        <input type="checkbox" name="remove_banner"> Remove current banner
-      </label><br>
-      {% endif %}
-      <input type="file" name="banner" accept="image/jpeg,image/png,image/webp,image/gif" style="padding:.3rem .5rem">
-      <span class="muted small">Wide image works best · JPEG · PNG · WebP · max 5 MB</span>
-    </label>
 
-    <label>
-      Accent Color
-      <div style="display:flex;align-items:center;gap:.75rem;margin-top:.3rem">
-        <label style="display:inline-flex;align-items:center;gap:.4rem;font-size:.875rem;color:var(--text);cursor:pointer;font-weight:400">
-          <input type="checkbox" name="use_accent_color" id="use-accent"
-            onchange="document.getElementById('accent-picker').disabled=!this.checked"
-            {% if me.accent_color %}checked{% endif %}>
-          Use custom color
+      <div class="ep-field">
+        <label class="ep-label" for="ep-banner">Profile Banner</label>
+        {% if me.banner_url %}
+        <div class="ep-banner-strip">
+          <img src="{{ me.banner_url }}" alt="Current banner">
+        </div>
+        <label class="ep-checkbox-label" style="margin-bottom:.4rem">
+          <input type="checkbox" name="remove_banner"> Remove current banner
         </label>
-        <input type="color" name="accent_color" id="accent-picker"
-          value="{{ me.accent_color or '#f59e0b' }}"
-          {% if not me.accent_color %}disabled{% endif %}
-          style="width:52px;height:36px;padding:2px 4px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface);cursor:pointer">
+        {% endif %}
+        <input id="ep-banner" type="file" name="banner"
+          accept="image/jpeg,image/png,image/webp,image/gif">
+        <span class="ep-hint">Wide image works best · JPEG · PNG · WebP · max 5 MB</span>
       </div>
-      <span class="muted small">Tints your profile header and avatar ring</span>
-    </label>
 
-    <div class="edit-section-label" style="margin-top:1.25rem">About</div>
+      <div class="ep-field">
+        <div class="ep-label">Accent Color</div>
+        <div class="ep-color-row">
+          <label class="ep-checkbox-label">
+            <input type="checkbox" name="use_accent_color" id="use-accent"
+              onchange="toggleAccent(this)"
+              {% if me.accent_color %}checked{% endif %}>
+            Use custom color
+          </label>
+          <input type="color" name="accent_color" id="accent-picker"
+            value="{{ me.accent_color or '#f59e0b' }}"
+            {% if not me.accent_color %}disabled{% endif %}
+            oninput="updateAccentPreview(this.value)">
+        </div>
+        <div class="ep-color-preview" id="ep-color-preview"
+          {% if not me.accent_color %}style="opacity:.35"{% endif %}>
+          <div class="ep-color-dot" id="ep-color-dot"></div>
+          <span class="ep-color-sample-btn" id="ep-color-btn">Button</span>
+          <span class="ep-color-sample-text" id="ep-color-txt">Link text</span>
+          <span class="ep-hint">Preview</span>
+        </div>
+        <span class="ep-hint">Tints your profile header, buttons, and charts sitewide</span>
+      </div>
+    </div>
 
-    <label>
-      Bio <span class="muted small">(max 300 chars)</span>
-      <textarea name="bio" rows="3" maxlength="300" placeholder="A sentence about yourself…">{{ me.bio or '' }}</textarea>
-    </label>
+    <!-- About -->
+    <div class="edit-card">
+      <div class="edit-section-label">About</div>
 
-    <label>
-      Location
-      <input type="text" name="location" value="{{ me.location or '' }}" maxlength="100" placeholder="e.g. New York, NY">
-      <span class="muted small">City, region, or wherever you catch shows</span>
-    </label>
+      <div class="ep-field" style="padding-top:0">
+        <label class="ep-label" for="ep-bio">
+          Bio
+          <span class="ep-char-counter" id="bio-counter">{{ (me.bio or '') | length }}/300</span>
+        </label>
+        <textarea id="ep-bio" name="bio" rows="3" maxlength="300"
+          placeholder="A sentence about yourself…"
+          oninput="updateCounter(this,'bio-counter',300)">{{ me.bio or '' }}</textarea>
+      </div>
 
-    <label>
-      Favorite Artists <span class="muted small">(max 10, comma-separated)</span>
-      <input type="text" name="favorite_artists"
-        value="{{ me.favorite_artists | join(', ') if me.favorite_artists else '' }}"
-        maxlength="500" placeholder="Radiohead, Arcade Fire, Sufjan Stevens">
-      <span class="muted small">Your all-time picks, separate from your show history stats</span>
-    </label>
+      <div class="ep-field">
+        <label class="ep-label" for="ep-location">Location</label>
+        <input id="ep-location" type="text" name="location"
+          value="{{ me.location or '' }}" maxlength="100" placeholder="e.g. New York, NY">
+        <span class="ep-hint">City, region, or wherever you catch shows</span>
+      </div>
 
-    <label>
-      Pinned Show
-      <select name="pinned_show_id">
-        <option value="">None</option>
-        {% for show in user_shows %}
-        <option value="{{ show.id }}" {% if me.pinned_show_id == show.id %}selected{% endif %}>
-          {{ show.artist }} · {{ show.venue }} · {{ show.date.strftime('%b %Y') }}
-        </option>
-        {% endfor %}
-      </select>
-      <span class="muted small">Feature one memorable show at the top of your profile</span>
-    </label>
+      <div class="ep-field">
+        <label class="ep-label" for="ep-fav-artists">
+          Favorite Artists
+          <span class="ep-hint">(max 10, comma-separated)</span>
+        </label>
+        <input id="ep-fav-artists" type="text" name="favorite_artists"
+          value="{{ me.favorite_artists | join(', ') if me.favorite_artists else '' }}"
+          maxlength="500" placeholder="Radiohead, Arcade Fire, Sufjan Stevens">
+        <span class="ep-hint">Your all-time picks, separate from show history stats</span>
+      </div>
 
-    <div class="edit-section-label" style="margin-top:1.25rem">Social Links</div>
-    <p class="muted small" style="margin-bottom:.75rem">Paste full URLs (e.g. https://open.spotify.com/user/…)</p>
+      <div class="ep-field">
+        <label class="ep-label" for="ep-pinned">Pinned Show</label>
+        <select id="ep-pinned" name="pinned_show_id">
+          <option value="">None</option>
+          {% for show in user_shows %}
+          <option value="{{ show.id }}" {% if me.pinned_show_id == show.id %}selected{% endif %}>
+            {{ show.artist }} · {{ show.venue }} · {{ show.date.strftime('%b %Y') }}
+          </option>
+          {% endfor %}
+        </select>
+        <span class="ep-hint">Feature one memorable show at the top of your profile</span>
+      </div>
+    </div>
 
-    <label>
-      Spotify
-      <input type="url" name="social_spotify"
-        value="{{ me.social_links.spotify if me.social_links else '' }}"
-        maxlength="200" placeholder="https://open.spotify.com/user/…">
-    </label>
+    <!-- Social Links -->
+    <div class="edit-card">
+      <div class="edit-section-label">Social Links</div>
+      <p class="ep-hint" style="margin-bottom:1rem">Paste full URLs (e.g. https://open.spotify.com/user/…)</p>
+      <div class="ep-social-grid">
+        <div class="ep-field" style="padding:0">
+          <label class="ep-label" for="ep-spotify">
+            <span class="ep-social-icon ep-social-spotify">♫</span> Spotify
+          </label>
+          <input id="ep-spotify" type="url" name="social_spotify"
+            value="{{ me.social_links.spotify if me.social_links else '' }}"
+            maxlength="200" placeholder="https://open.spotify.com/user/…">
+        </div>
+        <div class="ep-field" style="padding:0">
+          <label class="ep-label" for="ep-lastfm">
+            <span class="ep-social-icon ep-social-lastfm">◈</span> Last.fm
+          </label>
+          <input id="ep-lastfm" type="url" name="social_lastfm"
+            value="{{ me.social_links.lastfm if me.social_links else '' }}"
+            maxlength="200" placeholder="https://www.last.fm/user/…">
+        </div>
+        <div class="ep-field" style="padding:0">
+          <label class="ep-label" for="ep-instagram">
+            <span class="ep-social-icon ep-social-instagram">◉</span> Instagram
+          </label>
+          <input id="ep-instagram" type="url" name="social_instagram"
+            value="{{ me.social_links.instagram if me.social_links else '' }}"
+            maxlength="200" placeholder="https://instagram.com/…">
+        </div>
+        <div class="ep-field" style="padding:0">
+          <label class="ep-label" for="ep-website">
+            <span class="ep-social-icon ep-social-website">⊕</span> Website
+          </label>
+          <input id="ep-website" type="url" name="social_website"
+            value="{{ me.social_links.website if me.social_links else '' }}"
+            maxlength="200" placeholder="https://…">
+        </div>
+      </div>
+    </div>
 
-    <label>
-      Last.fm
-      <input type="url" name="social_lastfm"
-        value="{{ me.social_links.lastfm if me.social_links else '' }}"
-        maxlength="200" placeholder="https://www.last.fm/user/…">
-    </label>
-
-    <label>
-      Instagram
-      <input type="url" name="social_instagram"
-        value="{{ me.social_links.instagram if me.social_links else '' }}"
-        maxlength="200" placeholder="https://instagram.com/…">
-    </label>
-
-    <label>
-      Website
-      <input type="url" name="social_website"
-        value="{{ me.social_links.website if me.social_links else '' }}"
-        maxlength="200" placeholder="https://…">
-    </label>
-
-    <div class="form-actions" style="justify-content:flex-start;gap:.75rem;margin-top:1.5rem">
-      <button type="submit" class="btn btn-accent">Save</button>
+    <div class="ep-form-actions">
+      <button type="submit" class="btn btn-accent">Save Changes</button>
       <a href="/concert-tracker/u/{{ user.username }}" class="btn btn-ghost">Cancel</a>
     </div>
   </form>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function updateAccentPreview(color) {
+  var dot = document.getElementById('ep-color-dot');
+  var btn = document.getElementById('ep-color-btn');
+  var txt = document.getElementById('ep-color-txt');
+  if (dot) dot.style.background = color;
+  if (btn) { btn.style.background = color; btn.style.color = '#000'; }
+  if (txt) txt.style.color = color;
+}
+
+function toggleAccent(checkbox) {
+  var picker = document.getElementById('accent-picker');
+  var preview = document.getElementById('ep-color-preview');
+  picker.disabled = !checkbox.checked;
+  if (preview) preview.style.opacity = checkbox.checked ? '1' : '0.35';
+  if (checkbox.checked) updateAccentPreview(picker.value);
+}
+
+function updateCounter(el, counterId, max) {
+  var counter = document.getElementById(counterId);
+  if (!counter) return;
+  var len = el.value.length;
+  counter.textContent = len + '/' + max;
+  counter.classList.toggle('warn', len >= Math.floor(max * 0.85));
+}
+
+function previewAvatar(input) {
+  if (!input.files || !input.files[0]) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var preview = document.getElementById('ep-avatar-preview');
+    if (!preview) return;
+    if (preview.tagName === 'IMG') {
+      preview.src = e.target.result;
+    } else {
+      var img = document.createElement('img');
+      img.src = e.target.result;
+      img.className = 'ep-avatar-preview';
+      img.id = 'ep-avatar-preview';
+      preview.parentNode.replaceChild(img, preview);
+    }
+  };
+  reader.readAsDataURL(input.files[0]);
+}
+
+// Initialise on load
+(function() {
+  var picker = document.getElementById('accent-picker');
+  if (picker && !picker.disabled) updateAccentPreview(picker.value);
+  var bio = document.getElementById('ep-bio');
+  if (bio) updateCounter(bio, 'bio-counter', 300);
+})();
+</script>
 {% endblock %}

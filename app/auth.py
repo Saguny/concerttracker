@@ -25,6 +25,7 @@ def get_current_user(request: Request) -> dict | None:
         "id": int(user_id),
         "username": request.session.get("username"),
         "avatar_url": request.session.get("avatar_url"),
+        "accent_color": request.session.get("accent_color"),
     }
 
 

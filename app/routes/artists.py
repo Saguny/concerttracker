@@ -7,6 +7,7 @@ from app.db import get_pool
 from app.auth import get_csrf_token, get_flashes, require_user
 from app.jinja import templates
 import app.lastfm as lastfm
+import app.spotify as spotify
 
 router = APIRouter()
 
@@ -36,7 +37,31 @@ async def artist_page(name: str, request: Request, pool=Depends(get_pool), user=
     if not rows and not lfm and not artist_row:
         return RedirectResponse("/concert-tracker/shows", status_code=302)
 
-    spotify_id = (artist_row["spotify_id"] if artist_row else None) or (rows[0]["artist_spotify_id"] if rows else None)
+    db_image = (artist_row["image_url"] if artist_row else None) or (rows[0]["artist_image_url"] if rows else None)
+    db_spotify_id = (artist_row["spotify_id"] if artist_row else None) or (rows[0]["artist_spotify_id"] if rows else None)
+    db_genres = ((artist_row["genres"] or []) if artist_row else None) or (rows[0]["artist_genres"] or [] if rows else [])
+
+    sp = None
+    if not db_image or not db_spotify_id:
+        sp = await spotify.search_artist(artist_name)
+        if sp:
+            now = int(time.time())
+            async with pool.acquire() as conn:
+                await conn.execute(
+                    """INSERT INTO artists (name, spotify_id, image_url, thumb_url, genres, created_at, updated_at)
+                       VALUES ($1, $2, $3, $4, $5, $6, $6)
+                       ON CONFLICT (name) DO UPDATE SET
+                           spotify_id = COALESCE(EXCLUDED.spotify_id, artists.spotify_id),
+                           image_url  = COALESCE(EXCLUDED.image_url,  artists.image_url),
+                           thumb_url  = COALESCE(EXCLUDED.thumb_url,  artists.thumb_url),
+                           genres     = COALESCE(EXCLUDED.genres,     artists.genres),
+                           updated_at = EXCLUDED.updated_at""",
+                    artist_name, sp["id"], sp["image_url"], sp["thumb_url"], sp.get("genres"), now,
+                )
+
+    image_url = db_image or (sp["image_url"] if sp else None)
+    spotify_id = db_spotify_id or (sp["id"] if sp else None)
+    genres = db_genres or (sp.get("genres") or [] if sp else [])
     spotify_url = f"https://open.spotify.com/artist/{spotify_id}" if spotify_id else None
 
     return templates.TemplateResponse(
@@ -44,8 +69,8 @@ async def artist_page(name: str, request: Request, pool=Depends(get_pool), user=
         _ctx(
             request, user,
             artist_name=artist_name,
-            image_url=(artist_row["image_url"] if artist_row else None) or (rows[0]["artist_image_url"] if rows else None),
-            genres=((artist_row["genres"] or []) if artist_row else None) or (rows[0]["artist_genres"] or [] if rows else []),
+            image_url=image_url,
+            genres=genres,
             spotify_url=spotify_url,
             lfm=lfm,
             shows=rows,

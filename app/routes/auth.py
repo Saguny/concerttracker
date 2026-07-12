@@ -37,7 +37,7 @@ async def login(request: Request, pool=Depends(get_pool)):
 
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
-            "SELECT id, username, password_hash, avatar_url FROM users WHERE username = $1", username
+            "SELECT id, username, password_hash, avatar_url, accent_color FROM users WHERE username = $1", username
         )
 
     if not row or not verify_password(password, row["password_hash"]):
@@ -50,6 +50,7 @@ async def login(request: Request, pool=Depends(get_pool)):
     request.session["user_id"] = row["id"]
     request.session["username"] = row["username"]
     request.session["avatar_url"] = row["avatar_url"]
+    request.session["accent_color"] = row["accent_color"]
     return RedirectResponse("/concert-tracker/shows", status_code=302)
 
 
@@ -133,6 +134,7 @@ async def register(request: Request, pool=Depends(get_pool)):
     request.session["user_id"] = user["id"]
     request.session["username"] = user["username"]
     request.session["avatar_url"] = None
+    request.session["accent_color"] = None
     return RedirectResponse("/concert-tracker/shows", status_code=302)
 
 
