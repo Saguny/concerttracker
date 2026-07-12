@@ -457,18 +457,28 @@ input[type="radio"] { accent-color: var(--accent); }
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: .75rem 1rem;
+  padding: .5rem .75rem;
   text-align: center;
 }
 .stat-num {
-  font-size: 1.5rem;
+  font-size: 1.15rem;
   font-weight: 700;
   line-height: 1.2;
 }
 .stat-label {
-  font-size: .72rem;
+  font-size: .68rem;
   color: var(--muted);
-  margin-top: .25rem;
+  margin-top: .15rem;
+}
+.stats-charts-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+.stats-chart-col { min-width: 0; }
+@media (max-width: 560px) {
+  .stats-charts-row { grid-template-columns: 1fr; }
 }
 .stats-section-heading {
   font-size: .875rem;

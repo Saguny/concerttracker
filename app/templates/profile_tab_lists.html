@@ -1,0 +1,26 @@
+{% if profile_lists %}
+<div class="lists-grid">
+  {% for l in profile_lists %}
+  <div class="list-card">
+    <a href="/concert-tracker/lists/{{ l.id }}" class="list-card-link">
+      <div class="list-card-title">{{ l.title }}{% if l.is_ranked %} <span class="badge badge-ranked">Ranked</span>{% endif %}</div>
+      {% if l.description %}<div class="list-card-desc muted small">{{ l.description[:120] }}{% if l.description | length > 120 %}…{% endif %}</div>{% endif %}
+      <div class="list-card-meta muted small">{{ l.item_count }} show{{ 's' if l.item_count != 1 else '' }}</div>
+    </a>
+    {% if is_own_profile %}
+    <div class="list-card-actions">
+      <a href="/concert-tracker/lists/{{ l.id }}/add" class="btn btn-sm btn-ghost">+ Add</a>
+      <a href="/concert-tracker/lists/{{ l.id }}/edit" class="btn btn-sm btn-ghost">Edit</a>
+    </div>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% if is_own_profile %}
+<div style="margin-top:1rem">
+  <a href="/concert-tracker/lists" class="btn btn-ghost btn-sm">Manage all lists →</a>
+</div>
+{% endif %}
+{% else %}
+<p class="muted small">No lists yet.{% if is_own_profile %} <a href="/concert-tracker/lists">Create one →</a>{% endif %}</p>
+{% endif %}

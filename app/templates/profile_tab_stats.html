@@ -42,17 +42,24 @@
   </div>
   {% endif %}
 
-  {% if rating_dist %}
-  <h3 class="stats-section-heading">Rating Distribution</h3>
-  <div style="max-height:150px;margin-bottom:1.5rem">
-    <canvas id="chart-rating-dist"></canvas>
-  </div>
-  {% endif %}
-
-  {% if per_month %}
-  <h3 class="stats-section-heading">Shows by Month</h3>
-  <div style="max-height:150px">
-    <canvas id="chart-per-month"></canvas>
+  {% if rating_dist or per_month %}
+  <div class="stats-charts-row">
+    {% if rating_dist %}
+    <div class="stats-chart-col">
+      <h3 class="stats-section-heading">Rating Distribution</h3>
+      <div style="max-height:150px">
+        <canvas id="chart-rating-dist"></canvas>
+      </div>
+    </div>
+    {% endif %}
+    {% if per_month %}
+    <div class="stats-chart-col">
+      <h3 class="stats-section-heading">Shows by Month</h3>
+      <div style="max-height:150px">
+        <canvas id="chart-per-month"></canvas>
+      </div>
+    </div>
+    {% endif %}
   </div>
   {% endif %}
 

@@ -145,6 +145,7 @@
         <button class="ptab active" data-tab="recent" role="tab" aria-selected="true">Recently Logged</button>
         <button class="ptab" data-tab="top" role="tab" aria-selected="false">Top Shows</button>
         <button class="ptab" data-tab="all" role="tab" aria-selected="false">All Shows</button>
+        <button class="ptab" data-tab="lists" role="tab" aria-selected="false">Lists</button>
         <button class="ptab" data-tab="stats" role="tab" aria-selected="false">Stats</button>
       </nav>
       <div id="profile-tab-content">
@@ -184,21 +185,6 @@
         <span class="mini-bar-label">{{ a.name }}</span>
       </a>
       {% endfor %}
-    </section>
-    {% endif %}
-
-    {% if profile_lists %}
-    <section class="social-section">
-      <h2>Lists</h2>
-      {% for l in profile_lists %}
-      <a href="/concert-tracker/lists/{{ l.id }}" class="mini-bar-row mini-bar-link">
-        <span class="mini-bar-label">{{ l.title }}{% if l.is_ranked %} <span class="badge badge-ranked" style="font-size:.65rem;vertical-align:middle">Ranked</span>{% endif %}</span>
-        <span class="mini-bar-count">{{ l.item_count }}</span>
-      </a>
-      {% endfor %}
-      {% if is_own_profile %}
-      <a href="/concert-tracker/lists" class="muted small" style="display:block;margin-top:.6rem">Manage lists →</a>
-      {% endif %}
     </section>
     {% endif %}
 
@@ -348,7 +334,7 @@ _tabBtns.forEach(btn => {
 });
 
 const _urlTab = new URLSearchParams(location.search).get('tab');
-if (_urlTab && _urlTab !== 'recent' && ['top', 'all', 'stats'].includes(_urlTab)) {
+if (_urlTab && _urlTab !== 'recent' && ['top', 'all', 'lists', 'stats'].includes(_urlTab)) {
   _loadTab(_urlTab);
 }
 </script>

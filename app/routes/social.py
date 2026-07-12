@@ -620,7 +620,7 @@ async def profile_tab(
     sort: str = "date_desc",
 ):
 
-    if tab not in ("recent", "top", "all", "stats"):
+    if tab not in ("recent", "top", "all", "lists", "stats"):
         return RedirectResponse(f"/concert-tracker/u/{username}", status_code=302)
 
     async with pool.acquire() as conn:
@@ -704,6 +704,22 @@ async def profile_tab(
                     years=[r["y"] for r in year_rows],
                     filters={"year": year, "artist": artist_filter, "kind": kind, "sort": sort},
                 ),
+            )
+
+        if tab == "lists":
+            rows = await conn.fetch(
+                "SELECT l.id, l.title, l.description, l.is_ranked, "
+                "COUNT(li.id)::int AS item_count "
+                "FROM lists l LEFT JOIN list_items li ON li.list_id = l.id "
+                "WHERE l.user_id = $1 GROUP BY l.id ORDER BY l.created_at DESC",
+                pid,
+            )
+            uid = user["id"] if user else None
+            return templates.TemplateResponse(
+                "profile_tab_lists.html",
+                _ctx(request, user,
+                     profile_lists=list(rows),
+                     is_own_profile=(uid == pid)),
             )
 
         # tab == "stats"
