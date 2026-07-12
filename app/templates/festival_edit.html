@@ -38,6 +38,22 @@
     <textarea name="festival_notes" rows="4" maxlength="2000" placeholder="How was it?">{{ festival_notes or '' }}</textarea>
   </div>
 
+  <div class="field-group">
+    <label>Rating <span class="muted small">(optional)</span></label>
+    <input type="hidden" name="rating" id="rating-hidden" value="{{ festival_rating | string if festival_rating is not none else '' }}">
+    <div class="star-rating" id="star-rating">
+      <div class="stars-row" id="stars-row" role="group" aria-label="Star rating">
+        <span class="star" data-val="1" role="radio" aria-label="1 star" tabindex="0">★</span>
+        <span class="star" data-val="2" role="radio" aria-label="2 stars" tabindex="-1">★</span>
+        <span class="star" data-val="3" role="radio" aria-label="3 stars" tabindex="-1">★</span>
+        <span class="star" data-val="4" role="radio" aria-label="4 stars" tabindex="-1">★</span>
+        <span class="star" data-val="5" role="radio" aria-label="5 stars" tabindex="-1">★</span>
+      </div>
+      <span class="rating-label" id="rating-label"></span>
+      <button type="button" class="rating-clear-btn" id="rating-clear" style="display:none">Clear</button>
+    </div>
+  </div>
+
   {% if taggable %}
   <div class="field-group">
     <label>Tag friends who were there</label>
@@ -150,6 +166,65 @@ function addArtist(name, thumb) {
 document.getElementById('festival-edit-form').addEventListener('submit', e => {
   document.getElementById('artists-json').value = JSON.stringify(artists);
 });
+
+// ── Star rating widget ────────────────────────────────────────────────
+(function() {
+  const hidden   = document.getElementById('rating-hidden');
+  const starsRow = document.getElementById('stars-row');
+  const label    = document.getElementById('rating-label');
+  const clearBtn = document.getElementById('rating-clear');
+  const stars    = Array.from(starsRow.querySelectorAll('.star'));
+  let selected   = hidden.value ? parseFloat(hidden.value) : null;
+
+  function renderStars(val) {
+    stars.forEach((s, i) => {
+      const num = i + 1;
+      s.className = val !== null && val >= num ? 'star filled'
+                  : val !== null && val >= num - 0.5 ? 'star half'
+                  : 'star';
+    });
+  }
+
+  function setRating(val) {
+    selected = val;
+    hidden.value = val !== null ? String(val) : '';
+    renderStars(val);
+    label.textContent = val !== null ? '★ ' + val : '';
+    clearBtn.style.display = val !== null ? '' : 'none';
+  }
+
+  renderStars(selected);
+  if (selected !== null) { label.textContent = '★ ' + selected; clearBtn.style.display = ''; }
+
+  stars.forEach(s => {
+    s.addEventListener('mousemove', e => {
+      const half = e.clientX - s.getBoundingClientRect().left < s.offsetWidth / 2;
+      renderStars(half ? parseInt(s.dataset.val) - 0.5 : parseInt(s.dataset.val));
+    });
+    s.addEventListener('click', e => {
+      const half = e.clientX - s.getBoundingClientRect().left < s.offsetWidth / 2;
+      const val  = half ? parseInt(s.dataset.val) - 0.5 : parseInt(s.dataset.val);
+      setRating(val === selected ? null : val);
+    });
+    s.addEventListener('touchstart', e => {
+      e.preventDefault();
+      const touch = e.changedTouches[0];
+      const rect  = s.getBoundingClientRect();
+      const half  = touch.clientX - rect.left < rect.width / 2;
+      setRating(half ? parseInt(s.dataset.val) - 0.5 : parseInt(s.dataset.val));
+    }, { passive: false });
+    s.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        const num = parseInt(s.dataset.val);
+        setRating(num === selected ? null : num);
+      }
+    });
+  });
+
+  starsRow.addEventListener('mouseleave', () => renderStars(selected));
+  clearBtn.addEventListener('click', () => setRating(null));
+})();
 
 renderArtists();
 </script>

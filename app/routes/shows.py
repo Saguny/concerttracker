@@ -218,7 +218,7 @@ async def festival_edit_page(
 ):
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
-            "SELECT festival_name, city, festival_notes FROM festivals WHERE id = $1 AND user_id = $2",
+            "SELECT festival_name, city, festival_notes, rating FROM festivals WHERE id = $1 AND user_id = $2",
             festival_id, user["id"],
         )
         if not row:
@@ -252,6 +252,7 @@ async def festival_edit_page(
              festival_name=row["festival_name"],
              city=row["city"] or "",
              festival_notes=row["festival_notes"] or "",
+             festival_rating=float(row["rating"]) if row["rating"] is not None else None,
              existing_shows=existing_shows,
              taggable=taggable,
              csrf=get_csrf_token(request)),
@@ -269,6 +270,14 @@ async def festival_edit_save(
     festival_name = str(form.get("festival_name", "")).strip()[:200]
     city = str(form.get("city", "")).strip()[:200]
     notes = str(form.get("festival_notes", "")).strip()[:2000] or None
+    rating_raw = str(form.get("rating", "")).strip()
+    festival_rating: float | None = None
+    try:
+        v = float(rating_raw)
+        if 0.5 <= v <= 5.0:
+            festival_rating = round(v * 2) / 2
+    except (ValueError, TypeError):
+        pass
     artists_raw = str(form.get("artists_json", "")).strip()
 
     submitted: list[dict] = []
@@ -298,8 +307,8 @@ async def festival_edit_save(
             return RedirectResponse("/concert-tracker/shows", status_code=302)
 
         await conn.execute(
-            "UPDATE festivals SET festival_name = $1, city = $2, festival_notes = $3 WHERE id = $4",
-            festival_name, city, notes, festival_id,
+            "UPDATE festivals SET festival_name = $1, city = $2, festival_notes = $3, rating = $4 WHERE id = $5",
+            festival_name, city, notes, festival_rating, festival_id,
         )
         await conn.execute(
             "UPDATE shows SET festival_name = $1, venue = $1, city = $2 WHERE festival_id = $3 AND user_id = $4",
