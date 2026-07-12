@@ -1,7 +1,9 @@
+import io
 import os
 import asyncio
 import time
 import boto3
+from PIL import Image
 from botocore.exceptions import ClientError
 
 
@@ -20,7 +22,20 @@ BUCKET = lambda: os.environ.get("R2_BUCKET", "social-credit-gacha")
 PUBLIC_URL = lambda: os.environ.get("R2_PUBLIC_URL", "https://cdn.off-by-one.digital").rstrip("/")
 
 ALLOWED_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
-MAX_BYTES = 5 * 1024 * 1024  # 5 MB
+MAX_BYTES = 15 * 1024 * 1024  # 15 MB
+
+
+def _compress(data: bytes, content_type: str, max_w: int, max_h: int) -> tuple[bytes, str]:
+    """Resize and re-encode to WebP. GIFs pass through unchanged."""
+    if content_type == "image/gif":
+        return data, content_type
+    img = Image.open(io.BytesIO(data))
+    if img.mode not in ("RGB", "RGBA"):
+        img = img.convert("RGBA")
+    img.thumbnail((max_w, max_h), Image.LANCZOS)
+    out = io.BytesIO()
+    img.save(out, format="WEBP", quality=82, method=4)
+    return out.getvalue(), "image/webp"
 
 
 async def upload_avatar(user_id: int, data: bytes, content_type: str) -> str:
@@ -32,16 +47,17 @@ async def upload_avatar(user_id: int, data: bytes, content_type: str) -> str:
 
     key = f"avatars/{user_id}"
 
-    def _upload():
+    def _run():
+        compressed, ct = _compress(data, content_type, 512, 512)
         _client().put_object(
             Bucket=BUCKET(),
             Key=key,
-            Body=data,
-            ContentType=content_type,
+            Body=compressed,
+            ContentType=ct,
             CacheControl="public, max-age=31536000",
         )
 
-    await asyncio.get_running_loop().run_in_executor(None, _upload)
+    await asyncio.get_running_loop().run_in_executor(None, _run)
     return f"{PUBLIC_URL()}/{key}?v={int(time.time())}"
 
 
@@ -54,14 +70,15 @@ async def upload_banner(user_id: int, data: bytes, content_type: str) -> str:
 
     key = f"banners/{user_id}"
 
-    def _upload():
+    def _run():
+        compressed, ct = _compress(data, content_type, 1920, 2400)
         _client().put_object(
             Bucket=BUCKET(),
             Key=key,
-            Body=data,
-            ContentType=content_type,
+            Body=compressed,
+            ContentType=ct,
             CacheControl="public, max-age=31536000",
         )
 
-    await asyncio.get_running_loop().run_in_executor(None, _upload)
+    await asyncio.get_running_loop().run_in_executor(None, _run)
     return f"{PUBLIC_URL()}/{key}?v={int(time.time())}"
