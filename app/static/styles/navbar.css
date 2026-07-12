@@ -18,6 +18,7 @@
 .nav-links a { color: var(--muted); font-size: .9rem; transition: color .15s; }
 .nav-links a:hover, .nav-links a.active { color: var(--text); text-decoration: none; }
 .nav-right { display: flex; align-items: center; gap: .75rem; margin-left: auto; }
+.nav-utils { display: flex; align-items: center; gap: .75rem; }
 .nav-muted { color: var(--muted); font-size: .85rem; }
 .nav-muted:hover { color: var(--text); }
 
@@ -147,8 +148,9 @@
     padding: .75rem 1rem; z-index: 99;
   }
   .nav-right.nav-right-open { display: flex; }
-  .nav-right .btn { width: 100%; text-align: center; }
-  .nav-notif-dropdown { min-width: 100vw; right: -1rem; }
+  .nav-right .btn { width: 100%; text-align: center; height: auto; }
+  .nav-utils { margin-left: auto; gap: .5rem; }
+  .nav-notif-dropdown { min-width: min(300px, 100vw); right: 0; }
   .nav-dropdown { min-width: 220px; }
   .nav-username { display: none; }
 }
