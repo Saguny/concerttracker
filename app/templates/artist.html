@@ -24,9 +24,15 @@
         <span class="artist-stat"><strong>{{ "{:,}".format(lfm.playcount) }}</strong><span class="muted"> scrobbles</span></span>
         <span class="artist-stat-sep">·</span>
         <span class="muted">Seen <strong style="color:var(--text)">{{ shows | length }}×</strong></span>
+        {% if avg_rating %}
+        <span class="artist-stat-sep">·</span>
+        <span class="artist-stat"><span class="rating-badge" style="font-size:.9rem">★ {{ "%.1f"|format(avg_rating) }}</span><span class="muted"> avg</span></span>
+        {% endif %}
       </div>
       {% else %}
-      <div class="muted" style="font-size:.875rem">You've seen them <strong style="color:var(--text)">{{ shows | length }}×</strong></div>
+      <div class="muted" style="font-size:.875rem">
+        You've seen them <strong style="color:var(--text)">{{ shows | length }}×</strong>{% if avg_rating %} · <span class="rating-badge">★ {{ "%.1f"|format(avg_rating) }}</span> avg rating{% endif %}
+      </div>
       {% endif %}
 
       <div class="artist-link-row">
@@ -111,6 +117,7 @@
         <span class="artist-show-date">{{ s.date.strftime('%b %d, %Y').replace(' 0', ' ') }}</span>
         <span class="artist-show-venue">{{ s.venue }}{% if s.city %} · {{ s.city }}{% endif %}</span>
         {% if s.is_festival %}<span class="badge badge-festival" style="font-size:.7rem">Festival</span>{% endif %}
+        {% if s.rating %}<span class="rating-badge" style="font-size:.75rem">★ {{ "%.1f"|format(s.rating|float) }}</span>{% endif %}
         {% if s.setlist and s.setlist.songs %}<span class="muted small">{{ s.setlist.songs | length }} songs</span>{% endif %}
       </a>
       {% endfor %}

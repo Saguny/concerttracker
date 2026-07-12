@@ -1,0 +1,59 @@
+<div class="stats-tab"
+  data-rating-dist='{{ rating_dist | tojson }}'
+  data-per-month='{{ per_month | tojson }}'>
+
+  <div class="stats-summary-grid">
+    <div class="stat-card">
+      <div class="stat-num">{{ summary.total or 0 }}</div>
+      <div class="stat-label">Shows</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num">{{ summary.artists or 0 }}</div>
+      <div class="stat-label">Artists</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num">{{ summary.venues or 0 }}</div>
+      <div class="stat-label">Venues</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num">{{ summary.cities or 0 }}</div>
+      <div class="stat-label">Cities</div>
+    </div>
+    {% if summary.avg_rating %}
+    <div class="stat-card">
+      <div class="stat-num" style="color:var(--accent)">★ {{ "%.1f"|format(summary.avg_rating|float) }}</div>
+      <div class="stat-label">Avg Rating · {{ summary.rated }} rated</div>
+    </div>
+    {% endif %}
+    {% if summary.first_year and summary.last_year %}
+    <div class="stat-card">
+      <div class="stat-num">{{ summary.last_year - summary.first_year + 1 }}</div>
+      <div class="stat-label">Years Active</div>
+    </div>
+    {% endif %}
+  </div>
+
+  {% if top_genres %}
+  <h3 class="stats-section-heading">Top Genres</h3>
+  <div class="genre-list" style="margin-bottom:1.5rem">
+    {% for g in top_genres %}
+    <span class="genre-tag">{{ g.genre }} <span class="muted small">{{ g.cnt }}</span></span>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if rating_dist %}
+  <h3 class="stats-section-heading">Rating Distribution</h3>
+  <div style="max-height:150px;margin-bottom:1.5rem">
+    <canvas id="chart-rating-dist"></canvas>
+  </div>
+  {% endif %}
+
+  {% if per_month %}
+  <h3 class="stats-section-heading">Shows by Month</h3>
+  <div style="max-height:150px">
+    <canvas id="chart-per-month"></canvas>
+  </div>
+  {% endif %}
+
+</div>

@@ -49,6 +49,7 @@
               {{ show.username }}
             </span>
             <span class="feed-interactions">
+              {% if show.rating %}<span class="rating-badge">★ {{ "%.1f"|format(show.rating|float) }}</span>{% endif %}
               <span title="likes">♥ {{ show.like_count }}</span>
               <span title="comments">💬 {{ show.comment_count }}</span>
             </span>
@@ -342,7 +343,7 @@ function switchTab(tab, btn) {
           <div class="show-meta">${_esc(s.venue)} · ${_esc(s.city)}</div>
           <div class="show-meta show-meta-row">
             <span class="feed-user-chip">${av}${_esc(s.username)}</span>
-            <span class="feed-interactions"><span title="likes">♥ ${s.like_count}</span> <span title="comments">💬 ${s.comment_count}</span></span>
+            <span class="feed-interactions">${s.rating ? `<span class="rating-badge">★ ${parseFloat(s.rating).toFixed(1)}</span>` : ''}<span title="likes">♥ ${s.like_count}</span> <span title="comments">💬 ${s.comment_count}</span></span>
           </div>
         </div>
         <div class="show-date"><span class="date-day">${day}</span><span class="date-mon">${mon}</span><span class="date-year">${yr}</span></div>

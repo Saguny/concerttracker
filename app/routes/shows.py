@@ -62,6 +62,7 @@ async def list_shows(
         "date_asc": "date ASC",
         "artist": "artist ASC",
         "venue": "venue ASC",
+        "rating_desc": "rating DESC NULLS LAST",
     }.get(sort, "date DESC")
 
     clauses = ["user_id = $1"]
@@ -929,6 +930,15 @@ async def _handle_save(request: Request, pool, user: dict, show_id: int | None):
     notes = str(form.get("notes", "")).strip()[:1000] or None
     setlist_raw = str(form.get("setlist_json", "")).strip() or None
     support_raw = str(form.get("support_acts_json", "")).strip() or None
+    rating_raw = str(form.get("rating", "")).strip()
+    rating: float | None = None
+    if rating_raw:
+        try:
+            v = float(rating_raw)
+            if 0.5 <= v <= 5.0 and round(v * 2) == int(v * 2):
+                rating = v
+        except ValueError:
+            pass
 
     import json as _json
     setlist_data = None
@@ -997,12 +1007,12 @@ async def _handle_save(request: Request, pool, user: dict, show_id: int | None):
             show_id = await conn.fetchval(
                 "INSERT INTO shows (user_id, artist, venue, city, date, is_festival, festival_name, "
                 "notes, setlist, support_acts, artist_mbid, artist_spotify_id, artist_image_url, "
-                "artist_thumb_url, artist_genres, created_at) VALUES "
-                "($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) RETURNING id",
+                "artist_thumb_url, artist_genres, created_at, rating) VALUES "
+                "($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17) RETURNING id",
                 user["id"], artist, venue, city, date, is_festival, festival_name,
                 notes, _json.dumps(setlist_data) if setlist_data else None,
                 support_acts or None,
-                mbid, spotify_id, image_url, thumb_url, genres, now,
+                mbid, spotify_id, image_url, thumb_url, genres, now, rating,
             )
             # Upload photo now that we have the real show_id
             if _photo_data and show_id:
@@ -1026,6 +1036,7 @@ async def _handle_save(request: Request, pool, user: dict, show_id: int | None):
                 "UPDATE shows SET artist=$1, venue=$2, city=$3, date=$4, is_festival=$5, "
                 "festival_name=$6, notes=$7, setlist=$8, support_acts=$9, artist_mbid=$10, "
                 "artist_spotify_id=$11, artist_image_url=$12, artist_thumb_url=$13, artist_genres=$14, "
+                "rating=$19, "
                 "photo_url = CASE WHEN $17 THEN $18 ELSE photo_url END "
                 "WHERE id=$15 AND user_id=$16",
                 artist, venue, city, date, is_festival, festival_name,
@@ -1033,6 +1044,7 @@ async def _handle_save(request: Request, pool, user: dict, show_id: int | None):
                 support_acts or None,
                 mbid, spotify_id, image_url, thumb_url, genres, show_id, user["id"],
                 update_photo, _new_photo_url if not remove_photo else None,
+                rating,
             )
 
         # Persist headliner and support acts to the global artist catalogue

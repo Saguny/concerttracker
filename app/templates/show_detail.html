@@ -41,6 +41,12 @@
       </div>
 
       <div class="detail-meta-stack">
+        {% if show.rating %}
+        <div style="display:flex;align-items:center;gap:.5rem">
+          <span class="rating-stars-display" style="--fill:{{ (show.rating|float / 5 * 100)|int }}%">★★★★★</span>
+          <span class="muted small">{{ "%.1f"|format(show.rating|float) }} / 5.0</span>
+        </div>
+        {% endif %}
         <span class="detail-date">{{ show.date.strftime('%B %d, %Y').replace(' 0', ' ') }}</span>
         <a href="https://maps.google.com/?q={{ (show.venue ~ ', ' ~ show.city) | urlquote }}"
            target="_blank" rel="noopener" class="detail-location-link">

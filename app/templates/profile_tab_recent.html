@@ -1,0 +1,67 @@
+{% if not items %}
+<p class="muted" style="padding:.75rem 0">No shows logged yet.</p>
+{% else %}
+<div class="show-list">
+  {% for item in items %}
+  {% if item.type == 'show' %}
+  {% set show = item.show %}
+  {% set is_upcoming = show.date | string >= today %}
+  <a href="/concert-tracker/shows/{{ show.id }}" class="show-card{% if is_upcoming %} show-upcoming{% endif %}">
+    {% if show.artist_thumb_url %}
+    <img class="show-thumb" src="{{ show.artist_thumb_url }}" alt="{{ show.artist }}" loading="lazy">
+    {% else %}
+    <div class="show-thumb show-thumb-placeholder">🎵</div>
+    {% endif %}
+    <div class="show-card-body">
+      <div class="show-artist">{{ show.artist }}{% if is_upcoming %} <span class="badge badge-upcoming">Upcoming</span>{% endif %}</div>
+      <div class="show-meta">{{ show.venue }} · {{ show.city }}</div>
+      <div class="show-meta">
+        {% if show.rating %}<span class="rating-badge">★ {{ "%.1f"|format(show.rating|float) }}</span> &nbsp;{% endif %}<span class="feed-interactions">♥ {{ show.like_count }} &nbsp; 💬 {{ show.comment_count }}</span>
+      </div>
+    </div>
+    <div class="show-date">
+      <span class="date-day">{{ show.date.strftime('%d') }}</span>
+      <span class="date-mon">{{ show.date.strftime('%b') }}</span>
+      <span class="date-year">{{ show.date.strftime('%Y') }}</span>
+    </div>
+  </a>
+  {% else %}
+  {% set f = item %}
+  {% set is_upcoming = f.date | string >= today %}
+  <div class="show-card festival-group-card{% if is_upcoming %} show-upcoming{% endif %}">
+    <a href="/concert-tracker/shows/festival/{{ f.festival_id }}" class="show-card-link">
+      {% if f.shows[0].artist_thumb_url %}
+      <img class="show-thumb" src="{{ f.shows[0].artist_thumb_url }}" alt="{{ f.festival_name }}" loading="lazy">
+      {% else %}
+      <div class="show-thumb show-thumb-placeholder festival-thumb">🎪</div>
+      {% endif %}
+      <div class="show-card-body">
+        <div class="show-artist">{{ f.festival_name }} <span class="badge badge-festival">Festival</span>{% if is_upcoming %} <span class="badge badge-upcoming">Upcoming</span>{% endif %}</div>
+        <div class="show-meta">{{ f.city }} · {{ f.shows | length }} act{{ 's' if f.shows | length != 1 else '' }}</div>
+        <div class="show-meta"><span class="feed-interactions">♥ {{ f.like_count }} &nbsp; 💬 {{ f.comment_count }}</span></div>
+      </div>
+    </a>
+    <button class="festival-toggle btn btn-sm btn-ghost" type="button" onclick="toggleFestival(this)" onmouseenter="this.closest('.festival-group-card').classList.add('toggle-hover')" onmouseleave="this.closest('.festival-group-card').classList.remove('toggle-hover')">▾ Show acts</button>
+    <div class="show-date">
+      <span class="date-day">{{ f.date.strftime('%d') }}</span>
+      <span class="date-mon">{{ f.date.strftime('%b') }}</span>
+      <span class="date-year">{{ f.date.strftime('%Y') }}</span>
+    </div>
+    <div class="festival-acts festival-acts-hidden">
+      {% for show in f.shows %}
+      <a href="/concert-tracker/shows/{{ show.id }}" class="festival-act-row">
+        {% if show.artist_thumb_url %}
+        <img class="festival-act-thumb" src="{{ show.artist_thumb_url }}" alt="{{ show.artist }}" loading="lazy">
+        {% else %}
+        <div class="festival-act-thumb festival-act-thumb-ph">{{ show.artist[0] | upper }}</div>
+        {% endif %}
+        <span class="festival-act-name">{{ show.artist }}</span>
+        <span class="festival-act-date">{{ show.date.strftime('%d %b') }}</span>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+  {% endfor %}
+</div>
+{% endif %}

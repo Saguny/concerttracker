@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Edit List · Concert Tracker{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>Edit List</h1>
+  <a href="/concert-tracker/lists/{{ lst.id }}" class="btn btn-ghost">← Cancel</a>
+</div>
+
+<form method="post" action="/concert-tracker/lists/{{ lst.id }}/edit" class="form-card">
+  <input type="hidden" name="_csrf" value="{{ csrf }}">
+
+  <div class="field-group">
+    <label for="title">Title</label>
+    <input type="text" id="title" name="title" value="{{ lst.title }}" maxlength="200" required class="input">
+  </div>
+
+  <div class="field-group">
+    <label for="description">Description <span class="muted small">(optional)</span></label>
+    <textarea id="description" name="description" rows="3" maxlength="1000" class="input textarea">{{ lst.description or '' }}</textarea>
+  </div>
+
+  <div class="field-group">
+    <label class="checkbox-label" style="gap:.6rem">
+      <input type="checkbox" name="is_ranked" value="1" {% if lst.is_ranked %}checked{% endif %}>
+      Ranked list <span class="muted small">(shows appear in numbered order with drag-to-reorder)</span>
+    </label>
+  </div>
+
+  <div style="display:flex;gap:.5rem;margin-top:1rem">
+    <button type="submit" class="btn btn-accent">Save Changes</button>
+    <a href="/concert-tracker/lists/{{ lst.id }}" class="btn btn-ghost">Cancel</a>
+  </div>
+</form>
+{% endblock %}

@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}My Lists · Concert Tracker{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>My Lists</h1>
+</div>
+
+<form method="post" action="/concert-tracker/lists/create" class="list-create-form">
+  <input type="hidden" name="_csrf" value="{{ csrf }}">
+  <input type="text" name="title" placeholder="New list title…" maxlength="200" required class="input list-create-input" autocomplete="off">
+  <label class="checkbox-label" style="gap:.4rem;white-space:nowrap">
+    <input type="checkbox" name="is_ranked" value="1"> Ranked
+  </label>
+  <button type="submit" class="btn btn-accent">Create</button>
+</form>
+
+{% if not lists %}
+<div class="empty-state" style="margin-top:2rem">
+  <p>No lists yet. Create one above.</p>
+</div>
+{% else %}
+<div class="lists-grid">
+  {% for l in lists %}
+  <div class="list-card">
+    <a href="/concert-tracker/lists/{{ l.id }}" class="list-card-link">
+      <div class="list-card-title">{{ l.title }}{% if l.is_ranked %} <span class="badge badge-ranked">Ranked</span>{% endif %}</div>
+      {% if l.description %}<div class="list-card-desc muted small">{{ l.description[:120] }}{% if l.description | length > 120 %}…{% endif %}</div>{% endif %}
+      <div class="list-card-meta muted small">{{ l.item_count }} show{{ 's' if l.item_count != 1 else '' }}</div>
+    </a>
+    <div class="list-card-actions">
+      <a href="/concert-tracker/lists/{{ l.id }}/add" class="btn btn-sm btn-ghost">+ Add Shows</a>
+      <a href="/concert-tracker/lists/{{ l.id }}/edit" class="btn btn-sm btn-ghost">Edit</a>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

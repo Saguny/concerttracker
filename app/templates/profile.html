@@ -140,104 +140,16 @@
     </section>
     {% endif %}
 
-    <section class="social-section">
-      <h2>All Shows</h2>
-      {% if years is defined %}
-      <form class="filter-bar" method="get" action="/concert-tracker/u/{{ profile.username }}" id="profile-filter-form">
-        <select name="year">
-          <option value="">All Years</option>
-          {% for y in years %}
-          <option value="{{ y }}" {% if filters.year == y|string %}selected{% endif %}>{{ y }}</option>
-          {% endfor %}
-        </select>
-        <input type="text" name="artist_filter" placeholder="Filter by artist…" value="{{ filters.artist }}">
-        <select name="kind">
-          <option value="">All</option>
-          <option value="standalone" {% if filters.kind == 'standalone' %}selected{% endif %}>Standalone</option>
-          <option value="festival" {% if filters.kind == 'festival' %}selected{% endif %}>Festival</option>
-        </select>
-        <select name="sort">
-          <option value="date_desc" {% if filters.sort == 'date_desc' %}selected{% endif %}>Date ↓</option>
-          <option value="date_asc" {% if filters.sort == 'date_asc' %}selected{% endif %}>Date ↑</option>
-          <option value="artist" {% if filters.sort == 'artist' %}selected{% endif %}>Artist</option>
-          <option value="venue" {% if filters.sort == 'venue' %}selected{% endif %}>Venue</option>
-        </select>
-      </form>
-      {% endif %}
-      <div id="profile-list-region">
-      {% if not items %}
-      <p class="muted">No shows logged yet.</p>
-      {% else %}
-      <div class="show-list">
-        {% for item in items %}
-
-        {% if item.type == 'show' %}
-        {% set show = item.show %}
-        {% set is_upcoming = show.date | string >= today %}
-        <a href="/concert-tracker/shows/{{ show.id }}" class="show-card{% if is_upcoming %} show-upcoming{% endif %}">
-          {% if show.artist_thumb_url %}
-          <img class="show-thumb" src="{{ show.artist_thumb_url }}" alt="{{ show.artist }}" loading="lazy">
-          {% else %}
-          <div class="show-thumb show-thumb-placeholder">🎵</div>
-          {% endif %}
-          <div class="show-card-body">
-            <div class="show-artist">{{ show.artist }}{% if is_upcoming %} <span class="badge badge-upcoming">Upcoming</span>{% endif %}</div>
-            <div class="show-meta">{{ show.venue }} · {{ show.city }}</div>
-            <div class="show-meta">
-              <span class="feed-interactions">♥ {{ show.like_count }} &nbsp; 💬 {{ show.comment_count }}</span>
-            </div>
-          </div>
-          <div class="show-date">
-            <span class="date-day">{{ show.date.strftime('%d') }}</span>
-            <span class="date-mon">{{ show.date.strftime('%b') }}</span>
-            <span class="date-year">{{ show.date.strftime('%Y') }}</span>
-          </div>
-        </a>
-
-        {% else %}
-        {% set f = item %}
-        {% set is_upcoming = f.date | string >= today %}
-        <div class="show-card festival-group-card{% if is_upcoming %} show-upcoming{% endif %}">
-          <a href="/concert-tracker/shows/festival/{{ f.festival_id }}" class="show-card-link">
-            {% if f.shows[0].artist_thumb_url %}
-            <img class="show-thumb" src="{{ f.shows[0].artist_thumb_url }}" alt="{{ f.festival_name }}" loading="lazy">
-            {% else %}
-            <div class="show-thumb show-thumb-placeholder festival-thumb">🎪</div>
-            {% endif %}
-            <div class="show-card-body">
-              <div class="show-artist">{{ f.festival_name }} <span class="badge badge-festival">Festival</span>{% if is_upcoming %} <span class="badge badge-upcoming">Upcoming</span>{% endif %}</div>
-              <div class="show-meta">{{ f.city }} · {{ f.shows | length }} act{{ 's' if f.shows | length != 1 else '' }}</div>
-              <div class="show-meta">
-                <span class="feed-interactions">♥ {{ f.like_count }} &nbsp; 💬 {{ f.comment_count }}</span>
-              </div>
-            </div>
-          </a>
-          <button class="festival-toggle btn btn-sm btn-ghost" type="button" onclick="toggleFestival(this)" onmouseenter="this.closest('.festival-group-card').classList.add('toggle-hover')" onmouseleave="this.closest('.festival-group-card').classList.remove('toggle-hover')">▾ Show acts</button>
-          <div class="show-date">
-            <span class="date-day">{{ f.date.strftime('%d') }}</span>
-            <span class="date-mon">{{ f.date.strftime('%b') }}</span>
-            <span class="date-year">{{ f.date.strftime('%Y') }}</span>
-          </div>
-          <div class="festival-acts festival-acts-hidden">
-            {% for show in f.shows %}
-            <a href="/concert-tracker/shows/{{ show.id }}" class="festival-act-row">
-              {% if show.artist_thumb_url %}
-              <img class="festival-act-thumb" src="{{ show.artist_thumb_url }}" alt="{{ show.artist }}" loading="lazy">
-              {% else %}
-              <div class="festival-act-thumb festival-act-thumb-ph">{{ show.artist[0] | upper }}</div>
-              {% endif %}
-              <span class="festival-act-name">{{ show.artist }}</span>
-              <span class="festival-act-date">{{ show.date.strftime('%d %b') }}</span>
-            </a>
-            {% endfor %}
-          </div>
-        </div>
-        {% endif %}
-
-        {% endfor %}
+    <section class="social-section profile-tabs-section">
+      <nav class="profile-tabs-nav" role="tablist" aria-label="Profile sections">
+        <button class="ptab active" data-tab="recent" role="tab" aria-selected="true">Recently Logged</button>
+        <button class="ptab" data-tab="top" role="tab" aria-selected="false">Top Shows</button>
+        <button class="ptab" data-tab="all" role="tab" aria-selected="false">All Shows</button>
+        <button class="ptab" data-tab="stats" role="tab" aria-selected="false">Stats</button>
+      </nav>
+      <div id="profile-tab-content">
+        {% include "profile_tab_recent.html" %}
       </div>
-      {% endif %}
-      </div>{# end profile-list-region #}
     </section>
   </div>
 
@@ -272,6 +184,21 @@
         <span class="mini-bar-label">{{ a.name }}</span>
       </a>
       {% endfor %}
+    </section>
+    {% endif %}
+
+    {% if profile_lists %}
+    <section class="social-section">
+      <h2>Lists</h2>
+      {% for l in profile_lists %}
+      <a href="/concert-tracker/lists/{{ l.id }}" class="mini-bar-row mini-bar-link">
+        <span class="mini-bar-label">{{ l.title }}{% if l.is_ranked %} <span class="badge badge-ranked" style="font-size:.65rem;vertical-align:middle">Ranked</span>{% endif %}</span>
+        <span class="mini-bar-count">{{ l.item_count }}</span>
+      </a>
+      {% endfor %}
+      {% if is_own_profile %}
+      <a href="/concert-tracker/lists" class="muted small" style="display:block;margin-top:.6rem">Manage lists →</a>
+      {% endif %}
     </section>
     {% endif %}
 
@@ -329,6 +256,100 @@ function toggleFestival(btn) {
   acts.classList.toggle('festival-acts-hidden', open);
   btn.textContent = open ? '▾ Show acts' : '▴ Hide acts';
 }
-_initFilterAjax('profile-filter-form', 'profile-list-region', null);
+
+const _PROFILE_USER = {{ profile.username | tojson }};
+const _tabContent = document.getElementById('profile-tab-content');
+const _tabBtns = document.querySelectorAll('.ptab');
+
+function _setActiveTab(tab) {
+  _tabBtns.forEach(b => {
+    b.classList.toggle('active', b.dataset.tab === tab);
+    b.setAttribute('aria-selected', b.dataset.tab === tab ? 'true' : 'false');
+  });
+}
+
+async function _loadTab(tab) {
+  _setActiveTab(tab);
+  _tabContent.style.opacity = '0.5';
+  _tabContent.style.pointerEvents = 'none';
+  try {
+    const res = await fetch(`/concert-tracker/u/${_PROFILE_USER}/tab/${tab}`, {
+      headers: {'X-Requested-With': 'fetch'},
+    });
+    _tabContent.innerHTML = await res.text();
+    if (tab === 'all') _initTabFilter();
+    else if (tab === 'stats') _initStatsCharts();
+    history.replaceState(null, '', `/concert-tracker/u/${_PROFILE_USER}?tab=${tab}`);
+  } finally {
+    _tabContent.style.opacity = '';
+    _tabContent.style.pointerEvents = '';
+  }
+}
+
+function _initTabFilter() {
+  const form = document.getElementById('profile-tab-filter-form');
+  if (!form) return;
+  const doFilter = _debounce(async () => {
+    const qs = new URLSearchParams(new FormData(form)).toString();
+    const url = form.action + (qs ? '?' + qs : '');
+    const res = await fetch(url, {headers: {'X-Requested-With': 'fetch'}});
+    const html = await res.text();
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    const region = document.getElementById('profile-tab-list-region');
+    const newRegion = doc.getElementById('profile-tab-list-region');
+    if (region && newRegion) region.replaceWith(newRegion);
+    history.replaceState(null, '', `/concert-tracker/u/${_PROFILE_USER}?tab=all&${qs}`);
+  }, 250);
+  form.querySelectorAll('select').forEach(s => s.addEventListener('change', doFilter));
+  form.querySelector('input[type="text"]')?.addEventListener('input', doFilter);
+  form.addEventListener('submit', e => e.preventDefault());
+}
+
+function _initStatsCharts() {
+  const wrap = _tabContent.querySelector('[data-rating-dist]');
+  if (!wrap) return;
+  const ratingDist = JSON.parse(wrap.dataset.ratingDist || '[]');
+  const perMonth = JSON.parse(wrap.dataset.perMonth || '[]');
+  const profileWrap = document.querySelector('.profile-wrap');
+  const accent = (profileWrap ? getComputedStyle(profileWrap).getPropertyValue('--profile-accent').trim() : '') || '#f59e0b';
+
+  const rdCanvas = document.getElementById('chart-rating-dist');
+  if (ratingDist.length && rdCanvas) {
+    new Chart(rdCanvas, {
+      type: 'bar',
+      data: {
+        labels: ratingDist.map(r => '★' + r.half_star.toFixed(1)),
+        datasets: [{ data: ratingDist.map(r => r.cnt), backgroundColor: accent, borderRadius: 4 }],
+      },
+      options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } },
+    });
+  }
+
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const pmCanvas = document.getElementById('chart-per-month');
+  if (perMonth.length && pmCanvas) {
+    const data = Array(12).fill(0);
+    perMonth.forEach(r => { data[r.month - 1] = r.cnt; });
+    new Chart(pmCanvas, {
+      type: 'bar',
+      data: {
+        labels: months,
+        datasets: [{ data, backgroundColor: accent + '99', borderRadius: 4 }],
+      },
+      options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } },
+    });
+  }
+}
+
+_tabBtns.forEach(btn => {
+  btn.addEventListener('click', () => {
+    if (!btn.classList.contains('active')) _loadTab(btn.dataset.tab);
+  });
+});
+
+const _urlTab = new URLSearchParams(location.search).get('tab');
+if (_urlTab && _urlTab !== 'recent' && ['top', 'all', 'stats'].includes(_urlTab)) {
+  _loadTab(_urlTab);
+}
 </script>
 {% endblock %}

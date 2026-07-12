@@ -32,6 +32,7 @@
     <option value="date_asc" {% if filters.sort == 'date_asc' %}selected{% endif %}>Date ↑</option>
     <option value="artist" {% if filters.sort == 'artist' %}selected{% endif %}>Artist</option>
     <option value="venue" {% if filters.sort == 'venue' %}selected{% endif %}>Venue</option>
+    <option value="rating_desc" {% if filters.sort == 'rating_desc' %}selected{% endif %}>Rating ↓</option>
   </select>
 </form>
 
@@ -58,6 +59,7 @@
       <div class="show-card-body">
         <div class="show-artist">{{ show.artist }}{% if is_upcoming %} <span class="badge badge-upcoming">Upcoming</span>{% endif %}</div>
         <div class="show-meta">{{ show.venue }} · {{ show.city }}</div>
+        {% if show.rating %}<div class="show-meta"><span class="rating-badge">★ {{ "%.1f"|format(show.rating|float) }}</span></div>{% endif %}
       </div>
       <div class="show-date">
         <span class="date-day">{{ show.date.strftime('%d') }}</span>

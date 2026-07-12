@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% block title %}Add Shows · {{ lst.title }} · Concert Tracker{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Add Shows</h1>
+    <p class="muted small">to <a href="/concert-tracker/lists/{{ lst.id }}" class="text-link">{{ lst.title }}</a></p>
+  </div>
+  <a href="/concert-tracker/lists/{{ lst.id }}" class="btn btn-ghost">← Back to List</a>
+</div>
+
+<form class="filter-bar" method="get" action="/concert-tracker/lists/{{ lst.id }}/add" id="add-filter-form">
+  <select name="year">
+    <option value="">All Years</option>
+    {% for y in years %}
+    <option value="{{ y }}" {% if filters.year == y|string %}selected{% endif %}>{{ y }}</option>
+    {% endfor %}
+  </select>
+  <input type="text" name="artist_filter" placeholder="Filter by artist…" value="{{ filters.artist }}">
+  <select name="sort">
+    <option value="date_desc" {% if filters.sort == 'date_desc' %}selected{% endif %}>Date ↓</option>
+    <option value="date_asc" {% if filters.sort == 'date_asc' %}selected{% endif %}>Date ↑</option>
+    <option value="artist" {% if filters.sort == 'artist' %}selected{% endif %}>Artist</option>
+    <option value="rating_desc" {% if filters.sort == 'rating_desc' %}selected{% endif %}>Rating ↓</option>
+  </select>
+</form>
+
+<div id="add-shows-wrap" data-list-id="{{ lst.id }}" data-csrf="{{ csrf }}">
+<div id="add-shows-list">
+{% if not shows %}
+<p class="muted" style="padding:.75rem 0">No shows match your filters.</p>
+{% else %}
+<div class="show-list">
+  {% for show in shows %}
+  {% set already_in = show.id in in_list %}
+  <div class="show-card" data-show-id="{{ show.id }}" {% if already_in %}data-item-id="{{ in_list[show.id] }}"{% endif %}>
+    {% if show.artist_thumb_url %}
+    <img class="show-thumb" src="{{ show.artist_thumb_url }}" alt="{{ show.artist }}" loading="lazy">
+    {% else %}
+    <div class="show-thumb show-thumb-placeholder">🎵</div>
+    {% endif %}
+    <div class="show-card-body">
+      <div class="show-artist">{{ show.artist }}</div>
+      <div class="show-meta">{{ show.venue }} · {{ show.city }}</div>
+      {% if show.rating %}<div class="show-meta"><span class="rating-badge">★ {{ "%.1f"|format(show.rating|float) }}</span></div>{% endif %}
+    </div>
+    <div class="show-date">
+      <span class="date-day">{{ show.date.strftime('%d') }}</span>
+      <span class="date-mon">{{ show.date.strftime('%b') }}</span>
+      <span class="date-year">{{ show.date.strftime('%Y') }}</span>
+    </div>
+    <button type="button"
+      class="btn btn-sm list-toggle-btn {% if already_in %}btn-ghost list-toggle-in{% else %}btn-accent{% endif %}"
+      aria-pressed="{{ 'true' if already_in else 'false' }}">
+      {% if already_in %}In List ✓{% else %}+ Add{% endif %}
+    </button>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+</div>{# end add-shows-list #}
+</div>{# end add-shows-wrap #}
+{% endblock %}
+
+{% block scripts %}
+<script>
+_initFilterAjax('add-filter-form', 'add-shows-list', null);
+
+const _addWrap = document.getElementById('add-shows-wrap');
+if (_addWrap) {
+  const listId = _addWrap.dataset.listId;
+  const csrf = _addWrap.dataset.csrf;
+
+  _addWrap.addEventListener('click', async e => {
+    const btn = e.target.closest('.list-toggle-btn');
+    if (!btn) return;
+    const card = btn.closest('[data-show-id]');
+    const inList = btn.classList.contains('list-toggle-in');
+    btn.disabled = true;
+
+    const fd = new FormData();
+    fd.append('_csrf', csrf);
+
+    if (inList) {
+      const itemId = card.dataset.itemId;
+      const data = await _xpost(`/concert-tracker/lists/${listId}/items/${itemId}/remove`, fd);
+      if (data.ok) {
+        btn.textContent = '+ Add';
+        btn.classList.replace('btn-ghost', 'btn-accent');
+        btn.classList.remove('list-toggle-in');
+        btn.setAttribute('aria-pressed', 'false');
+        delete card.dataset.itemId;
+      }
+    } else {
+      fd.append('show_id', card.dataset.showId);
+      const data = await _xpost(`/concert-tracker/lists/${listId}/add`, fd);
+      if (data.item_id) {
+        btn.textContent = 'In List ✓';
+        btn.classList.replace('btn-accent', 'btn-ghost');
+        btn.classList.add('list-toggle-in');
+        btn.setAttribute('aria-pressed', 'true');
+        card.dataset.itemId = data.item_id;
+      }
+    }
+    btn.disabled = false;
+  });
+}
+</script>
+{% endblock %}
