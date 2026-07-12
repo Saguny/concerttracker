@@ -394,8 +394,36 @@ async def feed_api(request: Request, pool=Depends(get_pool), user=Depends(requir
         if d.get("date") is not None:
             d["date"] = str(d["date"])
         return d
-    items = [_ser(r) for r in rows]
-    return JSONResponse({"items": items, "has_more": len(items) == limit})
+
+    feed_items: list = []
+    seen: dict = {}
+    for row in rows:
+        d = _ser(row)
+        fid = d["festival_id"] if d.get("is_festival") and d.get("festival_name") else None
+        if fid:
+            key = str(fid)
+            if key not in seen:
+                entry: dict = {
+                    "type": "festival",
+                    "festival_id": key,
+                    "festival_name": d["festival_name"],
+                    "city": d["city"],
+                    "date": d["date"],
+                    "username": d["username"],
+                    "user_avatar": d["user_avatar"],
+                    "like_count": 0,
+                    "comment_count": 0,
+                    "shows": [],
+                }
+                seen[key] = entry
+                feed_items.append(entry)
+            seen[key]["like_count"] += d.get("like_count") or 0
+            seen[key]["comment_count"] += d.get("comment_count") or 0
+            seen[key]["shows"].append(d)
+        else:
+            feed_items.append({"type": "show", "show": d})
+
+    return JSONResponse({"items": feed_items, "has_more": len(rows) == limit})
 
 
 @router.get("/u/{username}/followers", response_class=HTMLResponse)
