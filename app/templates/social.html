@@ -34,7 +34,7 @@
         <div class="show-card-body">
           <div class="show-artist">{{ show.artist }}</div>
           <div class="show-meta">{{ show.venue }} · {{ show.city }}</div>
-          <div class="show-meta">
+          <div class="show-meta show-meta-row">
             <span class="feed-user-chip">
               {% if show.user_avatar %}
               <img src="{{ show.user_avatar }}" class="feed-user-avatar">
@@ -68,7 +68,7 @@
           <div class="show-card-body">
             <div class="show-artist">{{ f.festival_name }} <span class="badge badge-festival">Festival</span></div>
             <div class="show-meta">{{ f.city }} · {{ f.shows | length }} act{{ 's' if f.shows | length != 1 else '' }}</div>
-            <div class="show-meta">
+            <div class="show-meta show-meta-row">
               <span class="feed-user-chip">
                 {% if f.user_avatar %}
                 <img src="{{ f.user_avatar }}" class="feed-user-avatar">
