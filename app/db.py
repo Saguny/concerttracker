@@ -35,9 +35,13 @@ def get_pool() -> asyncpg.Pool:
 
 async def _migrate() -> None:
     migrations_dir = os.path.join(os.path.dirname(__file__), "..", "migrations")
-    for filename in sorted(os.listdir(migrations_dir)):
-        if filename.endswith(".sql"):
-            with open(os.path.join(migrations_dir, filename)) as f:
-                sql = f.read()
-            async with _pool.acquire() as conn:
-                await conn.execute(sql)
+    async with _pool.acquire() as conn:
+        await conn.execute("SELECT pg_advisory_lock(7374297)")
+        try:
+            for filename in sorted(os.listdir(migrations_dir)):
+                if filename.endswith(".sql"):
+                    with open(os.path.join(migrations_dir, filename)) as f:
+                        sql = f.read()
+                    await conn.execute(sql)
+        finally:
+            await conn.execute("SELECT pg_advisory_unlock(7374297)")
