@@ -48,6 +48,18 @@
     <div id="artists-list" class="festival-artist-list"></div>
   </div>
 
+  {% if friends %}
+  <div class="field-group">
+    <label>Tag a friend who was there</label>
+    <select name="tag_friend_id">
+      <option value="">— none —</option>
+      {% for f in friends %}
+      <option value="{{ f.id }}">{{ f.username }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  {% endif %}
+
   <div class="field-group">
     <label>Notes</label>
     <textarea name="festival_notes" rows="3" maxlength="2000" placeholder="How was it?"></textarea>

@@ -518,10 +518,15 @@ async def delete_festival(
 
 
 @router.get("/shows/add-festival", response_class=HTMLResponse)
-async def add_festival_page(request: Request, user=Depends(require_user)):
+async def add_festival_page(request: Request, user=Depends(require_user), pool=Depends(get_pool)):
+    async with pool.acquire() as conn:
+        friends = await conn.fetch(
+            "SELECT u.id, u.username FROM follows f JOIN users u ON u.id = f.target_id WHERE f.user_id = $1",
+            user["id"],
+        )
     return templates.TemplateResponse(
         "festival_form.html",
-        _ctx(request, user, csrf=get_csrf_token(request)),
+        _ctx(request, user, friends=friends, csrf=get_csrf_token(request)),
     )
 
 
@@ -587,6 +592,26 @@ async def add_festival(request: Request, pool=Depends(get_pool), user=Depends(re
                 now,
             )
             await _upsert_artist(conn, artist_name, sp, now)
+
+        tag_uid_raw = str(form.get("tag_friend_id", "")).strip()
+        if tag_uid_raw:
+            try:
+                tag_uid = int(tag_uid_raw)
+                if tag_uid:
+                    show_rows = await conn.fetch(
+                        "SELECT id FROM shows WHERE festival_id = $1", festival_id
+                    )
+                    for s in show_rows:
+                        await conn.execute(
+                            "INSERT INTO show_attendees (show_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
+                            s["id"], tag_uid,
+                        )
+                        await conn.execute(
+                            "INSERT INTO show_attendees (show_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
+                            s["id"], user["id"],
+                        )
+            except (ValueError, TypeError):
+                pass
 
     flash(request, f"Logged {len(selected)} set{'s' if len(selected) != 1 else ''}!", "success")
     return RedirectResponse(f"/concert-tracker/shows/festival/{festival_id}", status_code=302)
