@@ -149,8 +149,29 @@
         if (badge) { badge.textContent = unread > 9 ? '9+' : unread; badge.style.display = unread ? '' : 'none'; }
         list.innerHTML = data.map(n => {
           const cls = n.is_read ? 'nav-notif-item' : 'nav-notif-item unread';
-          return `<a class="${cls}" href="${_notifHref(n)}">${_notifText(n)}<span class="nav-notif-time">${_ago(n.created_at)}</span></a>`;
+          const av = n.actor_avatar
+            ? `<img src="${n.actor_avatar}" alt="${n.actor_username}" class="nav-notif-avatar">`
+            : `<div class="nav-notif-avatar-ph">${(n.actor_username||'?')[0].toUpperCase()}</div>`;
+          const dot = n.is_read ? '' : `<button class="nav-notif-dot" data-id="${n.id}" title="Mark as read" aria-label="Mark as read"></button>`;
+          return `<a class="${cls}" href="${_notifHref(n)}" data-id="${n.id}">${av}<div class="nav-notif-body">${_notifText(n)}<span class="nav-notif-time">${_ago(n.created_at)}</span></div>${dot}</a>`;
         }).join('');
+
+        list.addEventListener('click', function(e) {
+          const dotBtn = e.target.closest('.nav-notif-dot');
+          if (!dotBtn) return;
+          e.preventDefault();
+          e.stopPropagation();
+          const id = dotBtn.dataset.id;
+          fetch(`/concert-tracker/api/notifications/${id}/read`, { method: 'POST', headers: { 'X-Requested-With': 'fetch' } })
+            .then(() => {
+              const item = list.querySelector(`a[data-id="${id}"]`);
+              if (item) { item.classList.remove('unread'); dotBtn.remove(); }
+              const remaining = list.querySelectorAll('.nav-notif-item.unread').length;
+              const badge = document.getElementById('nav-notif-badge');
+              if (badge) { badge.textContent = remaining > 9 ? '9+' : remaining; badge.style.display = remaining ? '' : 'none'; }
+            });
+        }, { once: false });
+
       })
       .catch(() => { list.innerHTML = '<div class="nav-notif-empty">Couldn\'t load notifications</div>'; });
   }
@@ -164,10 +185,11 @@
 
   function _notifText(n) {
     const actor = `<strong>${n.actor_username}</strong>`;
+    const show = n.show_artist ? `<span class="nav-notif-show">${n.show_artist}</span>` : '';
     if (n.type === 'follow') return `${actor} started following you`;
-    if (n.type === 'like') return `${actor} liked your show`;
-    if (n.type === 'comment') return `${actor} commented on your show`;
-    if (n.type === 'tag') return `${actor} tagged you in a show`;
+    if (n.type === 'like') return `${actor} liked your show${show ? ' · ' + show : ''}`;
+    if (n.type === 'comment') return `${actor} commented on your show${show ? ' · ' + show : ''}`;
+    if (n.type === 'tag') return `${actor} tagged you in a show${show ? ' · ' + show : ''}`;
     return actor;
   }
 

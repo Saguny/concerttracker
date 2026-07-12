@@ -29,8 +29,10 @@ async def get_notifications(request: Request, pool=Depends(get_pool), user=Depen
     async with pool.acquire() as conn:
         rows = await conn.fetch(
             "SELECT n.id, n.type, n.show_id, n.festival_id, n.comment_id, n.is_read, n.created_at, "
-            "u.username AS actor_username, u.avatar_url AS actor_avatar "
+            "u.username AS actor_username, u.avatar_url AS actor_avatar, "
+            "s.artist AS show_artist "
             "FROM notifications n JOIN users u ON u.id = n.actor_id "
+            "LEFT JOIN shows s ON s.id = n.show_id "
             "WHERE n.user_id = $1 ORDER BY n.created_at DESC LIMIT $2",
             user["id"], _LIMIT,
         )
@@ -53,5 +55,15 @@ async def mark_all_read(request: Request, pool=Depends(get_pool), user=Depends(r
         await conn.execute(
             "UPDATE notifications SET is_read = TRUE WHERE user_id = $1 AND is_read = FALSE",
             user["id"],
+        )
+    return JSONResponse({"ok": True})
+
+
+@router.post("/api/notifications/{notif_id}/read")
+async def mark_one_read(notif_id: int, request: Request, pool=Depends(get_pool), user=Depends(require_user)):
+    async with pool.acquire() as conn:
+        await conn.execute(
+            "UPDATE notifications SET is_read = TRUE WHERE id = $1 AND user_id = $2",
+            notif_id, user["id"],
         )
     return JSONResponse({"ok": True})
