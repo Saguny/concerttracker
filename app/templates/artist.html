@@ -118,3 +118,9 @@
   </div>
 </div>
 {% endblock %}
+
+{% block scripts %}
+<script>
+_initComments('{{ user.username }}', '{{ user.avatar_url or "" }}');
+</script>
+{% endblock %}

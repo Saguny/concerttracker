@@ -1,7 +1,7 @@
 import time
 
 from fastapi import APIRouter, Depends, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 
 from app.db import get_pool
 from app.auth import get_csrf_token, get_flashes, require_user
@@ -55,18 +55,28 @@ async def artist_page(name: str, request: Request, pool=Depends(get_pool), user=
     )
 
 
+def _is_ajax(request: Request) -> bool:
+    return request.headers.get("X-Requested-With") == "fetch"
+
+
 @router.post("/artists/{name}/comments")
 async def add_artist_comment(name: str, request: Request, pool=Depends(get_pool), user=Depends(require_user)):
     from app.auth import verify_csrf
     await verify_csrf(request)
     form = await request.form()
     body = str(form.get("body", "")).strip()[:500]
+    comment_row = None
     if body:
         async with pool.acquire() as conn:
-            await conn.execute(
-                "INSERT INTO artist_comments (artist_name, user_id, body, created_at) VALUES ($1, $2, $3, $4)",
-                name, user["id"], body, int(time.time()),
+            now = int(time.time())
+            comment_id = await conn.fetchval(
+                "INSERT INTO artist_comments (artist_name, user_id, body, created_at) VALUES ($1, $2, $3, $4) RETURNING id",
+                name, user["id"], body, now,
             )
+            comment_row = {"id": comment_id, "body": body, "created_at": now,
+                           "username": user["username"], "avatar_url": user.get("avatar_url")}
+    if _is_ajax(request):
+        return JSONResponse(comment_row or {"error": "empty"})
     return RedirectResponse(f"/concert-tracker/artists/{name}", status_code=302)
 
 
@@ -76,4 +86,6 @@ async def delete_artist_comment(name: str, comment_id: int, request: Request, po
     await verify_csrf(request)
     async with pool.acquire() as conn:
         await conn.execute("DELETE FROM artist_comments WHERE id = $1 AND user_id = $2", comment_id, user["id"])
+    if _is_ajax(request):
+        return JSONResponse({"ok": True})
     return RedirectResponse(f"/concert-tracker/artists/{name}", status_code=302)

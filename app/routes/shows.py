@@ -4,7 +4,7 @@ import json
 
 from typing import Optional
 from fastapi import APIRouter, Depends, Query, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 
 from app.db import get_pool
 from app.auth import flash, get_csrf_token, get_flashes, require_user
@@ -360,6 +360,8 @@ async def festival_like(
             festival_id,
         )
         if not row:
+            if _is_ajax(request):
+                return JSONResponse({"error": "not found"}, status_code=404)
             return RedirectResponse("/concert-tracker/shows", status_code=302)
         show_id = row["id"]
         existing = await conn.fetchval(
@@ -367,11 +369,16 @@ async def festival_like(
         )
         if existing:
             await conn.execute("DELETE FROM show_likes WHERE show_id = $1 AND user_id = $2", show_id, user["id"])
+            liked = False
         else:
             await conn.execute(
                 "INSERT INTO show_likes (show_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
                 show_id, user["id"],
             )
+            liked = True
+        count = await conn.fetchval("SELECT COUNT(*) FROM show_likes WHERE show_id = $1", show_id)
+    if _is_ajax(request):
+        return JSONResponse({"liked": liked, "count": int(count)})
     return RedirectResponse(f"/concert-tracker/shows/festival/{festival_id}", status_code=302)
 
 
@@ -382,6 +389,7 @@ async def festival_add_comment(
     await verify_csrf(request)
     form = await request.form()
     body = str(form.get("body", "")).strip()[:500]
+    comment_row = None
     if body:
         async with pool.acquire() as conn:
             row = await conn.fetchrow(
@@ -389,10 +397,15 @@ async def festival_add_comment(
                 festival_id,
             )
             if row:
-                await conn.execute(
-                    "INSERT INTO show_comments (show_id, user_id, body, created_at) VALUES ($1, $2, $3, $4)",
-                    row["id"], user["id"], body, int(time.time()),
+                now = int(time.time())
+                comment_id = await conn.fetchval(
+                    "INSERT INTO show_comments (show_id, user_id, body, created_at) VALUES ($1, $2, $3, $4) RETURNING id",
+                    row["id"], user["id"], body, now,
                 )
+                comment_row = {"id": comment_id, "body": body, "created_at": now,
+                               "username": user["username"], "avatar_url": user.get("avatar_url")}
+    if _is_ajax(request):
+        return JSONResponse(comment_row or {"error": "empty"})
     return RedirectResponse(f"/concert-tracker/shows/festival/{festival_id}", status_code=302)
 
 
@@ -405,6 +418,8 @@ async def festival_delete_comment(
         await conn.execute(
             "DELETE FROM show_comments WHERE id = $1 AND user_id = $2", comment_id, user["id"]
         )
+    if _is_ajax(request):
+        return JSONResponse({"ok": True})
     return RedirectResponse(f"/concert-tracker/shows/festival/{festival_id}", status_code=302)
 
 
@@ -465,6 +480,8 @@ async def delete_festival(
             "DELETE FROM festivals WHERE id = $1 AND user_id = $2",
             festival_id, user["id"],
         )
+    if _is_ajax(request):
+        return JSONResponse({"ok": True})
     flash(request, f"{display_name} deleted", "info")
     return RedirectResponse("/concert-tracker/shows", status_code=302)
 
@@ -664,6 +681,8 @@ async def delete_show(show_id: int, request: Request, pool=Depends(get_pool), us
     await verify_csrf(request)
     async with pool.acquire() as conn:
         await conn.execute("DELETE FROM shows WHERE id = $1 AND user_id = $2", show_id, user["id"])
+    if _is_ajax(request):
+        return JSONResponse({"ok": True})
     flash(request, "Show deleted", "info")
     return RedirectResponse("/concert-tracker/shows", status_code=302)
 
@@ -888,6 +907,10 @@ async def _handle_save(request: Request, pool, user: dict, show_id: int | None):
 from app.auth import verify_csrf
 
 
+def _is_ajax(request: Request) -> bool:
+    return request.headers.get("X-Requested-With") == "fetch"
+
+
 @router.post("/shows/{show_id}/like")
 async def toggle_like(show_id: int, request: Request, pool=Depends(get_pool), user=Depends(require_user)):
     await verify_csrf(request)
@@ -897,11 +920,16 @@ async def toggle_like(show_id: int, request: Request, pool=Depends(get_pool), us
         )
         if existing:
             await conn.execute("DELETE FROM show_likes WHERE show_id = $1 AND user_id = $2", show_id, user["id"])
+            liked = False
         else:
             await conn.execute(
                 "INSERT INTO show_likes (show_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
                 show_id, user["id"],
             )
+            liked = True
+        count = await conn.fetchval("SELECT COUNT(*) FROM show_likes WHERE show_id = $1", show_id)
+    if _is_ajax(request):
+        return JSONResponse({"liked": liked, "count": int(count)})
     return RedirectResponse(f"/concert-tracker/shows/{show_id}", status_code=302)
 
 
@@ -910,14 +938,20 @@ async def add_comment(show_id: int, request: Request, pool=Depends(get_pool), us
     await verify_csrf(request)
     form = await request.form()
     body = str(form.get("body", "")).strip()[:500]
+    comment_row = None
     if body:
         async with pool.acquire() as conn:
             exists = await conn.fetchval("SELECT 1 FROM shows WHERE id = $1", show_id)
             if exists:
-                await conn.execute(
-                    "INSERT INTO show_comments (show_id, user_id, body, created_at) VALUES ($1, $2, $3, $4)",
-                    show_id, user["id"], body, int(time.time()),
+                now = int(time.time())
+                comment_id = await conn.fetchval(
+                    "INSERT INTO show_comments (show_id, user_id, body, created_at) VALUES ($1, $2, $3, $4) RETURNING id",
+                    show_id, user["id"], body, now,
                 )
+                comment_row = {"id": comment_id, "body": body, "created_at": now,
+                               "username": user["username"], "avatar_url": user.get("avatar_url")}
+    if _is_ajax(request):
+        return JSONResponse(comment_row or {"error": "empty"})
     return RedirectResponse(f"/concert-tracker/shows/{show_id}", status_code=302)
 
 
@@ -930,4 +964,6 @@ async def delete_comment(
         await conn.execute(
             "DELETE FROM show_comments WHERE id = $1 AND user_id = $2", comment_id, user["id"]
         )
+    if _is_ajax(request):
+        return JSONResponse({"ok": True})
     return RedirectResponse(f"/concert-tracker/shows/{show_id}", status_code=302)

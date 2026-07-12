@@ -2,7 +2,7 @@ import asyncio
 import time
 
 from fastapi import APIRouter, Depends, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 
 from app.db import get_pool
 from app.auth import flash, get_csrf_token, get_flashes, require_user, verify_csrf
@@ -207,6 +207,10 @@ async def user_search(q: str = "", pool=Depends(get_pool), user=Depends(require_
     return [{"username": r["username"], "avatar_url": r["avatar_url"]} for r in rows]
 
 
+def _is_ajax(request: Request) -> bool:
+    return request.headers.get("X-Requested-With") == "fetch"
+
+
 @router.post("/u/follow")
 async def follow(request: Request, pool=Depends(get_pool), user=Depends(require_user)):
     await verify_csrf(request)
@@ -222,6 +226,8 @@ async def follow(request: Request, pool=Depends(get_pool), user=Depends(require_
                 user["id"], target["id"], int(time.time()),
             )
 
+    if _is_ajax(request):
+        return JSONResponse({"following": True, "username": username})
     return RedirectResponse(f"/concert-tracker/u/{username}", status_code=302)
 
 
@@ -239,6 +245,8 @@ async def unfollow(request: Request, pool=Depends(get_pool), user=Depends(requir
                 user["id"], target["id"],
             )
 
+    if _is_ajax(request):
+        return JSONResponse({"following": False, "username": username})
     return RedirectResponse(f"/concert-tracker/u/{username}", status_code=302)
 
 

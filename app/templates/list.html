@@ -2,24 +2,24 @@
 {% block title %}Shows · Concert Tracker{% endblock %}
 {% block content %}
 <div class="page-header">
-  <h1>Your Shows <span class="muted">{{ items | length }}</span></h1>
+  <h1>Your Shows <span class="muted" id="show-count">{{ items | length }}</span></h1>
   <a href="/concert-tracker/shows/add" class="btn btn-accent">+ Add Show</a>
 </div>
 
-<form class="filter-bar" method="get" action="/concert-tracker/shows">
-  <select name="year" onchange="this.form.submit()">
+<form class="filter-bar" method="get" action="/concert-tracker/shows" id="filter-form">
+  <select name="year">
     <option value="">All Years</option>
     {% for y in years %}
     <option value="{{ y }}" {% if filters.year == y|string %}selected{% endif %}>{{ y }}</option>
     {% endfor %}
   </select>
-  <input type="text" name="artist" placeholder="Filter by artist…" value="{{ filters.artist }}" onblur="this.form.submit()">
-  <select name="kind" onchange="this.form.submit()">
+  <input type="text" name="artist" placeholder="Filter by artist…" value="{{ filters.artist }}">
+  <select name="kind">
     <option value="">All</option>
     <option value="standalone" {% if filters.kind == 'standalone' %}selected{% endif %}>Standalone</option>
     <option value="festival" {% if filters.kind == 'festival' %}selected{% endif %}>Festival</option>
   </select>
-  <select name="sort" onchange="this.form.submit()">
+  <select name="sort">
     <option value="date_desc" {% if filters.sort == 'date_desc' %}selected{% endif %}>Date ↓</option>
     <option value="date_asc" {% if filters.sort == 'date_asc' %}selected{% endif %}>Date ↑</option>
     <option value="artist" {% if filters.sort == 'artist' %}selected{% endif %}>Artist</option>
@@ -27,6 +27,7 @@
   </select>
 </form>
 
+<div id="show-list-region">
 {% if not items %}
 <div class="empty-state">
   <p>No shows yet.</p>
@@ -58,7 +59,7 @@
     </a>
     <div class="show-card-actions">
       <a href="/concert-tracker/shows/{{ show.id }}/edit" class="btn btn-sm btn-ghost">Edit</a>
-      <form method="post" action="/concert-tracker/shows/{{ show.id }}/delete" onsubmit="return confirm('Delete {{ show.artist }}?')">
+      <form method="post" action="/concert-tracker/shows/{{ show.id }}/delete">
         <input type="hidden" name="_csrf" value="{{ csrf }}">
         <button type="submit" class="btn btn-sm btn-danger">Delete</button>
       </form>
@@ -88,7 +89,7 @@
     </div>
     <div class="show-card-actions" onmouseenter="this.closest('.festival-group-card').classList.add('toggle-hover')" onmouseleave="this.closest('.festival-group-card').classList.remove('toggle-hover')">
       <a href="/concert-tracker/shows/festival/{{ f.festival_id }}/edit" class="btn btn-sm btn-ghost">Edit</a>
-      <form method="post" action="/concert-tracker/shows/festival/{{ f.festival_id }}/delete" onsubmit="return confirm('Delete {{ f.festival_name }}?')">
+      <form method="post" action="/concert-tracker/shows/festival/{{ f.festival_id }}/delete">
         <input type="hidden" name="_csrf" value="{{ csrf }}">
         <button type="submit" class="btn btn-sm btn-danger">Delete</button>
       </form>
@@ -112,6 +113,7 @@
   {% endfor %}
 </div>
 {% endif %}
+</div>{# end show-list-region #}
 
 {% block scripts %}
 <script>
@@ -121,6 +123,8 @@ function toggleFestival(btn) {
   acts.classList.toggle('festival-acts-hidden', open);
   btn.textContent = open ? '▾ Show acts' : '▴ Hide acts';
 }
+_initFilterAjax('filter-form', 'show-list-region', 'show-count');
+_initShowDeletes('show-list-region', 'show-count');
 </script>
 {% endblock %}
 {% endblock %}

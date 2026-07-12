@@ -180,3 +180,10 @@
 
 </div>
 {% endblock %}
+
+{% block scripts %}
+<script>
+_initLike();
+_initComments('{{ user.username }}', '{{ user.avatar_url or "" }}');
+</script>
+{% endblock %}

@@ -98,20 +98,20 @@
     <section class="social-section">
       <h2>All Shows</h2>
       {% if years is defined %}
-      <form class="filter-bar" method="get" action="/concert-tracker/u/{{ profile.username }}">
-        <select name="year" onchange="this.form.submit()">
+      <form class="filter-bar" method="get" action="/concert-tracker/u/{{ profile.username }}" id="profile-filter-form">
+        <select name="year">
           <option value="">All Years</option>
           {% for y in years %}
           <option value="{{ y }}" {% if filters.year == y|string %}selected{% endif %}>{{ y }}</option>
           {% endfor %}
         </select>
-        <input type="text" name="artist_filter" placeholder="Filter by artist…" value="{{ filters.artist }}" onblur="this.form.submit()">
-        <select name="kind" onchange="this.form.submit()">
+        <input type="text" name="artist_filter" placeholder="Filter by artist…" value="{{ filters.artist }}">
+        <select name="kind">
           <option value="">All</option>
           <option value="standalone" {% if filters.kind == 'standalone' %}selected{% endif %}>Standalone</option>
           <option value="festival" {% if filters.kind == 'festival' %}selected{% endif %}>Festival</option>
         </select>
-        <select name="sort" onchange="this.form.submit()">
+        <select name="sort">
           <option value="date_desc" {% if filters.sort == 'date_desc' %}selected{% endif %}>Date ↓</option>
           <option value="date_asc" {% if filters.sort == 'date_asc' %}selected{% endif %}>Date ↑</option>
           <option value="artist" {% if filters.sort == 'artist' %}selected{% endif %}>Artist</option>
@@ -119,6 +119,7 @@
         </select>
       </form>
       {% endif %}
+      <div id="profile-list-region">
       {% if not items %}
       <p class="muted">No shows logged yet.</p>
       {% else %}
@@ -189,6 +190,7 @@
         {% endfor %}
       </div>
       {% endif %}
+      </div>{# end profile-list-region #}
     </section>
   </div>
 
@@ -241,5 +243,6 @@ function toggleFestival(btn) {
   acts.classList.toggle('festival-acts-hidden', open);
   btn.textContent = open ? '▾ Show acts' : '▴ Hide acts';
 }
+_initFilterAjax('profile-filter-form', 'profile-list-region', null);
 </script>
 {% endblock %}
