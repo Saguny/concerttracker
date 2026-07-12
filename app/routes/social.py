@@ -241,6 +241,7 @@ async def social_page(request: Request, pool=Depends(get_pool), user=Depends(req
         _ctx(
             request,
             user,
+            today=time.strftime("%Y-%m-%d"),
             feed=feed_items,
             leaderboard_all=leaderboard_all,
             leaderboard_year=leaderboard_year,
@@ -485,6 +486,7 @@ async def friend_profile(
         else:
             items.append({"type": "show", "show": row})
 
+    import time as _time
     return templates.TemplateResponse(
         "profile.html",
         _ctx(
@@ -492,6 +494,7 @@ async def friend_profile(
             user,
             profile=profile,
             items=items,
+            today=_time.strftime("%Y-%m-%d"),
             show_count=show_count,
             follower_count=follower_count,
             following_count=following_count,

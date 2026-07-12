@@ -156,14 +156,15 @@
 
         {% if item.type == 'show' %}
         {% set show = item.show %}
-        <a href="/concert-tracker/shows/{{ show.id }}" class="show-card">
+        {% set is_upcoming = show.date | string >= today %}
+        <a href="/concert-tracker/shows/{{ show.id }}" class="show-card{% if is_upcoming %} show-upcoming{% endif %}">
           {% if show.artist_thumb_url %}
           <img class="show-thumb" src="{{ show.artist_thumb_url }}" alt="{{ show.artist }}" loading="lazy">
           {% else %}
           <div class="show-thumb show-thumb-placeholder">🎵</div>
           {% endif %}
           <div class="show-card-body">
-            <div class="show-artist">{{ show.artist }}</div>
+            <div class="show-artist">{{ show.artist }}{% if is_upcoming %} <span class="badge badge-upcoming">Upcoming</span>{% endif %}</div>
             <div class="show-meta">{{ show.venue }} · {{ show.city }}</div>
             <div class="show-meta">
               <span class="feed-interactions">♥ {{ show.like_count }} &nbsp; 💬 {{ show.comment_count }}</span>
@@ -178,7 +179,8 @@
 
         {% else %}
         {% set f = item %}
-        <div class="show-card festival-group-card">
+        {% set is_upcoming = f.date | string >= today %}
+        <div class="show-card festival-group-card{% if is_upcoming %} show-upcoming{% endif %}">
           <a href="/concert-tracker/shows/festival/{{ f.festival_id }}" class="show-card-link">
             {% if f.shows[0].artist_thumb_url %}
             <img class="show-thumb" src="{{ f.shows[0].artist_thumb_url }}" alt="{{ f.festival_name }}" loading="lazy">
@@ -186,7 +188,7 @@
             <div class="show-thumb show-thumb-placeholder festival-thumb">🎪</div>
             {% endif %}
             <div class="show-card-body">
-              <div class="show-artist">{{ f.festival_name }} <span class="badge badge-festival">Festival</span></div>
+              <div class="show-artist">{{ f.festival_name }} <span class="badge badge-festival">Festival</span>{% if is_upcoming %} <span class="badge badge-upcoming">Upcoming</span>{% endif %}</div>
               <div class="show-meta">{{ f.city }} · {{ f.shows | length }} act{{ 's' if f.shows | length != 1 else '' }}</div>
               <div class="show-meta">
                 <span class="feed-interactions">♥ {{ f.like_count }} &nbsp; 💬 {{ f.comment_count }}</span>
