@@ -1,0 +1,1 @@
+ALTER TABLE festivals ADD COLUMN IF NOT EXISTS rating REAL;

@@ -51,7 +51,8 @@
 .show-form input,    .show-form select,     .show-form textarea,
 .follow-form input,
 .filter-bar input,   .filter-bar select,
-.tag-add-row input {
+.tag-add-row input,
+.list-create-form input[type="text"] {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
@@ -63,7 +64,8 @@
 .auth-form input:focus,    .auth-form textarea:focus,   .auth-form select:focus,
 .show-form input:focus,    .show-form select:focus,     .show-form textarea:focus,
 .follow-form input:focus,
-.tag-add-row input:focus { outline: none; border-color: var(--accent); }
+.tag-add-row input:focus,
+.list-create-form input[type="text"]:focus { outline: none; border-color: var(--accent); }
 .show-form textarea { resize: vertical; }
 
 /* ── Filter bar ── */

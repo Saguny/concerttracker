@@ -307,7 +307,7 @@ function switchTab(tab, btn) {
         data.items.forEach(item => {
           const div = document.createElement('div');
           div.innerHTML = _renderFeedItem(item);
-          list.appendChild(div.firstElementChild);
+          if (div.firstElementChild) list.appendChild(div.firstElementChild);
         });
       }
       if (!data.has_more) {
@@ -323,6 +323,8 @@ function switchTab(tab, btn) {
   });
 
   function _esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  const _MONS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  function _fmtDate(s) { const p = s.split('-'); return {day: p[2], mon: _MONS[+p[1]-1], yr: p[0]}; }
   function _renderFeedItem(item) {
     if (item.type === 'show') {
       const s = item.show;
@@ -348,6 +350,42 @@ function switchTab(tab, btn) {
         </div>
         <div class="show-date"><span class="date-day">${day}</span><span class="date-mon">${mon}</span><span class="date-year">${yr}</span></div>
       </a>`;
+    }
+    if (item.type === 'festival') {
+      const todayStr = "{{ today }}";
+      const isUpcoming = item.date >= todayStr;
+      const d = _fmtDate(item.date);
+      const firstThumb = item.shows.length && item.shows[0].artist_thumb_url;
+      const thumb = firstThumb
+        ? `<img class="show-thumb" src="${_esc(firstThumb)}" alt="${_esc(item.festival_name)}" loading="lazy">`
+        : `<div class="show-thumb show-thumb-placeholder festival-thumb" aria-hidden="true">🎪</div>`;
+      const av = item.user_avatar
+        ? `<img src="${_esc(item.user_avatar)}" class="feed-user-avatar" alt="">`
+        : `<span class="feed-user-avatar feed-avatar-ph">${_esc(item.username[0].toUpperCase())}</span>`;
+      const actCount = item.shows.length;
+      const acts = item.shows.map(s => {
+        const sd = _fmtDate(s.date);
+        const sThumb = s.artist_thumb_url
+          ? `<img class="festival-act-thumb" src="${_esc(s.artist_thumb_url)}" alt="${_esc(s.artist)}" loading="lazy">`
+          : `<div class="festival-act-thumb festival-act-thumb-ph">${_esc(s.artist[0].toUpperCase())}</div>`;
+        return `<a href="/concert-tracker/shows/${s.id}" class="festival-act-row">${sThumb}<span class="festival-act-name">${_esc(s.artist)}</span><span class="festival-act-date">${sd.day} ${sd.mon}</span></a>`;
+      }).join('');
+      return `<div class="show-card festival-group-card${isUpcoming ? ' show-upcoming' : ''}">
+        <a href="/concert-tracker/shows/festival/${_esc(item.festival_id)}" class="show-card-link">
+          ${thumb}
+          <div class="show-card-body">
+            <div class="show-artist">${_esc(item.festival_name)} <span class="badge badge-festival">Festival</span>${isUpcoming ? ' <span class="badge badge-upcoming">Upcoming</span>' : ''}</div>
+            <div class="show-meta">${_esc(item.city || '')} · ${actCount} act${actCount !== 1 ? 's' : ''}</div>
+            <div class="show-meta show-meta-row">
+              <span class="feed-user-chip">${av}${_esc(item.username)}</span>
+              <span class="feed-interactions"><span title="likes">♥ ${item.like_count}</span> <span title="comments">💬 ${item.comment_count}</span></span>
+            </div>
+          </div>
+        </a>
+        <button class="festival-toggle btn btn-sm btn-ghost" type="button" onclick="toggleFestival(this)">▾ Show acts</button>
+        <div class="show-date"><span class="date-day">${d.day}</span><span class="date-mon">${d.mon}</span><span class="date-year">${d.yr}</span></div>
+        <div class="festival-acts festival-acts-hidden">${acts}</div>
+      </div>`;
     }
     return '';
   }

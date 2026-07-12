@@ -29,6 +29,12 @@ async def artist_page(name: str, request: Request, pool=Depends(get_pool), user=
             "WHERE LOWER(artist) = LOWER($1) AND user_id = $2 AND rating IS NOT NULL",
             name, user["id"],
         )
+        circle_seen = await conn.fetchval(
+            "SELECT COUNT(*) FROM shows "
+            "WHERE LOWER(artist) = LOWER($1) "
+            "AND (user_id = $2 OR user_id IN (SELECT target_id FROM follows WHERE user_id = $2))",
+            name, user["id"],
+        )
         comments = await conn.fetch(
             "SELECT ac.id, ac.body, ac.created_at, u.username, u.avatar_url "
             "FROM artist_comments ac JOIN users u ON u.id = ac.user_id "
@@ -79,6 +85,7 @@ async def artist_page(name: str, request: Request, pool=Depends(get_pool), user=
             spotify_url=spotify_url,
             lfm=lfm,
             shows=rows,
+            circle_seen=int(circle_seen or 0),
             avg_rating=float(avg_rating) if avg_rating is not None else None,
             comments=list(comments),
             csrf=get_csrf_token(request),

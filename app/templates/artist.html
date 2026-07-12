@@ -23,7 +23,7 @@
         <span class="artist-stat-sep">·</span>
         <span class="artist-stat"><strong>{{ "{:,}".format(lfm.playcount) }}</strong><span class="muted"> scrobbles</span></span>
         <span class="artist-stat-sep">·</span>
-        <span class="muted">Seen <strong style="color:var(--text)">{{ shows | length }}×</strong></span>
+        <span class="muted">Seen <strong style="color:var(--text)">{{ circle_seen }}×</strong></span>
         {% if avg_rating %}
         <span class="artist-stat-sep">·</span>
         <span class="artist-stat"><span class="rating-badge" style="font-size:.9rem">★ {{ "%.1f"|format(avg_rating) }}</span><span class="muted"> avg</span></span>

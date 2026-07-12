@@ -260,7 +260,7 @@ async function fetchUpcoming(artist) {
     upcomingCache = await res.json();
   } catch { upcomingCache = []; }
   if (!upcomingCache.length) return;
-  setUpcomingCollapsed(false);
+  setUpcomingCollapsed(true);
   renderUpcomingPage();
   upcomingPanel.style.display = 'block';
 }
