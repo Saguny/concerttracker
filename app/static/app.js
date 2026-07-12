@@ -313,4 +313,32 @@ document.addEventListener('submit', async e => {
            <button class="btn btn-sm btn-accent">Follow</button>
          </form>`;
   }
+
+window._initAutocompleteKeys = function(input, list, onSelect) {
+  input.addEventListener('keydown', function(e) {
+    const items = Array.from(list.querySelectorAll('li'));
+    if (!items.length || list.style.display === 'none') return;
+    const active = list.querySelector('li.ac-active');
+    const idx = active ? items.indexOf(active) : -1;
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      const next = items[(idx + 1) % items.length];
+      if (active) active.classList.remove('ac-active');
+      next.classList.add('ac-active');
+      next.scrollIntoView({block:'nearest'});
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      const prev = items[(idx - 1 + items.length) % items.length];
+      if (active) active.classList.remove('ac-active');
+      prev.classList.add('ac-active');
+      prev.scrollIntoView({block:'nearest'});
+    } else if (e.key === 'Enter' && active) {
+      e.preventDefault();
+      onSelect(active);
+    } else if (e.key === 'Escape') {
+      list.style.display = 'none';
+      items.forEach(i => i.classList.remove('ac-active'));
+    }
+  });
+};
 });
