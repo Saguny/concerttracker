@@ -137,7 +137,7 @@
 .profile-wrap { --profile-accent: var(--accent); }
 
 /* ── Profile banner ── */
-.profile-banner-outer { position: relative; margin: -1.5rem -1.5rem 0; max-height: 1024px; overflow: hidden; }
+.profile-banner-outer { position: relative; margin: -1.5rem -1.5rem 0; max-height: 480px; overflow: hidden; }
 .profile-banner-img { width: 100%; height: auto; display: block; }
 .profile-banner-scrim {
   position: absolute; bottom: 0; left: 0; right: 0;
