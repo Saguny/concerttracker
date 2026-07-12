@@ -40,7 +40,8 @@ async def artist_page(name: str, request: Request, pool=Depends(get_pool), user=
         )
         circle_seen = await conn.fetchval(
             "SELECT COUNT(*) FROM shows "
-            "WHERE LOWER(artist) = LOWER($1) "
+            "WHERE (LOWER(artist) = LOWER($1) "
+            "       OR EXISTS(SELECT 1 FROM unnest(support_acts) sa WHERE LOWER(sa) = LOWER($1))) "
             "AND (user_id = $2 OR user_id IN (SELECT target_id FROM follows WHERE user_id = $2))",
             name, user["id"],
         )
