@@ -3,7 +3,6 @@ import os
 import asyncio
 import time
 import boto3
-from PIL import Image
 from botocore.exceptions import ClientError
 
 
@@ -29,6 +28,7 @@ def _compress(data: bytes, content_type: str, max_w: int, max_h: int) -> tuple[b
     """Resize and re-encode to WebP. GIFs pass through unchanged."""
     if content_type == "image/gif":
         return data, content_type
+    from PIL import Image
     img = Image.open(io.BytesIO(data))
     if img.mode not in ("RGB", "RGBA"):
         img = img.convert("RGBA")
