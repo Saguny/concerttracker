@@ -131,7 +131,7 @@ SELECT
 FROM shows s
 WHERE s.is_festival = TRUE AND s.festival_name IS NOT NULL
 GROUP BY s.user_id, s.festival_name
-ON CONFLICT (user_id, festival_name) DO NOTHING;
+ON CONFLICT DO NOTHING;
 
 -- link shows to their festival row (idempotent: only updates NULL rows)
 UPDATE shows s
