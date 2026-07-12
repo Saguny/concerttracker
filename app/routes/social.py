@@ -23,10 +23,18 @@ async def own_profile(request: Request, user=Depends(require_user)):
 @router.get("/profile/edit", response_class=HTMLResponse)
 async def edit_profile_page(request: Request, pool=Depends(get_pool), user=Depends(require_user)):
     async with pool.acquire() as conn:
-        me = await conn.fetchrow("SELECT id, username, bio, avatar_url FROM users WHERE id = $1", user["id"])
+        me = await conn.fetchrow(
+            "SELECT id, username, bio, avatar_url, banner_url, accent_color, location, "
+            "favorite_artists, social_links, pinned_show_id FROM users WHERE id = $1",
+            user["id"],
+        )
+        user_shows = await conn.fetch(
+            "SELECT id, artist, venue, city, date FROM shows WHERE user_id=$1 ORDER BY date DESC LIMIT 200",
+            user["id"],
+        )
     return templates.TemplateResponse(
         "profile_edit.html",
-        _ctx(request, user, me=me, csrf=get_csrf_token(request)),
+        _ctx(request, user, me=me, user_shows=user_shows, csrf=get_csrf_token(request)),
     )
 
 
@@ -35,8 +43,29 @@ async def save_profile(request: Request, pool=Depends(get_pool), user=Depends(re
     import re
     await verify_csrf(request)
     form = await request.form()
+
     bio = str(form.get("bio", "")).strip()[:300] or None
     new_username = str(form.get("username", "")).strip()[:30]
+    location = str(form.get("location", "")).strip()[:100] or None
+
+    use_accent = "use_accent_color" in form
+    raw_color = str(form.get("accent_color", "")).strip()
+    accent_color = raw_color.lower() if use_accent and re.fullmatch(r"#[0-9a-fA-F]{6}", raw_color) else None
+
+    fav_raw = str(form.get("favorite_artists", "")).strip()
+    favorite_artists = [a.strip() for a in fav_raw.split(",") if a.strip()][:10] or None
+
+    social_links: dict | None = {}
+    for key in ("spotify", "lastfm", "instagram", "website"):
+        val = str(form.get(f"social_{key}", "")).strip()[:200]
+        if val:
+            social_links[key] = val
+    social_links = social_links or None
+
+    pinned_show_id = None
+    raw_pin = str(form.get("pinned_show_id", "")).strip()
+    if raw_pin.isdigit():
+        pinned_show_id = int(raw_pin)
 
     if not re.fullmatch(r"[A-Za-z0-9_]{2,30}", new_username):
         flash(request, "Username must be 2–30 characters: letters, numbers, underscores only.", "error")
@@ -54,6 +83,20 @@ async def save_profile(request: Request, pool=Depends(get_pool), user=Depends(re
             flash(request, str(e), "error")
             return RedirectResponse("/concert-tracker/profile/edit", status_code=302)
 
+    remove_banner = bool(form.get("remove_banner"))
+    banner_url = None
+    banner_file = form.get("banner")
+    if not remove_banner and banner_file and hasattr(banner_file, "filename") and banner_file.filename:
+        from app.r2 import upload_banner
+        data = await banner_file.read()
+        content_type = banner_file.content_type or "application/octet-stream"
+        try:
+            banner_url = await upload_banner(user["id"], data, content_type)
+        except ValueError as e:
+            flash(request, str(e), "error")
+            return RedirectResponse("/concert-tracker/profile/edit", status_code=302)
+    update_banner = remove_banner or banner_url is not None
+
     async with pool.acquire() as conn:
         if new_username != user["username"]:
             existing = await conn.fetchval(
@@ -69,14 +112,30 @@ async def save_profile(request: Request, pool=Depends(get_pool), user=Depends(re
             request.session["username"] = new_username
             user["username"] = new_username
 
-        if avatar_url:
-            await conn.execute(
-                "UPDATE users SET bio = $1, avatar_url = $2 WHERE id = $3",
-                bio, avatar_url, user["id"],
+        if pinned_show_id:
+            ok = await conn.fetchval(
+                "SELECT 1 FROM shows WHERE id=$1 AND user_id=$2", pinned_show_id, user["id"]
             )
+            if not ok:
+                pinned_show_id = None
+
+        await conn.execute(
+            """UPDATE users SET
+               bio = $1,
+               avatar_url = COALESCE($2, avatar_url),
+               banner_url = CASE WHEN $3 THEN $4 ELSE banner_url END,
+               accent_color = $5,
+               location = $6,
+               favorite_artists = $7,
+               social_links = $8,
+               pinned_show_id = $9
+               WHERE id = $10""",
+            bio, avatar_url, update_banner, banner_url,
+            accent_color, location, favorite_artists, social_links, pinned_show_id,
+            user["id"],
+        )
+        if avatar_url:
             request.session["avatar_url"] = avatar_url
-        else:
-            await conn.execute("UPDATE users SET bio = $1 WHERE id = $2", bio, user["id"])
 
     flash(request, "Profile updated", "success")
     return RedirectResponse(f"/concert-tracker/u/{user['username']}", status_code=302)
@@ -312,7 +371,10 @@ async def friend_profile(
 
     async with pool.acquire() as conn:
         profile = await conn.fetchrow(
-            "SELECT id, username, bio, avatar_url, created_at FROM users WHERE username = $1", username
+            "SELECT id, username, bio, avatar_url, created_at, "
+            "banner_url, accent_color, location, favorite_artists, social_links, pinned_show_id "
+            "FROM users WHERE username = $1",
+            username,
         )
         if not profile:
             flash(request, "User not found", "error")
@@ -379,6 +441,13 @@ async def friend_profile(
         )
         follower_count = await conn.fetchval("SELECT COUNT(*) FROM follows WHERE target_id=$1", pid)
         following_count = await conn.fetchval("SELECT COUNT(*) FROM follows WHERE user_id=$1", pid)
+        pinned_show = None
+        if profile["pinned_show_id"]:
+            pinned_show = await conn.fetchrow(
+                "SELECT id, artist, venue, city, date, artist_thumb_url, is_festival, festival_name "
+                "FROM shows WHERE id=$1",
+                profile["pinned_show_id"],
+            )
 
     seen_festivals: dict = {}
     items: list = []
@@ -425,6 +494,9 @@ async def friend_profile(
             shared=shared,
             years=[r["y"] for r in years],
             filters={"year": year, "artist": artist_filter, "kind": kind, "sort": sort},
+            pinned_show=pinned_show,
+            social_links=dict(profile["social_links"] or {}),
+            favorite_artists=list(profile["favorite_artists"] or []),
             csrf=get_csrf_token(request),
         ),
     )

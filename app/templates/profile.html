@@ -4,13 +4,23 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 {% endblock %}
 {% block content %}
+<div class="profile-wrap"{% if profile.accent_color %} style="--profile-accent:{{ profile.accent_color }}"{% endif %}>
+
+{% if profile.banner_url %}
+<div class="profile-banner">
+  <img src="{{ profile.banner_url }}" class="profile-banner-img" alt="">
+</div>
+{% endif %}
+
 <div class="profile-header">
   <div class="profile-header-left">
-    {% if profile.avatar_url %}
-    <img class="profile-avatar" src="{{ profile.avatar_url }}" alt="{{ profile.username }}">
-    {% else %}
-    <div class="profile-avatar profile-avatar-ph">{{ profile.username[0] | upper }}</div>
-    {% endif %}
+    <div class="profile-avatar-ring">
+      {% if profile.avatar_url %}
+      <img class="profile-avatar" src="{{ profile.avatar_url }}" alt="{{ profile.username }}">
+      {% else %}
+      <div class="profile-avatar profile-avatar-ph">{{ profile.username[0] | upper }}</div>
+      {% endif %}
+    </div>
     <div class="profile-info">
       <h1>{{ profile.username }}
         {% if is_mutual %}<span class="badge badge-mutual">mutual</span>
@@ -22,6 +32,23 @@
         <a href="/concert-tracker/u/{{ profile.username }}/following" class="profile-stat-link"><strong>{{ following_count }}</strong> <span class="muted">following</span></a>
       </div>
       {% if profile.bio %}<p class="profile-bio">{{ profile.bio }}</p>{% endif %}
+      {% if profile.location %}<p class="profile-location">{{ profile.location }}</p>{% endif %}
+      {% if social_links %}
+      <div class="profile-social-links">
+        {% if social_links.spotify %}
+        <a href="{{ social_links.spotify }}" class="social-link social-link-spotify" target="_blank" rel="noopener">Spotify</a>
+        {% endif %}
+        {% if social_links.lastfm %}
+        <a href="{{ social_links.lastfm }}" class="social-link social-link-lastfm" target="_blank" rel="noopener">Last.fm</a>
+        {% endif %}
+        {% if social_links.instagram %}
+        <a href="{{ social_links.instagram }}" class="social-link social-link-instagram" target="_blank" rel="noopener">Instagram</a>
+        {% endif %}
+        {% if social_links.website %}
+        <a href="{{ social_links.website }}" class="social-link social-link-website" target="_blank" rel="noopener">Website</a>
+        {% endif %}
+      </div>
+      {% endif %}
     </div>
   </div>
   <div class="profile-actions">
@@ -195,6 +222,37 @@
   </div>
 
   <aside class="profile-sidebar">
+    {% if pinned_show %}
+    <section class="social-section">
+      <h2>Pinned Show</h2>
+      <a href="/concert-tracker/shows/{{ pinned_show.id }}" class="pinned-show-card">
+        <div class="pinned-show-thumb-wrap">
+          {% if pinned_show.artist_thumb_url %}
+          <img class="pinned-show-thumb" src="{{ pinned_show.artist_thumb_url }}" alt="{{ pinned_show.artist }}" loading="lazy">
+          {% else %}
+          <div class="pinned-show-thumb pinned-show-thumb-ph">{{ pinned_show.artist[0] | upper }}</div>
+          {% endif %}
+        </div>
+        <div class="pinned-show-info">
+          <div class="pinned-show-artist">{{ pinned_show.festival_name if pinned_show.is_festival and pinned_show.festival_name else pinned_show.artist }}{% if pinned_show.is_festival %} <span class="badge badge-festival">Festival</span>{% endif %}</div>
+          <div class="pinned-show-meta">{{ pinned_show.venue }} · {{ pinned_show.city }}</div>
+          <div class="pinned-show-date">{{ pinned_show.date.strftime('%d %b %Y') }}</div>
+        </div>
+      </a>
+    </section>
+    {% endif %}
+
+    {% if favorite_artists %}
+    <section class="social-section">
+      <h2>Favorite Artists</h2>
+      {% for artist in favorite_artists %}
+      <a href="/concert-tracker/artists/{{ artist | urlquote }}" class="mini-bar-row mini-bar-link">
+        <span class="mini-bar-label">{{ artist }}</span>
+      </a>
+      {% endfor %}
+    </section>
+    {% endif %}
+
     <section class="social-section">
       <h2>Shows Per Year</h2>
       <canvas id="chart-years"></canvas>
@@ -219,6 +277,8 @@
     </section>
   </aside>
 </div>
+
+</div>{# end profile-wrap #}
 {% endblock %}
 
 {% block scripts %}
@@ -227,11 +287,12 @@ Chart.defaults.color = '#e8e8e8';
 Chart.defaults.borderColor = '#2a2a2a';
 const perYear = {{ per_year | tojson }};
 if (perYear.length) {
+  const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--profile-accent').trim() || '#f59e0b';
   new Chart(document.getElementById('chart-years'), {
     type: 'bar',
     data: {
       labels: perYear.map(r => r.year),
-      datasets: [{ data: perYear.map(r => r.count), backgroundColor: '#f59e0b', borderRadius: 4 }]
+      datasets: [{ data: perYear.map(r => r.count), backgroundColor: accentColor, borderRadius: 4 }]
     },
     options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
   });

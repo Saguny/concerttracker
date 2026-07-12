@@ -1,18 +1,21 @@
 {% extends "base.html" %}
 {% block title %}Edit Profile · Concert Tracker{% endblock %}
 {% block content %}
-<div class="auth-wrap" style="max-width:520px">
+<div class="auth-wrap" style="max-width:640px">
   <h1 class="auth-title">Edit Profile</h1>
-  <p class="auth-sub">Update your username, avatar, and bio.</p>
 
   <form method="post" action="/concert-tracker/profile/edit" class="auth-form" enctype="multipart/form-data">
     <input type="hidden" name="_csrf" value="{{ csrf }}">
+
+    <div class="edit-section-label">Account</div>
 
     <label>
       Username
       <input type="text" name="username" value="{{ me.username }}" maxlength="30" pattern="[A-Za-z0-9_]+" title="Letters, numbers, and underscores only" required>
       <span class="muted small">Letters, numbers, underscores · 2–30 chars</span>
     </label>
+
+    <div class="edit-section-label" style="margin-top:1.25rem">Appearance</div>
 
     <label>
       Avatar
@@ -27,11 +30,102 @@
     </label>
 
     <label>
+      Profile Banner
+      {% if me.banner_url %}
+      <div style="margin-bottom:.5rem;border-radius:var(--radius);overflow:hidden;height:100px">
+        <img src="{{ me.banner_url }}" style="width:100%;height:100%;object-fit:cover">
+      </div>
+      <label style="display:inline-flex;align-items:center;gap:.4rem;font-size:.8rem;color:var(--muted);margin-bottom:.4rem;cursor:pointer">
+        <input type="checkbox" name="remove_banner"> Remove current banner
+      </label><br>
+      {% endif %}
+      <input type="file" name="banner" accept="image/jpeg,image/png,image/webp,image/gif" style="padding:.3rem .5rem">
+      <span class="muted small">Wide image works best · JPEG · PNG · WebP · max 5 MB</span>
+    </label>
+
+    <label>
+      Accent Color
+      <div style="display:flex;align-items:center;gap:.75rem;margin-top:.3rem">
+        <label style="display:inline-flex;align-items:center;gap:.4rem;font-size:.875rem;color:var(--text);cursor:pointer;font-weight:400">
+          <input type="checkbox" name="use_accent_color" id="use-accent"
+            onchange="document.getElementById('accent-picker').disabled=!this.checked"
+            {% if me.accent_color %}checked{% endif %}>
+          Use custom color
+        </label>
+        <input type="color" name="accent_color" id="accent-picker"
+          value="{{ me.accent_color or '#f59e0b' }}"
+          {% if not me.accent_color %}disabled{% endif %}
+          style="width:52px;height:36px;padding:2px 4px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface);cursor:pointer">
+      </div>
+      <span class="muted small">Tints your profile header and avatar ring</span>
+    </label>
+
+    <div class="edit-section-label" style="margin-top:1.25rem">About</div>
+
+    <label>
       Bio <span class="muted small">(max 300 chars)</span>
       <textarea name="bio" rows="3" maxlength="300" placeholder="A sentence about yourself…">{{ me.bio or '' }}</textarea>
     </label>
 
-    <div class="form-actions" style="justify-content:flex-start;gap:.75rem">
+    <label>
+      Location
+      <input type="text" name="location" value="{{ me.location or '' }}" maxlength="100" placeholder="e.g. New York, NY">
+      <span class="muted small">City, region, or wherever you catch shows</span>
+    </label>
+
+    <label>
+      Favorite Artists <span class="muted small">(max 10, comma-separated)</span>
+      <input type="text" name="favorite_artists"
+        value="{{ me.favorite_artists | join(', ') if me.favorite_artists else '' }}"
+        maxlength="500" placeholder="Radiohead, Arcade Fire, Sufjan Stevens">
+      <span class="muted small">Your all-time picks, separate from your show history stats</span>
+    </label>
+
+    <label>
+      Pinned Show
+      <select name="pinned_show_id">
+        <option value="">None</option>
+        {% for show in user_shows %}
+        <option value="{{ show.id }}" {% if me.pinned_show_id == show.id %}selected{% endif %}>
+          {{ show.artist }} · {{ show.venue }} · {{ show.date.strftime('%b %Y') }}
+        </option>
+        {% endfor %}
+      </select>
+      <span class="muted small">Feature one memorable show at the top of your profile</span>
+    </label>
+
+    <div class="edit-section-label" style="margin-top:1.25rem">Social Links</div>
+    <p class="muted small" style="margin-bottom:.75rem">Paste full URLs (e.g. https://open.spotify.com/user/…)</p>
+
+    <label>
+      Spotify
+      <input type="url" name="social_spotify"
+        value="{{ me.social_links.spotify if me.social_links else '' }}"
+        maxlength="200" placeholder="https://open.spotify.com/user/…">
+    </label>
+
+    <label>
+      Last.fm
+      <input type="url" name="social_lastfm"
+        value="{{ me.social_links.lastfm if me.social_links else '' }}"
+        maxlength="200" placeholder="https://www.last.fm/user/…">
+    </label>
+
+    <label>
+      Instagram
+      <input type="url" name="social_instagram"
+        value="{{ me.social_links.instagram if me.social_links else '' }}"
+        maxlength="200" placeholder="https://instagram.com/…">
+    </label>
+
+    <label>
+      Website
+      <input type="url" name="social_website"
+        value="{{ me.social_links.website if me.social_links else '' }}"
+        maxlength="200" placeholder="https://…">
+    </label>
+
+    <div class="form-actions" style="justify-content:flex-start;gap:.75rem;margin-top:1.5rem">
       <button type="submit" class="btn btn-accent">Save</button>
       <a href="/concert-tracker/u/{{ user.username }}" class="btn btn-ghost">Cancel</a>
     </div>

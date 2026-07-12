@@ -146,6 +146,14 @@ CREATE INDEX IF NOT EXISTS idx_festivals_user ON festivals(user_id);
 -- username change history tracking
 ALTER TABLE users ADD COLUMN IF NOT EXISTS prev_username TEXT;
 
+-- profile customization
+ALTER TABLE users ADD COLUMN IF NOT EXISTS banner_url TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS accent_color TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS location TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS favorite_artists TEXT[];
+ALTER TABLE users ADD COLUMN IF NOT EXISTS social_links JSONB;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS pinned_show_id INT REFERENCES shows(id) ON DELETE SET NULL;
+
 -- global artist catalogue
 CREATE TABLE IF NOT EXISTS artists (
     name TEXT PRIMARY KEY,

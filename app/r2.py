@@ -42,3 +42,25 @@ async def upload_avatar(user_id: int, data: bytes, content_type: str) -> str:
 
     await asyncio.get_running_loop().run_in_executor(None, _upload)
     return f"{PUBLIC_URL()}/{key}"
+
+
+async def upload_banner(user_id: int, data: bytes, content_type: str) -> str:
+    """Upload banner bytes to R2, return the public URL. Raises ValueError on bad input."""
+    if content_type not in ALLOWED_TYPES:
+        raise ValueError(f"Unsupported file type: {content_type}")
+    if len(data) > MAX_BYTES:
+        raise ValueError("File too large (max 5 MB)")
+
+    key = f"banners/{user_id}"
+
+    def _upload():
+        _client().put_object(
+            Bucket=BUCKET(),
+            Key=key,
+            Body=data,
+            ContentType=content_type,
+            CacheControl="public, max-age=31536000",
+        )
+
+    await asyncio.get_running_loop().run_in_executor(None, _upload)
+    return f"{PUBLIC_URL()}/{key}"
