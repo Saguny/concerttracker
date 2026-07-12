@@ -612,7 +612,7 @@ async def add_show(request: Request, pool=Depends(get_pool), user=Depends(requir
     return RedirectResponse("/concert-tracker/shows", status_code=302)
 
 
-@router.get("/shows/{show_id}", response_class=HTMLResponse)
+@router.get("/shows/{show_id:int}", response_class=HTMLResponse)
 async def show_detail(show_id: int, request: Request, pool=Depends(get_pool), user=Depends(optional_user)):
     async with pool.acquire() as conn:
         show = await conn.fetchrow(
