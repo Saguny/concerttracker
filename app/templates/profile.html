@@ -2,6 +2,9 @@
 {% block title %}{{ profile.username }} · Concert Tracker{% endblock %}
 {% block head %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+{% if profile.accent_color %}
+<style>:root{--accent:{{ profile.accent_color }};--accent-dim:{{ profile.accent_color }}26;}</style>
+{% endif %}
 {% endblock %}
 {% block content %}
 <div class="profile-wrap{% if profile.banner_url %} has-banner{% endif %}"{% if profile.accent_color %} style="--profile-accent:{{ profile.accent_color }}"{% endif %}>
