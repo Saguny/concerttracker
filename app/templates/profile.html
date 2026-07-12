@@ -292,7 +292,8 @@ Chart.defaults.color = '#e8e8e8';
 Chart.defaults.borderColor = '#2a2a2a';
 const perYear = {{ per_year | tojson }};
 if (perYear.length) {
-  const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--profile-accent').trim() || '#f59e0b';
+  const profileWrap = document.querySelector('.profile-wrap');
+  const accentColor = (profileWrap ? getComputedStyle(profileWrap).getPropertyValue('--profile-accent').trim() : '') || '#f59e0b';
   new Chart(document.getElementById('chart-years'), {
     type: 'bar',
     data: {
