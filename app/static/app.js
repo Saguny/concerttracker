@@ -62,7 +62,7 @@ function _buildComment(c, deleteUrl) {
         <a href="/concert-tracker/u/${_esc(c.username)}" class="comment-author">${_esc(c.username)}</a>
         <span class="muted small">just now</span>
       </div>
-      <div class="comment-text">${_esc(c.body)}</div>
+      <div class="comment-text">${c.body}</div>
     </div>${del}
   </div>`;
 }
@@ -178,6 +178,75 @@ function _initShowDeletes(regionId, countId) {
     }
   }, true);
 }
+
+// ── @ Mention autocomplete in textareas ──────────────────────────────────────
+function _initMentionAutocomplete(textarea) {
+  if (!textarea || textarea.dataset.mentionBound) return;
+  textarea.dataset.mentionBound = '1';
+
+  const wrap = document.createElement('div');
+  wrap.className = 'mention-ac-wrap';
+  const list = document.createElement('ul');
+  list.className = 'autocomplete-list mention-ac-list';
+  list.style.display = 'none';
+  wrap.appendChild(list);
+  textarea.parentNode.insertBefore(wrap, textarea.nextSibling);
+
+  let _t = null;
+
+  function _query() {
+    const before = textarea.value.slice(0, textarea.selectionStart);
+    const m = before.match(/@([A-Za-z0-9_]{0,30})$/);
+    return m ? m[1] : null;
+  }
+
+  function _hide() { list.style.display = 'none'; list.innerHTML = ''; }
+
+  function _insert(username) {
+    const before = textarea.value.slice(0, textarea.selectionStart);
+    const after = textarea.value.slice(textarea.selectionStart);
+    const replaced = before.replace(/@([A-Za-z0-9_]{0,30})$/, '@' + username + ' ');
+    textarea.value = replaced + after;
+    textarea.selectionStart = textarea.selectionEnd = replaced.length;
+    textarea.focus();
+    _hide();
+  }
+
+  function _render(users) {
+    if (!users.length) { _hide(); return; }
+    list.innerHTML = users.map(u => {
+      const av = u.avatar_url
+        ? `<img src="${_esc(u.avatar_url)}" alt="" class="mention-ac-avatar">`
+        : `<div class="mention-ac-avatar-ph">${_esc((u.username || '?')[0].toUpperCase())}</div>`;
+      return `<li data-username="${_esc(u.username)}">${av}<span>@${_esc(u.username)}</span></li>`;
+    }).join('');
+    list.style.display = 'block';
+    if (typeof _initAutocompleteKeys === 'function') {
+      _initAutocompleteKeys(textarea, list, li => _insert(li.dataset.username));
+    }
+    list.querySelectorAll('li').forEach(li => {
+      li.addEventListener('mousedown', e => { e.preventDefault(); _insert(li.dataset.username); });
+    });
+  }
+
+  textarea.addEventListener('input', () => {
+    clearTimeout(_t);
+    const q = _query();
+    if (q === null || q.length < 1) { _hide(); return; }
+    _t = setTimeout(async () => {
+      try {
+        const r = await fetch(`/concert-tracker/api/user-search?q=${encodeURIComponent(q)}`, { headers: { 'X-Requested-With': 'fetch' } });
+        _render(await r.json());
+      } catch(e) { _hide(); }
+    }, 150);
+  });
+
+  document.addEventListener('click', e => {
+    if (!wrap.contains(e.target) && e.target !== textarea) _hide();
+  }, true);
+}
+
+document.querySelectorAll('.comment-form textarea').forEach(_initMentionAutocomplete);
 
 // ── Follow / unfollow (delegated -works on profile page and follow list) ────
 

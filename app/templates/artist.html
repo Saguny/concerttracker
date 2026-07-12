@@ -76,7 +76,7 @@
             <a href="/concert-tracker/u/{{ c.username }}" class="comment-author">{{ c.username }}</a>
             <span class="muted small">{{ c.created_at | int | timestamp_fmt }}</span>
           </div>
-          <div class="comment-text">{{ c.body }}</div>
+          <div class="comment-text">{{ c.body | render_mentions }}</div>
         </div>
         {% if c.username == user.username %}
         <form method="post" action="/concert-tracker/artists/{{ artist_name | urlquote }}/comments/{{ c.id }}/delete">

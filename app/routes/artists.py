@@ -5,7 +5,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 
 from app.db import get_pool
 from app.auth import get_csrf_token, get_flashes, require_user
-from app.jinja import templates
+from app.jinja import templates, render_mentions as _render_mentions
 import app.lastfm as lastfm
 import app.spotify as spotify
 
@@ -98,7 +98,7 @@ async def add_artist_comment(name: str, request: Request, pool=Depends(get_pool)
                 "INSERT INTO artist_comments (artist_name, user_id, body, created_at) VALUES ($1, $2, $3, $4) RETURNING id",
                 name, user["id"], body, now,
             )
-            comment_row = {"id": comment_id, "body": body, "created_at": now,
+            comment_row = {"id": comment_id, "body": str(_render_mentions(body)), "created_at": now,
                            "username": user["username"], "avatar_url": user.get("avatar_url")}
     if _is_ajax(request):
         return JSONResponse(comment_row or {"error": "empty"})

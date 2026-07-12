@@ -288,8 +288,38 @@ input[type="radio"] { accent-color: var(--accent); }
 .show-photo-wrap img { max-width: 100%; border-radius: var(--radius); border: 1px solid var(--border); }
 
 /* ── Mention link ── */
-.mention { color: var(--accent); font-weight: 500; }
-.mention:hover { text-decoration: underline; }
+.mention {
+  color: var(--accent); font-weight: 600;
+  background: var(--accent-dim); border-radius: 3px;
+  padding: 0 3px; white-space: nowrap;
+}
+.mention:hover { background: var(--accent); color: #000; text-decoration: none; }
+
+/* ── Mention autocomplete dropdown ── */
+.mention-ac-wrap { position: relative; }
+.mention-ac-list {
+  position: absolute; bottom: 100%; left: 0; right: 0; z-index: 200;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--radius); box-shadow: 0 4px 16px rgba(0,0,0,.4);
+  margin: 0 0 4px 0; padding: 0; list-style: none;
+  max-height: 200px; overflow-y: auto;
+}
+.mention-ac-list li {
+  display: flex; align-items: center; gap: .5rem;
+  padding: .45rem .75rem; cursor: pointer;
+  font-size: .875rem; color: var(--text); transition: background .1s;
+}
+.mention-ac-list li:hover,
+.mention-ac-list li.ac-active { background: var(--accent-dim); }
+.mention-ac-avatar {
+  width: 22px; height: 22px; border-radius: 50%; object-fit: cover; flex-shrink: 0;
+}
+.mention-ac-avatar-ph {
+  width: 22px; height: 22px; border-radius: 50%;
+  background: var(--accent); color: #000;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .65rem; font-weight: 700; flex-shrink: 0;
+}
 
 /* ── Discover page ── */
 .discover-grid {

@@ -1039,16 +1039,7 @@ async def _handle_save(request: Request, pool, user: dict, show_id: int | None):
 
 
 from app.auth import verify_csrf
-import re as _re
-
-_MENTION_RE = _re.compile(r'@([A-Za-z0-9_]{2,30})')
-
-
-def _render_mentions(text: str) -> str:
-    return _MENTION_RE.sub(
-        lambda m: f'<a class="mention" href="/concert-tracker/u/{m.group(1)}">@{m.group(1)}</a>',
-        text,
-    )
+from app.jinja import render_mentions as _render_mentions
 
 
 def _is_ajax(request: Request) -> bool:
