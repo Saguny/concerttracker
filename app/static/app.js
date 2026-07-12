@@ -184,15 +184,20 @@ function _initMentionAutocomplete(textarea) {
   if (!textarea || textarea.dataset.mentionBound) return;
   textarea.dataset.mentionBound = '1';
 
-  const wrap = document.createElement('div');
-  wrap.className = 'mention-ac-wrap';
   const list = document.createElement('ul');
-  list.className = 'autocomplete-list mention-ac-list';
+  list.className = 'mention-ac-list';
   list.style.display = 'none';
-  wrap.appendChild(list);
-  textarea.parentNode.insertBefore(wrap, textarea.nextSibling);
+  document.body.appendChild(list);
 
   let _t = null;
+  let _keysInited = false;
+
+  function _pos() {
+    const r = textarea.getBoundingClientRect();
+    list.style.left = r.left + 'px';
+    list.style.width = r.width + 'px';
+    list.style.top = (r.bottom + window.scrollY + 4) + 'px';
+  }
 
   function _query() {
     const before = textarea.value.slice(0, textarea.selectionStart);
@@ -200,7 +205,7 @@ function _initMentionAutocomplete(textarea) {
     return m ? m[1] : null;
   }
 
-  function _hide() { list.style.display = 'none'; list.innerHTML = ''; }
+  function _hide() { list.style.display = 'none'; list.innerHTML = ''; _keysInited = false; }
 
   function _insert(username) {
     const before = textarea.value.slice(0, textarea.selectionStart);
@@ -220,9 +225,11 @@ function _initMentionAutocomplete(textarea) {
         : `<div class="mention-ac-avatar-ph">${_esc((u.username || '?')[0].toUpperCase())}</div>`;
       return `<li data-username="${_esc(u.username)}">${av}<span>@${_esc(u.username)}</span></li>`;
     }).join('');
+    _pos();
     list.style.display = 'block';
-    if (typeof _initAutocompleteKeys === 'function') {
+    if (!_keysInited && typeof _initAutocompleteKeys === 'function') {
       _initAutocompleteKeys(textarea, list, li => _insert(li.dataset.username));
+      _keysInited = true;
     }
     list.querySelectorAll('li').forEach(li => {
       li.addEventListener('mousedown', e => { e.preventDefault(); _insert(li.dataset.username); });
@@ -242,7 +249,7 @@ function _initMentionAutocomplete(textarea) {
   });
 
   document.addEventListener('click', e => {
-    if (!wrap.contains(e.target) && e.target !== textarea) _hide();
+    if (e.target !== textarea && !list.contains(e.target)) _hide();
   }, true);
 }
 
