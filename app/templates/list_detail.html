@@ -3,18 +3,24 @@
 {% block content %}
 <div class="page-header">
   <div>
-    <h1>{{ lst.title }}{% if lst.is_ranked %} <span class="badge badge-ranked">Ranked</span>{% endif %}</h1>
-    <p class="muted small">by <a href="/concert-tracker/u/{{ lst.owner_username }}" class="text-link">{{ lst.owner_username }}</a>
-    · {{ items | length }} show{{ 's' if items | length != 1 else '' }}</p>
-    {% if lst.description %}<p style="margin-top:.4rem">{{ lst.description }}</p>{% endif %}
+    <div class="list-detail-eyebrow">
+      <a href="/concert-tracker/u/{{ lst.owner_username }}" class="muted small">{{ lst.owner_username }}</a>
+      {% if lst.list_type == 'smart' %}<span class="badge badge-smart" style="margin-left:.5rem">Auto</span>{% endif %}
+      {% if lst.is_ranked %}<span class="badge badge-ghost" style="margin-left:.35rem">Ranked</span>{% endif %}
+    </div>
+    <h1>{{ lst.title }}</h1>
+    {% if lst.description %}<p class="muted" style="margin:.2rem 0 0">{{ lst.description }}</p>{% endif %}
   </div>
   {% if is_owner %}
-  <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+  <div class="page-header-actions">
+    {% if lst.list_type == 'curated' %}
     <a href="/concert-tracker/lists/{{ lst.id }}/add" class="btn btn-accent">+ Add Shows</a>
+    {% endif %}
     <a href="/concert-tracker/lists/{{ lst.id }}/edit" class="btn btn-ghost">Edit</a>
-    <form method="post" action="/concert-tracker/lists/{{ lst.id }}/delete" id="delete-list-form">
+    <form method="post" action="/concert-tracker/lists/{{ lst.id }}/delete"
+          onsubmit="return confirm('Delete this list?')">
       <input type="hidden" name="_csrf" value="{{ csrf }}">
-      <button type="submit" class="btn btn-danger">Delete</button>
+      <button type="submit" class="btn btn-danger btn-sm">Delete</button>
     </form>
   </div>
   {% endif %}
@@ -22,19 +28,27 @@
 
 {% if not items %}
 <div class="empty-state">
+  {% if lst.list_type == 'smart' %}
+  <p>No shows match this filter yet.</p>
+  {% else %}
   <p>This list is empty.</p>
-  {% if is_owner %}<a href="/concert-tracker/lists/{{ lst.id }}/add" class="btn btn-accent">Add Shows</a>{% endif %}
+  {% if is_owner %}<a href="/concert-tracker/lists/{{ lst.id }}/add" class="btn btn-accent" style="margin-top:.75rem">Add shows</a>{% endif %}
+  {% endif %}
 </div>
 {% else %}
-<div class="show-list" id="list-items-container"
-  {% if is_owner and lst.is_ranked %}data-ranked="1" data-list-id="{{ lst.id }}" data-csrf="{{ csrf }}"{% endif %}>
+<div class="list-detail-meta muted small" style="margin-bottom:1rem">{{ items | length }} show{{ 's' if items | length != 1 else '' }}</div>
+
+<div class="show-list" id="list-items"
+     {% if is_owner and lst.list_type == 'curated' and lst.is_ranked %}data-sortable="1" data-list-id="{{ lst.id }}" data-csrf="{{ csrf }}"{% endif %}>
   {% for item in items %}
-  <div class="show-card list-item-card{% if is_owner and lst.is_ranked %} draggable-item{% endif %}" data-item-id="{{ item.id }}">
+  <div class="show-card list-item-card" data-item-id="{{ item.get('id', '') }}">
     {% if lst.is_ranked %}
     <span class="list-rank-num">{{ loop.index }}</span>
-    {% if is_owner %}<span class="drag-handle" aria-hidden="true" title="Drag to reorder">⠿</span>{% endif %}
     {% endif %}
-    <a href="/concert-tracker/shows/{{ item.show_id }}" class="show-card-link" style="flex:1;min-width:0">
+    {% if lst.list_type == 'curated' and is_owner %}
+    <span class="list-drag-handle" title="Drag to reorder">⠿</span>
+    {% endif %}
+    <a href="/concert-tracker/shows/{{ item.get('show_id') or item.get('id') }}" class="show-card-link" style="flex:1;display:flex;align-items:center;gap:.75rem;min-width:0;text-decoration:none;color:inherit">
       {% if item.artist_thumb_url %}
       <img class="show-thumb" src="{{ item.artist_thumb_url }}" alt="{{ item.artist }}" loading="lazy">
       {% else %}
@@ -42,19 +56,19 @@
       {% endif %}
       <div class="show-card-body">
         <div class="show-artist">{{ item.artist }}</div>
-        <div class="show-meta">{{ item.venue }} · {{ item.city }}</div>
+        <div class="show-meta">{{ item.venue }}{% if item.city %} · {{ item.city }}{% endif %}</div>
         {% if item.rating %}<div class="show-meta"><span class="rating-badge">★ {{ "%.1f"|format(item.rating|float) }}</span></div>{% endif %}
       </div>
-      <div class="show-date">
-        <span class="date-day">{{ item.date.strftime('%d') }}</span>
-        <span class="date-mon">{{ item.date.strftime('%b') }}</span>
-        <span class="date-year">{{ item.date.strftime('%Y') }}</span>
-      </div>
     </a>
-    {% if is_owner %}
-    <form method="post" action="/concert-tracker/lists/{{ lst.id }}/items/{{ item.id }}/remove" class="remove-item-form">
+    <div class="show-date">
+      <span class="date-day">{{ item.date.strftime('%d') }}</span>
+      <span class="date-mon">{{ item.date.strftime('%b') }}</span>
+      <span class="date-year">{{ item.date.strftime('%Y') }}</span>
+    </div>
+    {% if is_owner and lst.list_type == 'curated' %}
+    <form method="post" action="/concert-tracker/lists/{{ lst.id }}/items/{{ item.get('id', '') }}/remove" class="list-remove-form">
       <input type="hidden" name="_csrf" value="{{ csrf }}">
-      <button type="submit" class="btn-icon-danger" title="Remove from list">×</button>
+      <button type="submit" class="btn-icon-danger" title="Remove">×</button>
     </form>
     {% endif %}
   </div>
@@ -65,64 +79,67 @@
 
 {% block scripts %}
 <script>
-document.getElementById('delete-list-form')?.addEventListener('submit', e => {
-  if (!confirm('Delete "{{ lst.title | replace('"', '\\"') }}"? This cannot be undone.')) e.preventDefault();
-});
+(function() {
+  const list = document.getElementById('list-items');
+  if (!list || list.dataset.sortable !== '1') return;
 
-// AJAX remove items
-document.querySelectorAll('.remove-item-form').forEach(form => {
-  form.addEventListener('submit', async e => {
+  let dragged = null;
+
+  list.querySelectorAll('.list-drag-handle').forEach(handle => {
+    const card = handle.closest('.list-item-card');
+    card.draggable = true;
+    card.style.cursor = 'grab';
+
+    card.addEventListener('dragstart', e => {
+      dragged = card;
+      e.dataTransfer.effectAllowed = 'move';
+      setTimeout(() => card.classList.add('dragging'), 0);
+    });
+    card.addEventListener('dragend', () => {
+      card.classList.remove('dragging');
+      dragged = null;
+      saveOrder();
+    });
+  });
+
+  list.addEventListener('dragover', e => {
     e.preventDefault();
-    const data = await _xpost(form.action, new FormData(form));
-    if (data.ok) {
-      const card = form.closest('.list-item-card');
-      card.remove();
-      _updateRankNumbers();
-    }
-  });
-});
-
-// Drag-to-reorder (ranked lists, owner only)
-const container = document.getElementById('list-items-container');
-if (container && container.dataset.ranked) {
-  const listId = container.dataset.listId;
-  const csrf = container.dataset.csrf;
-  let dragging = null;
-
-  container.querySelectorAll('.draggable-item').forEach(el => { el.draggable = true; });
-
-  container.addEventListener('dragstart', e => {
-    dragging = e.target.closest('.draggable-item');
-    if (dragging) { dragging.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move'; }
-  });
-  container.addEventListener('dragend', () => {
-    if (dragging) dragging.classList.remove('dragging');
-    dragging = null;
-    _saveOrder(listId, csrf);
-  });
-  container.addEventListener('dragover', e => {
-    e.preventDefault();
-    if (!dragging) return;
-    const target = e.target.closest('.draggable-item');
-    if (!target || target === dragging) return;
+    const target = e.target.closest('.list-item-card');
+    if (!target || target === dragged) return;
     const rect = target.getBoundingClientRect();
-    if (e.clientY < rect.top + rect.height / 2) container.insertBefore(dragging, target);
-    else target.after(dragging);
-    _updateRankNumbers();
+    const after = e.clientY > rect.top + rect.height / 2;
+    list.insertBefore(dragged, after ? target.nextSibling : target);
   });
-  container.addEventListener('dragenter', e => e.preventDefault());
-}
 
-function _updateRankNumbers() {
-  document.querySelectorAll('.list-rank-num').forEach((el, i) => { el.textContent = i + 1; });
-}
+  function saveOrder() {
+    const ids = Array.from(list.querySelectorAll('.list-item-card'))
+      .map(c => c.dataset.itemId).filter(Boolean).join(',');
+    fetch('/concert-tracker/lists/{{ lst.id }}/reorder', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'fetch' },
+      body: '_csrf={{ csrf }}&item_ids=' + encodeURIComponent(ids),
+    });
+  }
 
-async function _saveOrder(listId, csrf) {
-  const ids = [...document.querySelectorAll('.draggable-item')].map(el => el.dataset.itemId).join(',');
-  const fd = new FormData();
-  fd.append('_csrf', csrf);
-  fd.append('item_ids', ids);
-  await _xpost(`/concert-tracker/lists/${listId}/reorder`, fd);
-}
+  list.querySelectorAll('.list-remove-form').forEach(form => {
+    form.addEventListener('submit', async e => {
+      e.preventDefault();
+      const card = form.closest('.list-item-card');
+      const res = await fetch(form.action, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'fetch' },
+        body: '_csrf={{ csrf }}',
+      });
+      if (res.ok) {
+        card.remove();
+        const meta = document.querySelector('.list-detail-meta');
+        if (meta) {
+          const n = list.querySelectorAll('.list-item-card').length;
+          meta.textContent = n + ' show' + (n !== 1 ? 's' : '');
+        }
+      }
+    });
+  });
+})();
 </script>
 {% endblock %}

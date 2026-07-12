@@ -225,7 +225,7 @@ async def festival_edit_page(
             flash(request, "Festival not found", "error")
             return RedirectResponse("/concert-tracker/shows", status_code=302)
         shows = await conn.fetch(
-            "SELECT id, artist, date::text AS date, artist_thumb_url FROM shows "
+            "SELECT id, artist, date::text AS date, artist_thumb_url, rating FROM shows "
             "WHERE festival_id = $1 AND user_id = $2 ORDER BY date, artist",
             festival_id, user["id"],
         )
@@ -242,7 +242,8 @@ async def festival_edit_page(
         )
         taggable = [f for f in following if f["id"] not in already_tagged]
     existing_shows = [
-        {"show_id": s["id"], "name": s["artist"], "date": s["date"], "thumb": s["artist_thumb_url"] or ""}
+        {"show_id": s["id"], "name": s["artist"], "date": s["date"], "thumb": s["artist_thumb_url"] or "",
+         "rating": float(s["rating"]) if s["rating"] is not None else None}
         for s in shows
     ]
     return templates.TemplateResponse(
@@ -323,9 +324,16 @@ async def festival_edit_save(
             )
             for a in submitted:
                 if a.get("show_id"):
+                    _sr = None
+                    try:
+                        v = float(a.get("rating") or 0)
+                        if 0.5 <= v <= 5.0:
+                            _sr = round(v * 2) / 2
+                    except (TypeError, ValueError):
+                        pass
                     await conn.execute(
-                        "UPDATE shows SET date = $1 WHERE id = $2 AND festival_id = $3",
-                        _dt.date.fromisoformat(str(a["date"])), int(a["show_id"]), festival_id,
+                        "UPDATE shows SET date = $1, rating = $2 WHERE id = $3 AND festival_id = $4",
+                        _dt.date.fromisoformat(str(a["date"])), _sr, int(a["show_id"]), festival_id,
                     )
         else:
             await conn.execute(
@@ -334,16 +342,24 @@ async def festival_edit_save(
 
         for a, sp in zip(new_artists, sp_results):
             sp = sp if isinstance(sp, dict) else None
+            _sr = None
+            try:
+                v = float(a.get("rating") or 0)
+                if 0.5 <= v <= 5.0:
+                    _sr = round(v * 2) / 2
+            except (TypeError, ValueError):
+                pass
             await conn.execute(
                 "INSERT INTO shows (user_id, artist, venue, city, date, is_festival, festival_name, festival_id, "
-                "artist_spotify_id, artist_image_url, artist_thumb_url, artist_genres, created_at) "
-                "VALUES ($1,$2,$3,$4,$5,TRUE,$6,$7,$8,$9,$10,$11,$12)",
+                "artist_spotify_id, artist_image_url, artist_thumb_url, artist_genres, rating, created_at) "
+                "VALUES ($1,$2,$3,$4,$5,TRUE,$6,$7,$8,$9,$10,$11,$12,$13)",
                 user["id"], str(a["name"])[:200], festival_name, city,
                 _dt.date.fromisoformat(str(a["date"])), festival_name, festival_id,
                 sp["id"] if sp else None,
                 sp["image_url"] if sp else None,
                 sp["thumb_url"] if sp else None,
                 sp["genres"] if sp else [],
+                _sr,
                 now,
             )
 
@@ -371,7 +387,7 @@ async def festival_edit_save(
                 )
 
     flash(request, "Festival updated!", "success")
-    return RedirectResponse(f"/concert-tracker/shows/festival/{festival_id}", status_code=302)
+    return RedirectResponse("/concert-tracker/shows", status_code=302)
 
 
 @router.post("/shows/festival/{festival_id}/like")
@@ -752,7 +768,7 @@ async def edit_show_page(show_id: int, request: Request, pool=Depends(get_pool),
 async def edit_show(show_id: int, request: Request, pool=Depends(get_pool), user=Depends(require_user)):
     if redirect := await _handle_save(request, pool, user, show_id=show_id):
         return redirect
-    return RedirectResponse(f"/concert-tracker/shows/{show_id}", status_code=302)
+    return RedirectResponse("/concert-tracker/shows", status_code=302)
 
 
 @router.post("/shows/{show_id}/delete")

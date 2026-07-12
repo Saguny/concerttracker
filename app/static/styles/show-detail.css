@@ -234,6 +234,10 @@
 .festival-artist-row .festival-artist-date { width: 140px; }
 .festival-remove          { background: none; border: none; color: var(--muted); font-size: 1.1rem; cursor: pointer; line-height: 1; padding: 0 .2rem; flex-shrink: 0; }
 .festival-remove:hover    { color: var(--danger); }
+.act-stars                { display: flex; gap: .1rem; flex-shrink: 0; }
+.act-star                 { font-size: .95rem; color: var(--border); cursor: pointer; line-height: 1; transition: color .1s; user-select: none; }
+.act-star:hover           { color: var(--accent); }
+.act-star-on              { color: var(--accent); }
 
 /* ── Artist grid (form sidebar selector) ── */
 .artists-grid { display: flex; flex-direction: column; gap: .3rem; max-height: 480px; overflow-y: auto; }

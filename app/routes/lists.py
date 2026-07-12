@@ -1,4 +1,5 @@
 import asyncio
+import json
 import time
 
 from fastapi import APIRouter, Depends, Request
@@ -9,6 +10,32 @@ from app.auth import flash, get_csrf_token, get_flashes, require_user, optional_
 from app.jinja import templates
 
 router = APIRouter()
+
+
+async def _smart_items(conn, user_id: int, smart_filter: dict) -> list:
+    ftype = smart_filter.get("type", "")
+    clauses = ["user_id = $1"]
+    params: list = [user_id]
+
+    if ftype == "year":
+        params.append(int(smart_filter["value"]))
+        clauses.append(f"EXTRACT(YEAR FROM date) = ${len(params)}")
+    elif ftype == "rating_min":
+        params.append(float(smart_filter["value"]))
+        clauses.append(f"rating >= ${len(params)}")
+    elif ftype == "show_type":
+        if smart_filter["value"] == "festival":
+            clauses.append("is_festival = TRUE")
+        else:
+            clauses.append("(is_festival = FALSE OR is_festival IS NULL)")
+
+    where = " AND ".join(clauses)
+    rows = await conn.fetch(
+        f"SELECT id AS show_id, artist, venue, city, date, artist_thumb_url, rating, 0 AS position "
+        f"FROM shows WHERE {where} ORDER BY date DESC",
+        *params,
+    )
+    return [dict(r) for r in rows]
 
 
 def _ctx(request: Request, user, **kw) -> dict:
@@ -28,9 +55,13 @@ async def lists_index(request: Request, pool=Depends(get_pool), user=Depends(req
             "WHERE l.user_id = $1 GROUP BY l.id ORDER BY l.updated_at DESC",
             user["id"],
         )
+        year_rows = await conn.fetch(
+            "SELECT DISTINCT EXTRACT(YEAR FROM date)::int AS y FROM shows WHERE user_id=$1 ORDER BY y DESC",
+            user["id"],
+        )
     return templates.TemplateResponse(
         "lists.html",
-        _ctx(request, user, lists=list(rows), csrf=get_csrf_token(request)),
+        _ctx(request, user, lists=list(rows), years=[r["y"] for r in year_rows], csrf=get_csrf_token(request)),
     )
 
 
@@ -40,15 +71,29 @@ async def create_list(request: Request, pool=Depends(get_pool), user=Depends(req
     form = await request.form()
     title = str(form.get("title", "")).strip()[:200]
     is_ranked = form.get("is_ranked") == "1"
+    list_type = form.get("list_type", "curated")
+    if list_type not in ("curated", "smart"):
+        list_type = "curated"
     if not title:
         flash(request, "Title is required", "error")
         return RedirectResponse("/concert-tracker/lists", status_code=302)
+
+    smart_filter = None
+    if list_type == "smart":
+        ftype = str(form.get("smart_type", "")).strip()
+        fval = str(form.get("smart_value", "")).strip()
+        if ftype and fval:
+            smart_filter = json.dumps({"type": ftype, "value": fval})
+        else:
+            flash(request, "Smart list requires a filter type and value", "error")
+            return RedirectResponse("/concert-tracker/lists", status_code=302)
+
     now = int(time.time())
     async with pool.acquire() as conn:
         lst_id = await conn.fetchval(
-            "INSERT INTO lists (user_id, title, is_ranked, created_at, updated_at) "
-            "VALUES ($1, $2, $3, $4, $4) RETURNING id",
-            user["id"], title, is_ranked, now,
+            "INSERT INTO lists (user_id, title, is_ranked, list_type, smart_filter, created_at, updated_at) "
+            "VALUES ($1, $2, $3, $4, $5::jsonb, $6, $6) RETURNING id",
+            user["id"], title, is_ranked, list_type, smart_filter, now,
         )
     return RedirectResponse(f"/concert-tracker/lists/{lst_id}", status_code=302)
 
@@ -63,20 +108,25 @@ async def list_detail(list_id: int, request: Request, pool=Depends(get_pool), us
         )
         if not lst:
             return RedirectResponse("/concert-tracker/lists" if user else "/concert-tracker/login", status_code=302)
-        items = await conn.fetch(
-            "SELECT li.id, li.show_id, li.position, "
-            "s.artist, s.venue, s.city, s.date, s.artist_thumb_url, s.rating "
-            "FROM list_items li JOIN shows s ON s.id = li.show_id "
-            "WHERE li.list_id = $1 ORDER BY li.position, li.added_at",
-            list_id,
-        )
-    is_owner = user is not None and user["id"] == lst["user_id"]
+        lst = dict(lst)
+        is_owner = user is not None and user["id"] == lst["user_id"]
+        if lst.get("list_type") == "smart" and lst.get("smart_filter"):
+            items = await _smart_items(conn, lst["user_id"], lst["smart_filter"])
+        else:
+            rows = await conn.fetch(
+                "SELECT li.id, li.show_id, li.position, "
+                "s.artist, s.venue, s.city, s.date, s.artist_thumb_url, s.rating "
+                "FROM list_items li JOIN shows s ON s.id = li.show_id "
+                "WHERE li.list_id = $1 ORDER BY li.position, li.added_at",
+                list_id,
+            )
+            items = [dict(r) for r in rows]
     return templates.TemplateResponse(
         "list_detail.html",
         _ctx(
             request, user,
             lst=lst,
-            items=list(items),
+            items=items,
             is_owner=is_owner,
             csrf=get_csrf_token(request) if user else "",
         ),
@@ -87,11 +137,15 @@ async def list_detail(list_id: int, request: Request, pool=Depends(get_pool), us
 async def edit_list_page(list_id: int, request: Request, pool=Depends(get_pool), user=Depends(require_user)):
     async with pool.acquire() as conn:
         lst = await conn.fetchrow("SELECT * FROM lists WHERE id=$1 AND user_id=$2", list_id, user["id"])
-    if not lst:
-        return RedirectResponse("/concert-tracker/lists", status_code=302)
+        if not lst:
+            return RedirectResponse("/concert-tracker/lists", status_code=302)
+        year_rows = await conn.fetch(
+            "SELECT DISTINCT EXTRACT(YEAR FROM date)::int AS y FROM shows WHERE user_id=$1 ORDER BY y DESC",
+            user["id"],
+        )
     return templates.TemplateResponse(
         "list_edit.html",
-        _ctx(request, user, lst=lst, csrf=get_csrf_token(request)),
+        _ctx(request, user, lst=dict(lst), years=[r["y"] for r in year_rows], csrf=get_csrf_token(request)),
     )
 
 
@@ -107,10 +161,19 @@ async def edit_list(list_id: int, request: Request, pool=Depends(get_pool), user
         return RedirectResponse(f"/concert-tracker/lists/{list_id}/edit", status_code=302)
     now = int(time.time())
     async with pool.acquire() as conn:
+        lst = await conn.fetchrow("SELECT list_type FROM lists WHERE id=$1 AND user_id=$2", list_id, user["id"])
+        if not lst:
+            return RedirectResponse("/concert-tracker/lists", status_code=302)
+        smart_filter = None
+        if lst["list_type"] == "smart":
+            ftype = str(form.get("smart_type", "")).strip()
+            fval = str(form.get("smart_value", "")).strip()
+            if ftype and fval:
+                smart_filter = json.dumps({"type": ftype, "value": fval})
         await conn.execute(
-            "UPDATE lists SET title=$1, description=$2, is_ranked=$3, updated_at=$4 "
-            "WHERE id=$5 AND user_id=$6",
-            title, description, is_ranked, now, list_id, user["id"],
+            "UPDATE lists SET title=$1, description=$2, is_ranked=$3, smart_filter=COALESCE($4::jsonb, smart_filter), updated_at=$5 "
+            "WHERE id=$6 AND user_id=$7",
+            title, description, is_ranked, smart_filter, now, list_id, user["id"],
         )
     return RedirectResponse(f"/concert-tracker/lists/{list_id}", status_code=302)
 

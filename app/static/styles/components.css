@@ -347,6 +347,37 @@ input[type="radio"] { accent-color: var(--accent); }
 .discover-bio { margin-top: .3rem; }
 .discover-avatar-link { display: block; }
 
+/* ── Discover artist search ── */
+.discover-section-heading {
+  font-size: 1rem; font-weight: 700; margin: 1.5rem 0 .75rem;
+  color: var(--muted); text-transform: uppercase; letter-spacing: .06em;
+}
+.artist-search-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: .75rem;
+}
+.artist-search-card {
+  display: flex; align-items: center; gap: .75rem;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: .75rem;
+  text-decoration: none; color: var(--text); transition: border-color .15s;
+}
+.artist-search-card:hover { border-color: var(--accent); }
+.artist-search-thumb {
+  width: 44px; height: 44px; border-radius: 50%;
+  object-fit: cover; flex-shrink: 0;
+}
+.artist-search-thumb-ph {
+  width: 44px; height: 44px; border-radius: 50%;
+  background: var(--accent); color: #000; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.1rem; font-weight: 700;
+}
+.artist-search-name { font-weight: 600; font-size: .875rem; }
+.artist-search-genres { margin-top: .1rem; }
+.artist-search-meta { margin-top: .1rem; }
+
 /* ── Invite management ── */
 .invite-table { width: 100%; border-collapse: collapse; margin-top: 1rem; font-size: .875rem; }
 .invite-table th, .invite-table td { padding: .55rem .75rem; text-align: left; border-bottom: 1px solid var(--border); }
@@ -476,7 +507,11 @@ input[type="radio"] { accent-color: var(--accent); }
   gap: 1.25rem;
   margin-bottom: 1.5rem;
 }
+.stats-charts-row-3 { grid-template-columns: 1fr 1fr 1fr; }
 .stats-chart-col { min-width: 0; }
+@media (max-width: 700px) {
+  .stats-charts-row-3 { grid-template-columns: 1fr; }
+}
 @media (max-width: 560px) {
   .stats-charts-row { grid-template-columns: 1fr; }
 }
@@ -592,3 +627,63 @@ input[type="radio"] { accent-color: var(--accent); }
   flex-direction: column;
   gap: 1rem;
 }
+
+/* ── Lists ── */
+.lists-page-layout {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 1.5rem;
+  align-items: start;
+}
+@media (max-width: 700px) {
+  .lists-page-layout { grid-template-columns: 1fr; }
+}
+.lists-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: .75rem;
+}
+.list-card {
+  display: block;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 1rem 1.1rem;
+  text-decoration: none; color: var(--text); transition: border-color .15s;
+}
+.list-card:hover { border-color: var(--accent); }
+.list-card-title { font-weight: 600; font-size: .9rem; margin-bottom: .3rem; }
+.list-card-meta  { margin-top: .2rem; }
+.list-card-desc  { margin-top: .35rem; }
+.list-ranked-icon { color: var(--muted); font-size: .85rem; }
+
+.lists-create-box {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 1.1rem 1.25rem;
+}
+.lists-create-box h2 { font-size: .95rem; font-weight: 700; margin: 0 0 .25rem; }
+.lists-create-form { display: flex; flex-direction: column; gap: .6rem; margin-top: .75rem; }
+.checkbox-label { display: flex; align-items: center; gap: .5rem; font-size: .875rem; cursor: pointer; }
+.checkbox-label input[type="checkbox"] { width: 15px; height: 15px; flex-shrink: 0; }
+.field-label { font-size: .8rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin-bottom: .3rem; display: block; }
+
+.badge-smart {
+  background: #065f4622; color: #34d399;
+  border: 1px solid #065f4644;
+  font-size: .68rem; padding: .1em .45em;
+  border-radius: 999px; font-weight: 600; vertical-align: 3px;
+}
+
+.list-detail-eyebrow { margin-bottom: .2rem; }
+.list-drag-handle {
+  cursor: grab; font-size: 1rem; color: var(--muted);
+  padding: 0 .2rem; flex-shrink: 0; touch-action: none;
+}
+.list-drag-handle:active { cursor: grabbing; }
+.list-item-card.dragging { opacity: .4; background: var(--surface2); }
+.list-detail-meta { margin-bottom: .75rem; }
+
+.list-add-row { transition: background .15s; }
+.list-add-in  { background: var(--surface2); }
+.list-add-btn { flex-shrink: 0; min-width: 80px; justify-content: center; }
+.list-added   { opacity: .7; }
+
+.page-header-actions { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }

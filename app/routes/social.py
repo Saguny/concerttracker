@@ -346,6 +346,12 @@ async def discover_page(request: Request, pool=Depends(get_pool), user=Depends(r
             total = await conn.fetchval(
                 "SELECT COUNT(*) FROM users WHERE username ILIKE $1 AND id != $2", f"%{q}%", user["id"]
             )
+            artist_rows = await conn.fetch(
+                "SELECT a.name, a.thumb_url, a.genres, COUNT(DISTINCT s.user_id)::int AS logger_count "
+                "FROM artists a LEFT JOIN shows s ON LOWER(s.artist) = LOWER(a.name) "
+                "WHERE a.name ILIKE $1 GROUP BY a.name, a.thumb_url, a.genres ORDER BY logger_count DESC LIMIT 8",
+                f"%{q}%",
+            )
         else:
             rows = await conn.fetch(
                 "SELECT u.id, u.username, u.avatar_url, u.bio, "
@@ -356,13 +362,14 @@ async def discover_page(request: Request, pool=Depends(get_pool), user=Depends(r
                 user["id"], limit, offset,
             )
             total = await conn.fetchval("SELECT COUNT(*) FROM users WHERE id != $1", user["id"])
+            artist_rows = []
         i_follow = await conn.fetch("SELECT target_id FROM follows WHERE user_id=$1", user["id"])
     following_ids = {r["target_id"] for r in i_follow}
     pages = (total + limit - 1) // limit
     return templates.TemplateResponse(
         "discover.html",
         _ctx(request, user, rows=rows, following_ids=following_ids,
-             q=q, page=page, pages=pages, csrf=get_csrf_token(request)),
+             q=q, page=page, pages=pages, artist_rows=list(artist_rows), csrf=get_csrf_token(request)),
     )
 
 
@@ -481,6 +488,7 @@ def _group_festivals(rows) -> list:
                     "festival_name": row["festival_name"],
                     "city": row["city"],
                     "date": row["date"],
+                    "festival_rating": row["festival_rating"] if "festival_rating" in row.keys() else None,
                     "like_count": 0,
                     "comment_count": 0,
                     "shows": [],
@@ -518,10 +526,11 @@ async def friend_profile(
         fav_names = list(profile["favorite_artists"] or [])
 
         recent_rows = await conn.fetch(
-            "SELECT s.*, "
+            "SELECT s.*, f.rating AS festival_rating, "
             "(SELECT COUNT(*) FROM show_likes l WHERE l.show_id = s.id) AS like_count, "
             "(SELECT COUNT(*) FROM show_comments c WHERE c.show_id = s.id) AS comment_count "
-            "FROM shows s WHERE s.user_id = $1 ORDER BY s.created_at DESC LIMIT 20",
+            "FROM shows s LEFT JOIN festivals f ON f.id = s.festival_id "
+            "WHERE s.user_id = $1 ORDER BY s.created_at DESC LIMIT 20",
             pid,
         )
         is_following = await conn.fetchval(
@@ -558,11 +567,15 @@ async def friend_profile(
             ") ORDER BY s.date DESC",
             uid, pid,
         ) if uid else []
-        show_count = await conn.fetchval(
-            "SELECT (SELECT COUNT(*) FROM shows WHERE user_id=$1 AND (is_festival = FALSE OR festival_name IS NULL))"
-            " + (SELECT COUNT(DISTINCT festival_name) FROM shows WHERE user_id=$1 AND is_festival = TRUE AND festival_name IS NOT NULL)",
+        standalone_count = await conn.fetchval(
+            "SELECT COUNT(*) FROM shows WHERE user_id=$1 AND (is_festival = FALSE OR festival_name IS NULL)",
             pid,
         )
+        festival_count = await conn.fetchval(
+            "SELECT COUNT(DISTINCT festival_name) FROM shows WHERE user_id=$1 AND is_festival = TRUE AND festival_name IS NOT NULL",
+            pid,
+        )
+        show_count = (standalone_count or 0) + (festival_count or 0)
         follower_count = await conn.fetchval("SELECT COUNT(*) FROM follows WHERE target_id=$1", pid)
         following_count = await conn.fetchval("SELECT COUNT(*) FROM follows WHERE user_id=$1", pid)
         pinned_show = await conn.fetchrow(
@@ -571,7 +584,7 @@ async def friend_profile(
             profile["pinned_show_id"],
         ) if profile["pinned_show_id"] else None
         profile_lists = await conn.fetch(
-            "SELECT l.id, l.title, l.is_ranked, COUNT(li.id)::int AS item_count "
+            "SELECT l.id, l.title, l.is_ranked, l.list_type, l.description, COUNT(li.id)::int AS item_count "
             "FROM lists l LEFT JOIN list_items li ON li.list_id = l.id "
             "WHERE l.user_id = $1 GROUP BY l.id ORDER BY l.updated_at DESC LIMIT 6",
             pid,
@@ -588,6 +601,8 @@ async def friend_profile(
             items=_group_festivals(recent_rows),
             today=time.strftime("%Y-%m-%d"),
             show_count=show_count,
+            standalone_count=int(standalone_count or 0),
+            festival_count=int(festival_count or 0),
             follower_count=follower_count,
             following_count=following_count,
             is_following=bool(is_following),
@@ -599,7 +614,7 @@ async def friend_profile(
             top_venues=top_venues,
             shared=shared,
             pinned_show=pinned_show,
-            profile_lists=list(profile_lists),
+            profile_lists=[dict(r) for r in profile_lists],
             social_links=dict(profile["social_links"] or {}),
             favorite_artists=[{"name": n, "thumb_url": fav_thumbs.get(n)} for n in fav_names],
             csrf=get_csrf_token(request) if user else "",
@@ -637,16 +652,19 @@ async def profile_tab(
 
         if tab == "recent":
             rows = await conn.fetch(
-                "SELECT s.*, "
+                "SELECT s.*, f.rating AS festival_rating, "
                 "(SELECT COUNT(*) FROM show_likes l WHERE l.show_id = s.id) AS like_count, "
                 "(SELECT COUNT(*) FROM show_comments c WHERE c.show_id = s.id) AS comment_count "
-                "FROM shows s WHERE s.user_id = $1 ORDER BY s.created_at DESC LIMIT 20",
+                "FROM shows s LEFT JOIN festivals f ON f.id = s.festival_id "
+                "WHERE s.user_id = $1 ORDER BY s.created_at DESC LIMIT 20",
                 pid,
             )
             return templates.TemplateResponse(
                 "profile_tab_recent.html",
                 _ctx(request, user, items=_group_festivals(rows), today=today),
             )
+
+        uid = user["id"] if user else None
 
         if tab == "top":
             rows = await conn.fetch(
@@ -659,7 +677,8 @@ async def profile_tab(
             )
             return templates.TemplateResponse(
                 "profile_tab_top.html",
-                _ctx(request, user, shows=list(rows), today=today),
+                _ctx(request, user, shows=list(rows), today=today,
+                     profile=profile, is_own_profile=(uid == pid)),
             )
 
         if tab == "all":
@@ -684,10 +703,10 @@ async def profile_tab(
                 clauses.append("s.is_festival = FALSE")
             where = " AND ".join(clauses)
             rows = await conn.fetch(
-                f"SELECT s.*, "
+                f"SELECT s.*, f.rating AS festival_rating, "
                 "(SELECT COUNT(*) FROM show_likes l WHERE l.show_id = s.id) AS like_count, "
                 "(SELECT COUNT(*) FROM show_comments c WHERE c.show_id = s.id) AS comment_count "
-                f"FROM shows s WHERE {where} ORDER BY {order}",
+                f"FROM shows s LEFT JOIN festivals f ON f.id = s.festival_id WHERE {where} ORDER BY {order}",
                 *params,
             )
             year_rows = await conn.fetch(
@@ -708,7 +727,7 @@ async def profile_tab(
 
         if tab == "lists":
             rows = await conn.fetch(
-                "SELECT l.id, l.title, l.description, l.is_ranked, "
+                "SELECT l.id, l.title, l.description, l.is_ranked, l.list_type, "
                 "COUNT(li.id)::int AS item_count "
                 "FROM lists l LEFT JOIN list_items li ON li.list_id = l.id "
                 "WHERE l.user_id = $1 GROUP BY l.id ORDER BY l.created_at DESC",
@@ -718,11 +737,16 @@ async def profile_tab(
             return templates.TemplateResponse(
                 "profile_tab_lists.html",
                 _ctx(request, user,
-                     profile_lists=list(rows),
+                     profile_lists=[dict(r) for r in rows],
                      is_own_profile=(uid == pid)),
             )
 
         # tab == "stats"
+        per_year_stats = await conn.fetch(
+            "SELECT EXTRACT(YEAR FROM date)::int AS year, COUNT(*)::int AS count "
+            "FROM shows WHERE user_id=$1 GROUP BY year ORDER BY year",
+            pid,
+        )
         summary = await conn.fetchrow(
             "SELECT COUNT(*)::int AS total, "
             "COUNT(DISTINCT LOWER(artist))::int AS artists, "
@@ -759,6 +783,7 @@ async def profile_tab(
                 summary=dict(summary) if summary else {},
                 rating_dist=[{"half_star": float(r["half_star"]), "cnt": r["cnt"]} for r in rating_dist],
                 per_month=[dict(r) for r in per_month],
+                per_year_stats=[dict(r) for r in per_year_stats],
                 top_genres=[dict(r) for r in top_genres],
             ),
         )

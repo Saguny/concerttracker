@@ -52,6 +52,7 @@ async def calendar_page(
     next_year = year if month < 12 else year + 1
 
     month_name = first_day.strftime("%B %Y")
+    year_range = list(range(max(2010, today.year - 10), today.year + 3))
 
     return templates.TemplateResponse(
         "calendar.html",
@@ -69,5 +70,6 @@ async def calendar_page(
             "prev_month": prev_month,
             "next_year": next_year,
             "next_month": next_month,
+            "year_range": year_range,
         },
     )

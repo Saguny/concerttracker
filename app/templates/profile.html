@@ -31,7 +31,8 @@
         {% elif is_follower and not is_own_profile %}<span class="badge badge-ghost">follows you</span>{% endif %}
       </h1>
       <div class="profile-stats-row">
-        <span><strong>{{ show_count }}</strong> <span class="muted">show{{ 's' if show_count != 1 else '' }}</span></span>
+        <span><strong>{{ standalone_count }}</strong> <span class="muted">show{{ 's' if standalone_count != 1 else '' }}</span></span>
+        {% if festival_count %}<span><strong>{{ festival_count }}</strong> <span class="muted">festival{{ 's' if festival_count != 1 else '' }}</span></span>{% endif %}
         <a href="/concert-tracker/u/{{ profile.username }}/followers" class="profile-stat-link"><strong>{{ follower_count }}</strong> <span class="muted">follower{{ 's' if follower_count != 1 else '' }}</span></a>
         <a href="/concert-tracker/u/{{ profile.username }}/following" class="profile-stat-link"><strong>{{ following_count }}</strong> <span class="muted">following</span></a>
       </div>
@@ -296,6 +297,7 @@ function _initStatsCharts() {
   if (!wrap) return;
   const ratingDist = JSON.parse(wrap.dataset.ratingDist || '[]');
   const perMonth = JSON.parse(wrap.dataset.perMonth || '[]');
+  const perYear = JSON.parse(wrap.dataset.perYear || '[]');
   const profileWrap = document.querySelector('.profile-wrap');
   const accent = (profileWrap ? getComputedStyle(profileWrap).getPropertyValue('--profile-accent').trim() : '') || '#f59e0b';
 
@@ -306,6 +308,18 @@ function _initStatsCharts() {
       data: {
         labels: ratingDist.map(r => '★' + r.half_star.toFixed(1)),
         datasets: [{ data: ratingDist.map(r => r.cnt), backgroundColor: accent, borderRadius: 4 }],
+      },
+      options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } },
+    });
+  }
+
+  const pyCanvas = document.getElementById('chart-per-year');
+  if (perYear.length && pyCanvas) {
+    new Chart(pyCanvas, {
+      type: 'bar',
+      data: {
+        labels: perYear.map(r => r.year),
+        datasets: [{ data: perYear.map(r => r.count), backgroundColor: accent + 'cc', borderRadius: 4 }],
       },
       options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } },
     });

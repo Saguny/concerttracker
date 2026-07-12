@@ -1,7 +1,11 @@
 {% if not shows %}
 <div style="padding:2rem 0;text-align:center">
+  {% if is_own_profile %}
   <p class="muted">No rated shows yet.</p>
   <p class="muted small">Add a star rating when logging or editing a show.</p>
+  {% else %}
+  <p class="muted">{{ profile.username }} hasn't rated a show yet.</p>
+  {% endif %}
 </div>
 {% else %}
 <div class="show-list">

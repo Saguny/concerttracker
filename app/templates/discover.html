@@ -6,16 +6,42 @@
 </div>
 
 <form class="filter-bar" method="get" action="/concert-tracker/discover" id="discover-form">
-  <input type="text" name="q" placeholder="Search by username…" value="{{ q }}" autocomplete="off" id="discover-q">
+  <input type="text" name="q" placeholder="Search artists or users…" value="{{ q }}" autocomplete="off" id="discover-q">
   <button type="submit" class="btn btn-accent">Search</button>
   {% if q %}
   <a href="/concert-tracker/discover" class="btn btn-ghost">Clear</a>
   {% endif %}
 </form>
 
+{% if q and artist_rows %}
+<h2 class="discover-section-heading">Artists</h2>
+<div class="artist-search-grid">
+  {% for a in artist_rows %}
+  <a href="/concert-tracker/discover?q={{ a.name | urlencode }}&kind=artist" class="artist-search-card">
+    {% if a.thumb_url %}
+    <img src="{{ a.thumb_url }}" class="artist-search-thumb" alt="{{ a.name }}" loading="lazy">
+    {% else %}
+    <div class="artist-search-thumb artist-search-thumb-ph">{{ a.name[0] | upper }}</div>
+    {% endif %}
+    <div class="artist-search-info">
+      <div class="artist-search-name">{{ a.name }}</div>
+      {% if a.genres %}
+      <div class="artist-search-genres muted small">{{ a.genres[:2] | join(', ') }}</div>
+      {% endif %}
+      <div class="artist-search-meta muted small">{{ a.logger_count }} logger{{ 's' if a.logger_count != 1 else '' }}</div>
+    </div>
+  </a>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if q and artist_rows and rows %}
+<h2 class="discover-section-heading">People</h2>
+{% endif %}
+
 {% if not rows %}
 <div class="empty-state">
-  <p>{% if q %}No users found matching "{{ q }}".{% else %}No other users yet -invite friends!{% endif %}</p>
+  <p>{% if q %}No users found matching "{{ q }}".{% else %}No other users yet — invite friends!{% endif %}</p>
 </div>
 {% else %}
 <div class="discover-grid">

@@ -5,34 +5,100 @@
   <h1>My Lists</h1>
 </div>
 
-<form method="post" action="/concert-tracker/lists/create" class="list-create-form">
-  <input type="hidden" name="_csrf" value="{{ csrf }}">
-  <input type="text" name="title" placeholder="New list title…" maxlength="200" required class="input list-create-input" autocomplete="off">
-  <label class="checkbox-label" style="gap:.4rem;white-space:nowrap">
-    <input type="checkbox" name="is_ranked" value="1"> Ranked
-  </label>
-  <button type="submit" class="btn btn-accent">Create</button>
-</form>
-
-{% if not lists %}
-<div class="empty-state" style="margin-top:2rem">
-  <p>No lists yet. Create one above.</p>
-</div>
-{% else %}
-<div class="lists-grid">
-  {% for l in lists %}
-  <div class="list-card">
-    <a href="/concert-tracker/lists/{{ l.id }}" class="list-card-link">
-      <div class="list-card-title">{{ l.title }}{% if l.is_ranked %} <span class="badge badge-ranked">Ranked</span>{% endif %}</div>
-      {% if l.description %}<div class="list-card-desc muted small">{{ l.description[:120] }}{% if l.description | length > 120 %}…{% endif %}</div>{% endif %}
-      <div class="list-card-meta muted small">{{ l.item_count }} show{{ 's' if l.item_count != 1 else '' }}</div>
-    </a>
-    <div class="list-card-actions">
-      <a href="/concert-tracker/lists/{{ l.id }}/add" class="btn btn-sm btn-ghost">+ Add Shows</a>
-      <a href="/concert-tracker/lists/{{ l.id }}/edit" class="btn btn-sm btn-ghost">Edit</a>
+<div class="lists-page-layout">
+  <div class="lists-main">
+    {% if lists %}
+    <div class="lists-grid">
+      {% for l in lists %}
+      <a href="/concert-tracker/lists/{{ l.id }}" class="list-card">
+        <div class="list-card-title">
+          {% if l.list_type == 'smart' %}<span class="badge badge-smart">Auto</span> {% endif %}
+          {% if l.is_ranked %}<span class="list-ranked-icon" title="Ranked">☰</span> {% endif %}
+          {{ l.title }}
+        </div>
+        <div class="list-card-meta muted small">
+          {{ l.item_count }} show{{ 's' if l.item_count != 1 else '' }}
+          {% if l.list_type == 'smart' %} · auto-generated{% endif %}
+        </div>
+        {% if l.description %}<div class="list-card-desc muted small">{{ l.description | truncate(80) }}</div>{% endif %}
+      </a>
+      {% endfor %}
     </div>
+    {% else %}
+    <div class="empty-state">
+      <p>No lists yet. Create one below.</p>
+    </div>
+    {% endif %}
   </div>
-  {% endfor %}
+
+  <aside class="lists-sidebar">
+    <section class="lists-create-box">
+      <h2>New Curated List</h2>
+      <p class="muted small">Pick shows yourself and arrange them in any order.</p>
+      <form method="post" action="/concert-tracker/lists/create" class="lists-create-form">
+        <input type="hidden" name="_csrf" value="{{ csrf }}">
+        <input type="hidden" name="list_type" value="curated">
+        <div class="field-group">
+          <input type="text" name="title" placeholder="List title…" maxlength="200" required>
+        </div>
+        <label class="checkbox-label">
+          <input type="checkbox" name="is_ranked" value="1">
+          Ranked (numbered order)
+        </label>
+        <button type="submit" class="btn btn-accent" style="width:100%;margin-top:.75rem">Create list</button>
+      </form>
+    </section>
+
+    <section class="lists-create-box" style="margin-top:1.25rem">
+      <h2>New Smart List</h2>
+      <p class="muted small">Auto-populated from a filter. Updates automatically as you log more shows.</p>
+      <form method="post" action="/concert-tracker/lists/create" class="lists-create-form" id="smart-create-form">
+        <input type="hidden" name="_csrf" value="{{ csrf }}">
+        <input type="hidden" name="list_type" value="smart">
+        <div class="field-group">
+          <input type="text" name="title" placeholder="List title…" maxlength="200" required>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Filter by</label>
+          <select name="smart_type" id="smart-type" onchange="updateSmartValue()">
+            <option value="year">Year</option>
+            <option value="rating_min">Minimum Rating</option>
+            <option value="show_type">Show Type</option>
+          </select>
+        </div>
+        <div class="field-group" id="smart-value-wrap">
+          <label class="field-label">Value</label>
+          <select name="smart_value" id="smart-value-year">
+            {% for y in years %}
+            <option value="{{ y }}">{{ y }}</option>
+            {% endfor %}
+          </select>
+          <select name="smart_value" id="smart-value-type" style="display:none">
+            <option value="standalone">Standalone shows</option>
+            <option value="festival">Festivals only</option>
+          </select>
+          <select name="smart_value" id="smart-value-rating" style="display:none">
+            <option value="4.5">★ 4.5+</option>
+            <option value="4.0">★ 4.0+</option>
+            <option value="3.5">★ 3.5+</option>
+            <option value="3.0">★ 3.0+</option>
+          </select>
+        </div>
+        <button type="submit" class="btn btn-accent" style="width:100%;margin-top:.75rem">Create smart list</button>
+      </form>
+    </section>
+  </aside>
 </div>
-{% endif %}
+
+<script>
+function updateSmartValue() {
+  const t = document.getElementById('smart-type').value;
+  document.getElementById('smart-value-year').style.display   = t === 'year'       ? '' : 'none';
+  document.getElementById('smart-value-type').style.display   = t === 'show_type'  ? '' : 'none';
+  document.getElementById('smart-value-rating').style.display = t === 'rating_min' ? '' : 'none';
+  document.querySelectorAll('[name="smart_value"]').forEach(el => el.disabled = (el.style.display === 'none'));
+}
+updateSmartValue();
+document.getElementById('smart-type').addEventListener('change', updateSmartValue);
+</script>
 {% endblock %}

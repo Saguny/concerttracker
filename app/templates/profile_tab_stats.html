@@ -1,6 +1,7 @@
 <div class="stats-tab"
   data-rating-dist='{{ rating_dist | tojson }}'
-  data-per-month='{{ per_month | tojson }}'>
+  data-per-month='{{ per_month | tojson }}'
+  data-per-year='{{ per_year_stats | tojson }}'>
 
   <div class="stats-summary-grid">
     <div class="stat-card">
@@ -42,13 +43,21 @@
   </div>
   {% endif %}
 
-  {% if rating_dist or per_month %}
-  <div class="stats-charts-row">
+  {% if rating_dist or per_year_stats or per_month %}
+  <div class="stats-charts-row stats-charts-row-3">
     {% if rating_dist %}
     <div class="stats-chart-col">
       <h3 class="stats-section-heading">Rating Distribution</h3>
       <div style="max-height:150px">
         <canvas id="chart-rating-dist"></canvas>
+      </div>
+    </div>
+    {% endif %}
+    {% if per_year_stats %}
+    <div class="stats-chart-col">
+      <h3 class="stats-section-heading">Shows Per Year</h3>
+      <div style="max-height:150px">
+        <canvas id="chart-per-year"></canvas>
       </div>
     </div>
     {% endif %}

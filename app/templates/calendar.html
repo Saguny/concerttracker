@@ -7,8 +7,34 @@
     <h1>{{ month_name }}</h1>
     <a href="/concert-tracker/calendar?year={{ next_year }}&month={{ next_month }}" class="btn btn-ghost">›</a>
   </div>
-  <a href="/concert-tracker/calendar?year={{ today.year }}&month={{ today.month }}" class="btn btn-ghost btn-sm">Today</a>
+  <div class="cal-jump">
+    <select id="cal-month-select" class="cal-jump-select">
+      {% for m, name in [
+        (1,'January'),(2,'February'),(3,'March'),(4,'April'),(5,'May'),(6,'June'),
+        (7,'July'),(8,'August'),(9,'September'),(10,'October'),(11,'November'),(12,'December')
+      ] %}
+      <option value="{{ m }}" {% if m == month %}selected{% endif %}>{{ name }}</option>
+      {% endfor %}
+    </select>
+    <select id="cal-year-select" class="cal-jump-select">
+      {% for y in year_range %}
+      <option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}</option>
+      {% endfor %}
+    </select>
+    <a href="/concert-tracker/calendar?year={{ today.year }}&month={{ today.month }}" class="btn btn-ghost btn-sm">Today</a>
+  </div>
 </div>
+<script>
+(function(){
+  const ms = document.getElementById('cal-month-select');
+  const ys = document.getElementById('cal-year-select');
+  function nav() {
+    window.location.href = '/concert-tracker/calendar?year=' + ys.value + '&month=' + ms.value;
+  }
+  ms.addEventListener('change', nav);
+  ys.addEventListener('change', nav);
+})();
+</script>
 
 <div class="cal-grid">
   <div class="cal-header-row">

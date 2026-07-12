@@ -104,26 +104,50 @@
 {% block scripts %}
 <script>
 const EXISTING = {{ existing_shows | tojson }};
-// [{show_id, name, date, thumb}]
-let artists = EXISTING.map(s => ({ show_id: s.show_id, name: s.name, date: s.date, thumb: s.thumb }));
+let artists = EXISTING.map(s => ({ show_id: s.show_id, name: s.name, date: s.date, thumb: s.thumb, rating: s.rating != null ? s.rating : null }));
 
 function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function hideList(el) { el.style.display = 'none'; el.innerHTML = ''; }
 
+function renderActStars(rating) {
+  return [1,2,3,4,5].map(v =>
+    `<span class="act-star${rating !== null && rating >= v ? ' act-star-on' : ''}" data-v="${v}">★</span>`
+  ).join('');
+}
+
 function renderArtists() {
   const list  = document.getElementById('artists-list');
   const count = document.getElementById('artists-count');
-  count.textContent = artists.length ? `-${artists.length} act${artists.length !== 1 ? 's' : ''}` : '';
+  count.textContent = artists.length ? `- ${artists.length} act${artists.length !== 1 ? 's' : ''}` : '';
   list.innerHTML = artists.map((a, i) => `
     <div class="festival-artist-row">
       ${a.thumb ? `<img src="${esc(a.thumb)}" class="festival-artist-thumb" alt="">` : '<div class="festival-artist-thumb-ph">🎵</div>'}
       <span class="festival-artist-name">${esc(a.name)}</span>
       <input type="date" class="artist-date festival-artist-date" data-i="${i}" value="${esc(a.date)}">
+      <div class="act-stars" data-i="${i}" title="Rate this set">${renderActStars(a.rating)}</div>
       <button type="button" class="btn-icon-danger festival-remove" data-i="${i}" title="Remove">×</button>
     </div>`).join('');
 
   list.querySelectorAll('.artist-date').forEach(inp => {
     inp.addEventListener('change', () => { artists[Number(inp.dataset.i)].date = inp.value; });
+  });
+  list.querySelectorAll('.act-stars').forEach(wrap => {
+    const idx = Number(wrap.dataset.i);
+    wrap.querySelectorAll('.act-star').forEach(star => {
+      star.addEventListener('mouseenter', () => {
+        const v = Number(star.dataset.v);
+        wrap.querySelectorAll('.act-star').forEach((s, si) => s.classList.toggle('act-star-on', si < v));
+      });
+      star.addEventListener('click', () => {
+        const v = Number(star.dataset.v);
+        artists[idx].rating = artists[idx].rating === v ? null : v;
+        wrap.querySelectorAll('.act-star').forEach((s, si) => s.classList.toggle('act-star-on', artists[idx].rating !== null && si < artists[idx].rating));
+      });
+    });
+    wrap.addEventListener('mouseleave', () => {
+      const r = artists[idx].rating;
+      wrap.querySelectorAll('.act-star').forEach((s, si) => s.classList.toggle('act-star-on', r !== null && si < r));
+    });
   });
   list.querySelectorAll('.festival-remove').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -178,7 +202,7 @@ function addArtist(name, thumb) {
   }
   const today = new Date().toISOString().slice(0,10);
   const lastDate = artists.length ? artists[artists.length - 1].date : today;
-  artists.push({ show_id: null, name, thumb, date: lastDate });
+  artists.push({ show_id: null, name, thumb, date: lastDate, rating: null });
   artistSearch.value = '';
   hideList(artistAcList);
   renderArtists();

@@ -29,6 +29,15 @@ async def artist_page(name: str, request: Request, pool=Depends(get_pool), user=
             "WHERE LOWER(artist) = LOWER($1) AND user_id = $2 AND rating IS NOT NULL",
             name, user["id"],
         )
+        global_avg_rating = await conn.fetchval(
+            "SELECT ROUND(AVG(rating)::numeric, 1) FROM shows "
+            "WHERE LOWER(artist) = LOWER($1) AND rating IS NOT NULL",
+            name,
+        )
+        global_rating_count = await conn.fetchval(
+            "SELECT COUNT(*) FROM shows WHERE LOWER(artist) = LOWER($1) AND rating IS NOT NULL",
+            name,
+        )
         circle_seen = await conn.fetchval(
             "SELECT COUNT(*) FROM shows "
             "WHERE LOWER(artist) = LOWER($1) "
@@ -87,6 +96,8 @@ async def artist_page(name: str, request: Request, pool=Depends(get_pool), user=
             shows=rows,
             circle_seen=int(circle_seen or 0),
             avg_rating=float(avg_rating) if avg_rating is not None else None,
+            global_avg_rating=float(global_avg_rating) if global_avg_rating is not None else None,
+            global_rating_count=int(global_rating_count or 0),
             comments=list(comments),
             csrf=get_csrf_token(request),
         ),
