@@ -1,5 +1,6 @@
 import os
 import asyncio
+import time
 import boto3
 from botocore.exceptions import ClientError
 
@@ -41,7 +42,7 @@ async def upload_avatar(user_id: int, data: bytes, content_type: str) -> str:
         )
 
     await asyncio.get_running_loop().run_in_executor(None, _upload)
-    return f"{PUBLIC_URL()}/{key}"
+    return f"{PUBLIC_URL()}/{key}?v={int(time.time())}"
 
 
 async def upload_banner(user_id: int, data: bytes, content_type: str) -> str:
@@ -63,4 +64,4 @@ async def upload_banner(user_id: int, data: bytes, content_type: str) -> str:
         )
 
     await asyncio.get_running_loop().run_in_executor(None, _upload)
-    return f"{PUBLIC_URL()}/{key}"
+    return f"{PUBLIC_URL()}/{key}?v={int(time.time())}"

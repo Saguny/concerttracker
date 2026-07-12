@@ -141,7 +141,7 @@
 .profile-banner-img { width: 100%; height: auto; display: block; }
 .profile-banner-scrim {
   position: absolute; bottom: 0; left: 0; right: 0;
-  height: 140px;
+  height: 70px;
   background: linear-gradient(to bottom, transparent, var(--bg));
   pointer-events: none;
 }
