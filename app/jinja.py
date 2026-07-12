@@ -14,4 +14,5 @@ def _timestamp_fmt(ts) -> str:
 
 
 templates.env.filters["timestamp_fmt"] = _timestamp_fmt
+templates.env.filters["datetimeformat"] = _timestamp_fmt
 templates.env.filters["urlquote"] = lambda s: quote(str(s), safe="")

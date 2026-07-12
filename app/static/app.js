@@ -6,6 +6,26 @@ document.querySelectorAll('.flash').forEach(el => {
   el.style.transition = 'opacity .4s';
 });
 
+// ── Clipboard helper (Firefox + HTTP fallback) ────────────────────────────────
+function _clipCopy(text, btn) {
+  const label = btn ? btn.textContent : '';
+  const done = () => { if (btn) { btn.textContent = 'Copied!'; setTimeout(() => { btn.textContent = label; }, 2000); } };
+  const fallback = () => {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.cssText = 'position:fixed;top:-999px;left:-999px;opacity:0';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); done(); } catch(e) {}
+    document.body.removeChild(ta);
+  };
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(done).catch(fallback);
+  } else {
+    fallback();
+  }
+}
+
 // ── AJAX helpers ──────────────────────────────────────────────────────────────
 
 function _xpost(url, formData) {
@@ -159,7 +179,7 @@ function _initShowDeletes(regionId, countId) {
   }, true);
 }
 
-// ── Follow / unfollow (delegated — works on profile page and follow list) ────
+// ── Follow / unfollow (delegated -works on profile page and follow list) ────
 
 document.addEventListener('submit', async e => {
   const form = e.target;

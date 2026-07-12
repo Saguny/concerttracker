@@ -10,7 +10,7 @@
 <div class="page-header"><h1>Edit Show</h1></div>
 {% endif %}
 
-<form method="post" action="{% if show %}/concert-tracker/shows/{{ show.id }}/edit{% else %}/concert-tracker/shows/add{% endif %}" class="show-form" id="show-form">
+<form method="post" action="{% if show %}/concert-tracker/shows/{{ show.id }}/edit{% else %}/concert-tracker/shows/add{% endif %}" class="show-form" id="show-form" enctype="multipart/form-data">
   <input type="hidden" name="_csrf" value="{{ csrf }}">
   <input type="hidden" name="setlist_json" id="setlist-json" value="{% if show and show.setlist %}{{ show.setlist | tojson }}{% endif %}">
   <input type="hidden" name="support_acts_json" id="support-acts-json" value="{% if show and show.support_acts %}{{ show.support_acts | tojson }}{% endif %}">
@@ -72,6 +72,19 @@
   <div class="field-group">
     <label>Notes</label>
     <textarea name="notes" rows="3" maxlength="1000" placeholder="How was it?">{{ show.notes if show else '' }}</textarea>
+  </div>
+
+  <div class="field-group">
+    <label>Photo <span class="muted small">(optional · max 15 MB)</span></label>
+    {% if show and show.photo_url %}
+    <div class="show-photo-wrap" style="margin-bottom:.5rem">
+      <img src="{{ show.photo_url }}" alt="Current show photo" style="max-height:200px">
+    </div>
+    <label style="display:flex;align-items:center;gap:.4rem;font-size:.85rem;margin-bottom:.5rem">
+      <input type="checkbox" name="remove_photo"> Remove current photo
+    </label>
+    {% endif %}
+    <input type="file" name="photo" accept="image/*">
   </div>
 
   <!-- Support acts -->
@@ -538,9 +551,6 @@ setlistBackfillBtn.addEventListener('click', () => {
 // ── Pre-populate when editing an existing show ────────────────────────
 const existingSupport = {{ (show.support_acts if show and show.support_acts else []) | tojson }};
 const existingSetlist = {{ (show.setlist if show and show.setlist else None) | tojson }};
-
-console.log('[debug] existingSupport =', existingSupport, typeof existingSupport);
-console.log('[debug] existingSetlist =', existingSetlist, typeof existingSetlist);
 
 {% if show %}
 // Editing an existing show: lastFetchKey is locked to its artist/date below,

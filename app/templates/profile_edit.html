@@ -30,13 +30,18 @@
           {% if me.avatar_url %}
           <img src="{{ me.avatar_url }}" class="ep-avatar-preview" id="ep-avatar-preview" alt="">
           {% else %}
-          <div class="ep-avatar-ph" id="ep-avatar-preview">{{ me.username[0] | upper }}</div>
+          <div class="ep-avatar-ph" id="ep-avatar-preview" aria-hidden="true">{{ me.username[0] | upper }}</div>
           {% endif %}
           <div style="flex:1;min-width:0">
             <input id="ep-avatar" type="file" name="avatar"
               accept="image/jpeg,image/png,image/webp,image/gif"
               onchange="previewAvatar(this)">
             <div class="ep-hint" style="margin-top:.35rem">JPEG · PNG · WebP · GIF · max 15 MB</div>
+            {% if me.avatar_url %}
+            <label class="ep-checkbox-label" style="margin-top:.4rem">
+              <input type="checkbox" name="remove_avatar"> Remove current avatar
+            </label>
+            {% endif %}
           </div>
         </div>
       </div>
@@ -137,7 +142,7 @@
             <span class="ep-social-icon ep-social-spotify">♫</span> Spotify
           </label>
           <input id="ep-spotify" type="url" name="social_spotify"
-            value="{{ me.social_links.spotify if me.social_links else '' }}"
+            value="{{ (me.social_links or {}).get('spotify', '') }}"
             maxlength="200" placeholder="https://open.spotify.com/user/…">
         </div>
         <div class="ep-field" style="padding:0">
@@ -145,7 +150,7 @@
             <span class="ep-social-icon ep-social-lastfm">◈</span> Last.fm
           </label>
           <input id="ep-lastfm" type="url" name="social_lastfm"
-            value="{{ me.social_links.lastfm if me.social_links else '' }}"
+            value="{{ (me.social_links or {}).get('lastfm', '') }}"
             maxlength="200" placeholder="https://www.last.fm/user/…">
         </div>
         <div class="ep-field" style="padding:0">
@@ -153,7 +158,7 @@
             <span class="ep-social-icon ep-social-instagram">◉</span> Instagram
           </label>
           <input id="ep-instagram" type="url" name="social_instagram"
-            value="{{ me.social_links.instagram if me.social_links else '' }}"
+            value="{{ (me.social_links or {}).get('instagram', '') }}"
             maxlength="200" placeholder="https://instagram.com/…">
         </div>
         <div class="ep-field" style="padding:0">
@@ -161,14 +166,46 @@
             <span class="ep-social-icon ep-social-website">⊕</span> Website
           </label>
           <input id="ep-website" type="url" name="social_website"
-            value="{{ me.social_links.website if me.social_links else '' }}"
+            value="{{ (me.social_links or {}).get('website', '') }}"
             maxlength="200" placeholder="https://…">
+        </div>
+        <div class="ep-field" style="padding:0">
+          <label class="ep-label" for="ep-twitter">
+            <span class="ep-social-icon">𝕏</span> Twitter / X
+          </label>
+          <input id="ep-twitter" type="url" name="social_twitter"
+            value="{{ (me.social_links or {}).get('twitter', '') }}"
+            maxlength="200" placeholder="https://x.com/…">
+        </div>
+        <div class="ep-field" style="padding:0">
+          <label class="ep-label" for="ep-bandcamp">
+            <span class="ep-social-icon">◭</span> Bandcamp
+          </label>
+          <input id="ep-bandcamp" type="url" name="social_bandcamp"
+            value="{{ (me.social_links or {}).get('bandcamp', '') }}"
+            maxlength="200" placeholder="https://….bandcamp.com">
+        </div>
+        <div class="ep-field" style="padding:0">
+          <label class="ep-label" for="ep-soundcloud">
+            <span class="ep-social-icon">☁</span> SoundCloud
+          </label>
+          <input id="ep-soundcloud" type="url" name="social_soundcloud"
+            value="{{ (me.social_links or {}).get('soundcloud', '') }}"
+            maxlength="200" placeholder="https://soundcloud.com/…">
+        </div>
+        <div class="ep-field" style="padding:0">
+          <label class="ep-label" for="ep-youtube">
+            <span class="ep-social-icon">▷</span> YouTube
+          </label>
+          <input id="ep-youtube" type="url" name="social_youtube"
+            value="{{ (me.social_links or {}).get('youtube', '') }}"
+            maxlength="200" placeholder="https://youtube.com/@…">
         </div>
       </div>
     </div>
 
     <div class="ep-form-actions">
-      <button type="submit" class="btn btn-accent">Save Changes</button>
+      <button type="submit" class="btn btn-accent" id="ep-submit">Save Changes</button>
       <a href="/concert-tracker/u/{{ user.username }}" class="btn btn-ghost">Cancel</a>
     </div>
   </form>
@@ -227,6 +264,15 @@ function previewAvatar(input) {
   if (picker && !picker.disabled) updateAccentPreview(picker.value);
   var bio = document.getElementById('ep-bio');
   if (bio) updateCounter(bio, 'bio-counter', 300);
+
+  var form = document.querySelector('form');
+  var submitBtn = document.getElementById('ep-submit');
+  if (form && submitBtn) {
+    form.addEventListener('submit', function() {
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Saving…';
+    });
+  }
 })();
 </script>
 {% endblock %}

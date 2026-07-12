@@ -1,6 +1,7 @@
 import os
 import re
 import time
+import collections
 
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -16,6 +17,28 @@ router = APIRouter()
 
 _USERNAME_RE = re.compile(r"^[a-zA-Z0-9_]{3,32}$")
 
+# In-memory rate limiter: max 10 attempts per IP per 5 minutes
+_RATE_WINDOW = 300  # seconds
+_RATE_LIMIT = 10
+_rate_buckets: dict[str, collections.deque] = collections.defaultdict(collections.deque)
+
+
+def _check_rate(ip: str) -> bool:
+    """Return True if the request is allowed, False if rate-limited."""
+    now = time.time()
+    dq = _rate_buckets[ip]
+    while dq and now - dq[0] > _RATE_WINDOW:
+        dq.popleft()
+    if len(dq) >= _RATE_LIMIT:
+        return False
+    dq.append(now)
+    return True
+
+
+def _client_ip(request: Request) -> str:
+    forwarded = request.headers.get("X-Forwarded-For", "")
+    return forwarded.split(",")[0].strip() or request.client.host or "unknown"
+
 
 def _ctx(request: Request, **kw) -> dict:
     return {"request": request, "flashes": get_flashes(request), "user": None, **kw}
@@ -30,6 +53,12 @@ async def login_page(request: Request):
 
 @router.post("/login")
 async def login(request: Request, pool=Depends(get_pool)):
+    if not _check_rate(_client_ip(request)):
+        return templates.TemplateResponse(
+            "login.html",
+            _ctx(request, csrf=get_csrf_token(request), error="Too many attempts - try again in a few minutes"),
+            status_code=429,
+        )
     await verify_csrf(request)
     form = await request.form()
     username = str(form.get("username", "")).strip()
@@ -72,6 +101,15 @@ async def register_page(request: Request, code: str = ""):
 
 @router.post("/register")
 async def register(request: Request, pool=Depends(get_pool)):
+    if not _check_rate(_client_ip(request)):
+        form = await request.form()
+        invite_code = str(form.get("invite_code", "")).strip()
+        return templates.TemplateResponse(
+            "register.html",
+            _ctx(request, csrf=get_csrf_token(request),
+                 error="Too many attempts - try again in a few minutes", prefill_code=invite_code),
+            status_code=429,
+        )
     await verify_csrf(request)
     form = await request.form()
     username = str(form.get("username", "")).strip()
@@ -138,8 +176,25 @@ async def register(request: Request, pool=Depends(get_pool)):
     return RedirectResponse("/concert-tracker/shows", status_code=302)
 
 
-@router.get("/invite/create", response_class=HTMLResponse)
-async def create_invite_page(request: Request, pool=Depends(get_pool), user=Depends(require_user)):
+@router.get("/invite", response_class=HTMLResponse)
+async def invite_page(request: Request, pool=Depends(get_pool), user=Depends(require_user)):
+    async with pool.acquire() as conn:
+        codes = await conn.fetch(
+            "SELECT code, created_at, used_by, used_at FROM invite_codes "
+            "WHERE created_by = $1 ORDER BY created_at DESC LIMIT 50",
+            user["id"],
+        )
+    base = str(request.base_url).rstrip("/")
+    return templates.TemplateResponse(
+        "invite.html",
+        {**_ctx(request), "user": user, "codes": list(codes), "base_url": base,
+         "flashes": get_flashes(request), "csrf": get_csrf_token(request)},
+    )
+
+
+@router.post("/invite")
+async def create_invite(request: Request, pool=Depends(get_pool), user=Depends(require_user)):
+    await verify_csrf(request)
     code = generate_invite_code()
     now = int(time.time())
     async with pool.acquire() as conn:
@@ -147,12 +202,62 @@ async def create_invite_page(request: Request, pool=Depends(get_pool), user=Depe
             "INSERT INTO invite_codes (code, created_by, created_at) VALUES ($1, $2, $3)",
             code, user["id"], now,
         )
-    base = str(request.base_url).rstrip("/")
-    invite_url = f"{base}/concert-tracker/register?code={code}"
+    flash(request, f"Invite code created: {code}", "success")
+    return RedirectResponse("/concert-tracker/invite", status_code=302)
+
+
+@router.post("/invite/{code}/revoke")
+async def revoke_invite(code: str, request: Request, pool=Depends(get_pool), user=Depends(require_user)):
+    await verify_csrf(request)
+    async with pool.acquire() as conn:
+        await conn.execute(
+            "DELETE FROM invite_codes WHERE code = $1 AND created_by = $2 AND used_by IS NULL",
+            code, user["id"],
+        )
+    flash(request, "Invite revoked", "info")
+    return RedirectResponse("/concert-tracker/invite", status_code=302)
+
+
+@router.get("/profile/change-password", response_class=HTMLResponse)
+async def change_password_page(request: Request, user=Depends(require_user)):
     return templates.TemplateResponse(
-        "invite.html",
-        {**_ctx(request), "user": user, "invite_code": code, "invite_url": invite_url},
+        "change_password.html",
+        {"request": request, "user": user, "flashes": get_flashes(request), "csrf": get_csrf_token(request)},
     )
+
+
+@router.post("/profile/change-password")
+async def change_password(request: Request, pool=Depends(get_pool), user=Depends(require_user)):
+    await verify_csrf(request)
+    form = await request.form()
+    current = str(form.get("current_password", ""))
+    new_pw = str(form.get("new_password", ""))
+    confirm = str(form.get("confirm_password", ""))
+
+    def err(msg: str):
+        return templates.TemplateResponse(
+            "change_password.html",
+            {"request": request, "user": user, "flashes": get_flashes(request),
+             "csrf": get_csrf_token(request), "error": msg},
+            status_code=400,
+        )
+
+    if len(new_pw) < 8:
+        return err("New password must be at least 8 characters")
+    if new_pw != confirm:
+        return err("New passwords don't match")
+
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow("SELECT password_hash FROM users WHERE id = $1", user["id"])
+        if not row or not verify_password(current, row["password_hash"]):
+            return err("Current password is incorrect")
+        await conn.execute(
+            "UPDATE users SET password_hash = $1 WHERE id = $2",
+            hash_password(new_pw), user["id"],
+        )
+
+    flash(request, "Password updated", "success")
+    return RedirectResponse(f"/concert-tracker/u/{user['username']}", status_code=302)
 
 
 @router.post("/admin/invite")

@@ -12,7 +12,7 @@
 .show-card-link { display: flex; align-items: center; gap: 1rem; flex: 1; min-width: 0; color: var(--text); text-decoration: none; }
 .show-card-link:hover { text-decoration: none; }
 .show-card-actions { display: flex; gap: .4rem; flex-shrink: 0; margin-left: .5rem; }
-.show-card:has(.show-card-link):not(.festival-group-card):hover { border-color: var(--accent); background: var(--surface2); }
+.show-card:not(.show-card-static):not(.festival-group-card):hover { border-color: var(--accent); background: var(--surface2); }
 .festival-group-card:hover { border-color: var(--accent); background: var(--surface2); }
 .festival-group-card.toggle-hover { border-color: var(--border) !important; background: var(--surface) !important; }
 .festival-group-card.toggle-hover .festival-toggle { border-color: var(--accent) !important; color: var(--accent); }

@@ -45,6 +45,18 @@
         {% if social_links.instagram %}
         <a href="{{ social_links.instagram }}" class="social-link social-link-instagram" target="_blank" rel="noopener">Instagram</a>
         {% endif %}
+        {% if social_links.twitter %}
+        <a href="{{ social_links.twitter }}" class="social-link social-link-twitter" target="_blank" rel="noopener">Twitter/X</a>
+        {% endif %}
+        {% if social_links.bandcamp %}
+        <a href="{{ social_links.bandcamp }}" class="social-link social-link-bandcamp" target="_blank" rel="noopener">Bandcamp</a>
+        {% endif %}
+        {% if social_links.soundcloud %}
+        <a href="{{ social_links.soundcloud }}" class="social-link social-link-soundcloud" target="_blank" rel="noopener">SoundCloud</a>
+        {% endif %}
+        {% if social_links.youtube %}
+        <a href="{{ social_links.youtube }}" class="social-link social-link-youtube" target="_blank" rel="noopener">YouTube</a>
+        {% endif %}
         {% if social_links.website %}
         <a href="{{ social_links.website }}" class="social-link social-link-website" target="_blank" rel="noopener">Website</a>
         {% endif %}
@@ -55,6 +67,8 @@
   <div class="profile-actions">
     {% if is_own_profile %}
     <a href="/concert-tracker/profile/edit" class="btn btn-ghost">Edit Profile</a>
+    {% elif not user %}
+    <a href="/concert-tracker/login" class="btn btn-accent">Log in to follow</a>
     {% elif is_following %}
     <form method="post" action="/concert-tracker/u/unfollow">
       <input type="hidden" name="_csrf" value="{{ csrf }}">

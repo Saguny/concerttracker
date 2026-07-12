@@ -8,6 +8,9 @@
   <h1>Your Stats</h1>
 </div>
 
+<div id="stats-error" style="display:none" class="empty-state">
+  <p>Couldn't load stats -please refresh the page.</p>
+</div>
 <div class="stats-hero" id="stats-hero" style="display:none">
   <div class="stat-tile"><span class="stat-num" id="s-total">-</span><span class="stat-label">Total Shows</span></div>
   <div class="stat-tile"><span class="stat-num" id="s-upcoming">-</span><span class="stat-label">Upcoming</span></div>
@@ -49,20 +52,33 @@ Chart.defaults.color = TEXT;
 Chart.defaults.borderColor = '#2a2a2a';
 
 async function loadStats() {
-  const res = await fetch('/concert-tracker/api/stats');
-  const d = await res.json();
+  let d;
+  try {
+    const res = await fetch('/concert-tracker/api/stats');
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    d = await res.json();
+  } catch (err) {
+    document.getElementById('stats-error').style.display = 'block';
+    return;
+  }
 
   document.getElementById('s-total').textContent = d.total;
   document.getElementById('s-upcoming').textContent = d.upcoming;
   document.getElementById('s-festival').textContent = d.festival;
-  document.getElementById('s-artists').textContent = d.top_artists.length;
+  document.getElementById('s-artists').textContent = d.unique_artists ?? d.top_artists.length;
   document.getElementById('stats-hero').style.display = 'grid';
 
-  bar('chart-years', d.per_year.map(r => r.year), d.per_year.map(r => r.count), ACCENT);
+  if (d.per_year.length) {
+    bar('chart-years', d.per_year.map(r => r.year), d.per_year.map(r => r.count), ACCENT);
+  } else {
+    document.getElementById('chart-years').closest('.chart-card').querySelector('h3').insertAdjacentHTML(
+      'afterend', '<p class="chart-empty">No shows logged yet.</p>');
+    document.getElementById('chart-years').style.display = 'none';
+  }
   bar('chart-months', d.by_month.map(r => r.month), d.by_month.map(r => r.count), ACCENT2);
   donut('chart-kind', ['Standalone', 'Festival'], [d.standalone, d.festival], [ACCENT2, ACCENT]);
-  hbar('chart-artists', d.top_artists.map(r => r.artist), d.top_artists.map(r => r.count), ACCENT);
-  hbar('chart-venues', d.top_venues.map(r => r.venue), d.top_venues.map(r => r.count), ACCENT2);
+  if (d.top_artists.length) hbar('chart-artists', d.top_artists.map(r => r.artist), d.top_artists.map(r => r.count), ACCENT);
+  if (d.top_venues.length)  hbar('chart-venues', d.top_venues.map(r => r.venue), d.top_venues.map(r => r.count), ACCENT2);
 }
 
 function bar(id, labels, data, color) {

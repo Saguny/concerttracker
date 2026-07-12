@@ -34,8 +34,10 @@ def get_pool() -> asyncpg.Pool:
 
 
 async def _migrate() -> None:
-    sql_path = os.path.join(os.path.dirname(__file__), "..", "migrations", "001_init.sql")
-    with open(sql_path) as f:
-        sql = f.read()
-    async with _pool.acquire() as conn:
-        await conn.execute(sql)
+    migrations_dir = os.path.join(os.path.dirname(__file__), "..", "migrations")
+    for filename in sorted(os.listdir(migrations_dir)):
+        if filename.endswith(".sql"):
+            with open(os.path.join(migrations_dir, filename)) as f:
+                sql = f.read()
+            async with _pool.acquire() as conn:
+                await conn.execute(sql)

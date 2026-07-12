@@ -2,8 +2,16 @@
 {% block title %}Shows · Concert Tracker{% endblock %}
 {% block content %}
 <div class="page-header">
-  <h1>Your Shows • <span class="muted" id="show-count">{{ items | length }}</span></h1>
-  <a href="/concert-tracker/shows/add" class="btn btn-accent">+ Add Show</a>
+  <h1>Your Shows • <span class="muted" id="show-count">{{ total_count }}</span></h1>
+  <div style="display:flex;gap:.5rem;align-items:center">
+    <div class="export-row">
+      <span class="muted small">Export:</span>
+      <a href="/concert-tracker/shows/export?format=csv" class="btn btn-sm btn-ghost">CSV</a>
+      <a href="/concert-tracker/shows/export?format=json" class="btn btn-sm btn-ghost">JSON</a>
+      <a href="/concert-tracker/shows/export?format=ical" class="btn btn-sm btn-ghost">iCal</a>
+    </div>
+    <a href="/concert-tracker/shows/add" class="btn btn-accent">+ Add Show</a>
+  </div>
 </div>
 
 <form class="filter-bar" method="get" action="/concert-tracker/shows" id="filter-form">
@@ -45,7 +53,7 @@
       {% if show.artist_thumb_url %}
       <img class="show-thumb" src="{{ show.artist_thumb_url }}" alt="{{ show.artist }}" loading="lazy">
       {% else %}
-      <div class="show-thumb show-thumb-placeholder">🎵</div>
+      <div class="show-thumb show-thumb-placeholder" aria-hidden="true">🎵</div>
       {% endif %}
       <div class="show-card-body">
         <div class="show-artist">{{ show.artist }}{% if is_upcoming %} <span class="badge badge-upcoming">Upcoming</span>{% endif %}</div>
@@ -74,7 +82,7 @@
       {% if f.shows[0].artist_thumb_url %}
       <img class="show-thumb" src="{{ f.shows[0].artist_thumb_url }}" alt="{{ f.festival_name }}" loading="lazy">
       {% else %}
-      <div class="show-thumb show-thumb-placeholder festival-thumb">🎪</div>
+      <div class="show-thumb show-thumb-placeholder festival-thumb" aria-hidden="true">🎪</div>
       {% endif %}
       <div class="show-card-body">
         <div class="show-artist">{{ f.festival_name }} <span class="badge badge-festival">Festival</span>{% if is_upcoming %} <span class="badge badge-upcoming">Upcoming</span>{% endif %}</div>
@@ -114,6 +122,18 @@
 </div>
 {% endif %}
 </div>{# end show-list-region #}
+
+{% if total_pages > 1 %}
+<nav class="pagination" aria-label="Page navigation">
+  {% if page > 1 %}
+  <a href="?year={{ filters.year }}&artist={{ filters.artist }}&kind={{ filters.kind }}&sort={{ filters.sort }}&page={{ page - 1 }}" class="btn btn-sm btn-ghost">← Prev</a>
+  {% endif %}
+  <span class="pagination-info muted small">Page {{ page }} of {{ total_pages }}</span>
+  {% if page < total_pages %}
+  <a href="?year={{ filters.year }}&artist={{ filters.artist }}&kind={{ filters.kind }}&sort={{ filters.sort }}&page={{ page + 1 }}" class="btn btn-sm btn-ghost">Next →</a>
+  {% endif %}
+</nav>
+{% endif %}
 
 {% block scripts %}
 <script>

@@ -4,6 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}Concert Tracker{% endblock %}</title>
+  <meta name="description" content="{% block meta_description %}Track every concert you've been to, share with friends, and discover who else was there.{% endblock %}">
+  <meta property="og:title" content="{% block og_title %}Concert Tracker{% endblock %}">
+  <meta property="og:description" content="{% block og_description %}Track every concert you've been to, share with friends, and discover who else was there.{% endblock %}">
+  <meta property="og:type" content="website">
+  <meta name="robots" content="noindex, nofollow">
   <link rel="stylesheet" href="/concert-tracker/static/styles/main.css">
   {% if user and user.accent_color %}
   <style>:root{--accent:{{ user.accent_color }};--accent-dim:{{ user.accent_color }}26;}</style>
@@ -11,37 +16,59 @@
   {% block head %}{% endblock %}
 </head>
 <body>
+<a href="#main-content" class="skip-link">Skip to content</a>
 {% if user %}
-<nav class="nav">
+<nav class="nav" role="navigation" aria-label="Main navigation">
+  <button class="nav-hamburger" id="nav-hamburger" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="nav-right">
+    <span></span><span></span><span></span>
+  </button>
   <a class="nav-brand" href="/concert-tracker/social">Concert Tracky Miao</a>
-  <div class="nav-right">
+  <div class="nav-right" id="nav-right">
     <a href="/concert-tracker/shows/add" class="btn btn-sm btn-accent">+ Add Show</a>
+
+    <!-- Notification bell -->
+    <div class="nav-notif-wrap" id="nav-notif-wrap">
+      <button class="nav-notif-btn" id="nav-notif-btn" type="button" aria-label="Notifications" aria-expanded="false" aria-haspopup="true">
+        <span class="nav-notif-icon">🔔</span>
+        <span class="nav-notif-badge" id="nav-notif-badge" style="display:none"></span>
+      </button>
+      <div class="nav-dropdown nav-notif-dropdown" id="nav-notif-dropdown">
+        <div class="nav-notif-header">
+          <span>Notifications</span>
+          <button class="nav-notif-mark-read" id="nav-notif-mark-read" type="button">Mark all read</button>
+        </div>
+        <div id="nav-notif-list"><div class="nav-notif-empty">No notifications yet</div></div>
+      </div>
+    </div>
+
     <div class="nav-user-wrap" id="nav-user-wrap">
-      <button class="nav-user-btn" id="nav-user-btn" type="button">
+      <button class="nav-user-btn" id="nav-user-btn" type="button" aria-label="User menu" aria-expanded="false" aria-haspopup="true">
         {% if user.avatar_url %}
           <img class="nav-avatar" src="{{ user.avatar_url }}" alt="{{ user.username }}">
         {% else %}
-          <div class="nav-avatar nav-avatar-ph">{{ user.username[0] | upper }}</div>
+          <div class="nav-avatar nav-avatar-ph" aria-hidden="true">{{ user.username[0] | upper }}</div>
         {% endif %}
         <span class="nav-username">{{ user.username }}</span>
-        <span class="nav-chevron">▾</span>
+        <span class="nav-chevron" aria-hidden="true">▾</span>
       </button>
-      <div class="nav-dropdown" id="nav-dropdown">
-        <a class="nav-drop-item" href="/concert-tracker/u/{{ user.username }}">My Profile</a>
-        <a class="nav-drop-item" href="/concert-tracker/shows">My Shows</a>
-        <a class="nav-drop-item" href="/concert-tracker/calendar">Calendar</a>
-        <a class="nav-drop-item" href="/concert-tracker/stats">Stats</a>
-        <div class="nav-drop-sep"></div>
-        <a class="nav-drop-item" href="/concert-tracker/profile/edit">Edit Profile</a>
-        <a class="nav-drop-item" href="/concert-tracker/invite/create">Invite</a>
-        <a class="nav-drop-item nav-drop-danger" href="/concert-tracker/logout">Logout</a>
+      <div class="nav-dropdown" id="nav-dropdown" role="menu">
+        <a class="nav-drop-item" href="/concert-tracker/u/{{ user.username }}" role="menuitem">My Profile</a>
+        <a class="nav-drop-item" href="/concert-tracker/shows" role="menuitem">My Shows</a>
+        <a class="nav-drop-item" href="/concert-tracker/calendar" role="menuitem">Calendar</a>
+        <a class="nav-drop-item" href="/concert-tracker/stats" role="menuitem">Stats</a>
+        <a class="nav-drop-item" href="/concert-tracker/discover" role="menuitem">Discover</a>
+        <div class="nav-drop-sep" role="separator"></div>
+        <a class="nav-drop-item" href="/concert-tracker/profile/edit" role="menuitem">Edit Profile</a>
+        <a class="nav-drop-item" href="/concert-tracker/profile/change-password" role="menuitem">Change Password</a>
+        <a class="nav-drop-item" href="/concert-tracker/invite" role="menuitem">Invite</a>
+        <a class="nav-drop-item nav-drop-danger" href="/concert-tracker/logout" role="menuitem">Logout</a>
       </div>
     </div>
   </div>
 </nav>
 {% endif %}
 
-<main class="main">
+<main class="main" id="main-content">
   {% for f in flashes %}
   <div class="flash flash-{{ f.category }}">{{ f.message | safe }}</div>
   {% endfor %}
@@ -52,17 +79,152 @@
 {% block scripts %}{% endblock %}
 <script>
 (function() {
+  // User menu
   const btn = document.getElementById('nav-user-btn');
   const drop = document.getElementById('nav-dropdown');
-  if (!btn) return;
-  btn.addEventListener('click', function(e) {
-    e.stopPropagation();
-    drop.classList.toggle('open');
-  });
+  if (btn && drop) {
+    btn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      const open = drop.classList.toggle('open');
+      btn.setAttribute('aria-expanded', open);
+      if (open) { notifDrop && notifDrop.classList.remove('open'); notifBtn && notifBtn.setAttribute('aria-expanded','false'); }
+    });
+  }
+
+  // Notification dropdown
+  const notifBtn = document.getElementById('nav-notif-btn');
+  const notifDrop = document.getElementById('nav-notif-dropdown');
+  if (notifBtn && notifDrop) {
+    notifBtn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      const open = notifDrop.classList.toggle('open');
+      notifBtn.setAttribute('aria-expanded', open);
+      if (open) {
+        drop && drop.classList.remove('open');
+        btn && btn.setAttribute('aria-expanded','false');
+        _loadNotifications();
+      }
+    });
+    document.getElementById('nav-notif-mark-read')?.addEventListener('click', function(e) {
+      e.stopPropagation();
+      fetch('/concert-tracker/api/notifications/read', {method:'POST', headers:{'X-Requested-With':'fetch'}})
+        .then(() => {
+          document.querySelectorAll('.nav-notif-item.unread').forEach(el => el.classList.remove('unread'));
+          const badge = document.getElementById('nav-notif-badge');
+          if (badge) badge.style.display = 'none';
+        });
+    });
+  }
+
   document.addEventListener('click', function() {
-    drop.classList.remove('open');
+    drop && drop.classList.remove('open');
+    btn && btn.setAttribute('aria-expanded','false');
+    notifDrop && notifDrop.classList.remove('open');
+    notifBtn && notifBtn.setAttribute('aria-expanded','false');
   });
+
+  // Hamburger for mobile
+  const hamburger = document.getElementById('nav-hamburger');
+  const navRight = document.getElementById('nav-right');
+  if (hamburger && navRight) {
+    hamburger.addEventListener('click', function(e) {
+      e.stopPropagation();
+      const open = navRight.classList.toggle('nav-right-open');
+      hamburger.setAttribute('aria-expanded', open);
+    });
+  }
+
+  function _loadNotifications() {
+    const list = document.getElementById('nav-notif-list');
+    fetch('/concert-tracker/api/notifications')
+      .then(r => r.json())
+      .then(data => {
+        const badge = document.getElementById('nav-notif-badge');
+        if (!data.length) {
+          list.innerHTML = '<div class="nav-notif-empty">No notifications yet</div>';
+          if (badge) badge.style.display = 'none';
+          return;
+        }
+        const unread = data.filter(n => !n.is_read).length;
+        if (badge) { badge.textContent = unread > 9 ? '9+' : unread; badge.style.display = unread ? '' : 'none'; }
+        list.innerHTML = data.map(n => {
+          const cls = n.is_read ? 'nav-notif-item' : 'nav-notif-item unread';
+          return `<a class="${cls}" href="${_notifHref(n)}">${_notifText(n)}<span class="nav-notif-time">${_ago(n.created_at)}</span></a>`;
+        }).join('');
+      })
+      .catch(() => { list.innerHTML = '<div class="nav-notif-empty">Couldn\'t load notifications</div>'; });
+  }
+
+  function _notifHref(n) {
+    if (n.type === 'follow') return `/concert-tracker/u/${n.actor_username}`;
+    if (n.festival_id) return `/concert-tracker/shows/festival/${n.festival_id}`;
+    if (n.show_id) return `/concert-tracker/shows/${n.show_id}`;
+    return '/concert-tracker/social';
+  }
+
+  function _notifText(n) {
+    const actor = `<strong>${n.actor_username}</strong>`;
+    if (n.type === 'follow') return `${actor} started following you`;
+    if (n.type === 'like') return `${actor} liked your show`;
+    if (n.type === 'comment') return `${actor} commented on your show`;
+    if (n.type === 'tag') return `${actor} tagged you in a show`;
+    return actor;
+  }
+
+  function _ago(ts) {
+    const s = Math.floor(Date.now()/1000 - ts);
+    if (s < 60) return 'just now';
+    if (s < 3600) return Math.floor(s/60) + 'm ago';
+    if (s < 86400) return Math.floor(s/3600) + 'h ago';
+    return Math.floor(s/86400) + 'd ago';
+  }
+
+  // Poll unread count every 60s
+  function _pollUnread() {
+    fetch('/concert-tracker/api/notifications/unread-count')
+      .then(r => r.json())
+      .then(data => {
+        const badge = document.getElementById('nav-notif-badge');
+        if (!badge) return;
+        const count = data.count || 0;
+        badge.textContent = count > 9 ? '9+' : count;
+        badge.style.display = count ? '' : 'none';
+      })
+      .catch(() => {});
+  }
+  _pollUnread();
+  setInterval(_pollUnread, 60000);
 })();
+
+// Shared autocomplete keyboard nav -call after rendering dropdown items
+// input: <input>, list: <ul class="autocomplete-list">, onSelect: fn(liElement)
+window._initAutocompleteKeys = function(input, list, onSelect) {
+  input.addEventListener('keydown', function(e) {
+    const items = Array.from(list.querySelectorAll('li'));
+    if (!items.length || list.style.display === 'none') return;
+    const active = list.querySelector('li.ac-active');
+    const idx = active ? items.indexOf(active) : -1;
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      const next = items[(idx + 1) % items.length];
+      if (active) active.classList.remove('ac-active');
+      next.classList.add('ac-active');
+      next.scrollIntoView({block:'nearest'});
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      const prev = items[(idx - 1 + items.length) % items.length];
+      if (active) active.classList.remove('ac-active');
+      prev.classList.add('ac-active');
+      prev.scrollIntoView({block:'nearest'});
+    } else if (e.key === 'Enter' && active) {
+      e.preventDefault();
+      onSelect(active);
+    } else if (e.key === 'Escape') {
+      list.style.display = 'none';
+      items.forEach(i => i.classList.remove('ac-active'));
+    }
+  });
+};
 </script>
 </body>
 </html>

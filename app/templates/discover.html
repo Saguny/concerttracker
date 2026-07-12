@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}Discover People · Concert Tracker{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>Discover People</h1>
+</div>
+
+<form class="filter-bar" method="get" action="/concert-tracker/discover" id="discover-form">
+  <input type="text" name="q" placeholder="Search by username…" value="{{ q }}" autocomplete="off" id="discover-q">
+  <button type="submit" class="btn btn-accent">Search</button>
+  {% if q %}
+  <a href="/concert-tracker/discover" class="btn btn-ghost">Clear</a>
+  {% endif %}
+</form>
+
+{% if not rows %}
+<div class="empty-state">
+  <p>{% if q %}No users found matching "{{ q }}".{% else %}No other users yet -invite friends!{% endif %}</p>
+</div>
+{% else %}
+<div class="discover-grid">
+  {% for u in rows %}
+  <div class="discover-card">
+    <a href="/concert-tracker/u/{{ u.username }}" class="discover-avatar-link">
+      {% if u.avatar_url %}
+      <img src="{{ u.avatar_url }}" class="discover-avatar" alt="{{ u.username }}">
+      {% else %}
+      <div class="discover-avatar discover-avatar-ph">{{ u.username[0] | upper }}</div>
+      {% endif %}
+    </a>
+    <div class="discover-info">
+      <a href="/concert-tracker/u/{{ u.username }}" class="discover-username">{{ u.username }}</a>
+      <div class="discover-meta">
+        <span>{{ u.show_count }} show{{ 's' if u.show_count != 1 else '' }}</span>
+        <span>{{ u.follower_count }} follower{{ 's' if u.follower_count != 1 else '' }}</span>
+      </div>
+      {% if u.bio %}
+      <p class="discover-bio muted small">{{ u.bio | truncate(80) }}</p>
+      {% endif %}
+    </div>
+    <form method="post" action="/concert-tracker/u/{% if u.id in following_ids %}unfollow{% else %}follow{% endif %}">
+      <input type="hidden" name="_csrf" value="{{ csrf }}">
+      {% if u.id in following_ids %}
+      <input type="hidden" name="username" value="{{ u.username }}">
+      <button type="submit" class="btn btn-sm btn-ghost">Unfollow</button>
+      {% else %}
+      <input type="hidden" name="follow_user" value="{{ u.username }}">
+      <button type="submit" class="btn btn-sm btn-accent">Follow</button>
+      {% endif %}
+    </form>
+  </div>
+  {% endfor %}
+</div>
+
+{% if pages > 1 %}
+<nav class="pagination" aria-label="Page navigation">
+  {% if page > 1 %}
+  <a href="?q={{ q }}&page={{ page - 1 }}" class="btn btn-sm btn-ghost">← Prev</a>
+  {% endif %}
+  <span class="pagination-info muted small">Page {{ page }} of {{ pages }}</span>
+  {% if page < pages %}
+  <a href="?q={{ q }}&page={{ page + 1 }}" class="btn btn-sm btn-ghost">Next →</a>
+  {% endif %}
+</nav>
+{% endif %}
+{% endif %}
+{% endblock %}

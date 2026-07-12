@@ -5,8 +5,9 @@ from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 
 from app.db import get_pool
-from app.auth import flash, get_csrf_token, get_flashes, require_user, verify_csrf
+from app.auth import flash, get_csrf_token, get_flashes, require_user, verify_csrf, optional_user
 from app.jinja import templates
+from app.routes.notifications import create_notification
 
 router = APIRouter()
 
@@ -55,10 +56,14 @@ async def save_profile(request: Request, pool=Depends(get_pool), user=Depends(re
     fav_raw = str(form.get("favorite_artists", "")).strip()
     favorite_artists = [a.strip() for a in fav_raw.split(",") if a.strip()][:10] or None
 
+    import re as _re
+    _URL_RE = _re.compile(r'^https?://', _re.I)
     social_links: dict | None = {}
-    for key in ("spotify", "lastfm", "instagram", "website"):
+    for key in ("spotify", "lastfm", "instagram", "bandcamp", "soundcloud", "youtube", "twitter", "website"):
         val = str(form.get(f"social_{key}", "")).strip()[:200]
         if val:
+            if not _URL_RE.match(val):
+                val = "https://" + val
             social_links[key] = val
     social_links = social_links or None
 
@@ -71,9 +76,10 @@ async def save_profile(request: Request, pool=Depends(get_pool), user=Depends(re
         flash(request, "Username must be 2–30 characters: letters, numbers, underscores only.", "error")
         return RedirectResponse("/concert-tracker/profile/edit", status_code=302)
 
+    remove_avatar = bool(form.get("remove_avatar"))
     avatar_url = None
     avatar_file = form.get("avatar")
-    if avatar_file and hasattr(avatar_file, "filename") and avatar_file.filename:
+    if not remove_avatar and avatar_file and hasattr(avatar_file, "filename") and avatar_file.filename:
         from app.r2 import upload_avatar
         data = await avatar_file.read()
         content_type = avatar_file.content_type or "application/octet-stream"
@@ -119,22 +125,25 @@ async def save_profile(request: Request, pool=Depends(get_pool), user=Depends(re
             if not ok:
                 pinned_show_id = None
 
+        update_avatar = remove_avatar or avatar_url is not None
         await conn.execute(
             """UPDATE users SET
                bio = $1,
-               avatar_url = COALESCE($2, avatar_url),
-               banner_url = CASE WHEN $3 THEN $4 ELSE banner_url END,
-               accent_color = $5,
-               location = $6,
-               favorite_artists = $7,
-               social_links = $8,
-               pinned_show_id = $9
-               WHERE id = $10""",
-            bio, avatar_url, update_banner, banner_url,
+               avatar_url = CASE WHEN $2 THEN $3 ELSE avatar_url END,
+               banner_url = CASE WHEN $4 THEN $5 ELSE banner_url END,
+               accent_color = $6,
+               location = $7,
+               favorite_artists = $8,
+               social_links = $9,
+               pinned_show_id = $10
+               WHERE id = $11""",
+            bio, update_avatar, avatar_url, update_banner, banner_url,
             accent_color, location, favorite_artists, social_links, pinned_show_id,
             user["id"],
         )
-        if avatar_url:
+        if remove_avatar:
+            request.session["avatar_url"] = None
+        elif avatar_url:
             request.session["avatar_url"] = avatar_url
         request.session["accent_color"] = accent_color
 
@@ -153,9 +162,10 @@ async def social_page(request: Request, pool=Depends(get_pool), user=Depends(req
             "FROM shows s "
             "JOIN follows f ON f.target_id = s.user_id "
             "JOIN users u ON u.id = s.user_id "
-            "WHERE f.user_id = $1 ORDER BY s.created_at DESC LIMIT 40",
+            "WHERE f.user_id = $1 ORDER BY s.created_at DESC LIMIT 20",
             uid,
         )
+        following_count = await conn.fetchval("SELECT COUNT(*) FROM follows WHERE user_id=$1", uid)
         leaderboard_all = await conn.fetch(
             "SELECT u.username, COUNT(s.id)::int AS count "
             "FROM users u JOIN shows s ON s.user_id = u.id "
@@ -243,9 +253,12 @@ async def social_page(request: Request, pool=Depends(get_pool), user=Depends(req
             user,
             today=time.strftime("%Y-%m-%d"),
             feed=feed_items,
+            feed_cursor=feed[-1]["created_at"] if feed else 0,
+            has_more=len(feed) == 20,
             leaderboard_all=leaderboard_all,
             leaderboard_year=leaderboard_year,
             following=following,
+            following_count=following_count,
             mutuals=mutuals,
             following_ids=following_ids,
             shared_artists=shared_artists,
@@ -278,14 +291,20 @@ async def follow(request: Request, pool=Depends(get_pool), user=Depends(require_
     form = await request.form()
     username = str(form.get("follow_user", "")).strip()
 
+    target_id = None
     async with pool.acquire() as conn:
         target = await conn.fetchrow("SELECT id FROM users WHERE username = $1", username)
         if target and target["id"] != user["id"]:
-            await conn.execute(
+            result = await conn.execute(
                 "INSERT INTO follows (user_id, target_id, created_at) VALUES ($1, $2, $3) "
                 "ON CONFLICT DO NOTHING",
                 user["id"], target["id"], int(time.time()),
             )
+            if result != "INSERT 0 0":
+                target_id = target["id"]
+
+    if target_id:
+        await create_notification(pool, user_id=target_id, actor_id=user["id"], type="follow")
 
     if _is_ajax(request):
         return JSONResponse({"following": True, "username": username})
@@ -309,6 +328,74 @@ async def unfollow(request: Request, pool=Depends(get_pool), user=Depends(requir
     if _is_ajax(request):
         return JSONResponse({"following": False, "username": username})
     return RedirectResponse(f"/concert-tracker/u/{username}", status_code=302)
+
+
+@router.get("/discover", response_class=HTMLResponse)
+async def discover_page(request: Request, pool=Depends(get_pool), user=Depends(require_user), q: str = "", page: int = 1):
+    limit = 24
+    offset = (page - 1) * limit
+    async with pool.acquire() as conn:
+        if q:
+            rows = await conn.fetch(
+                "SELECT u.id, u.username, u.avatar_url, u.bio, "
+                "(SELECT COUNT(*) FROM shows WHERE user_id=u.id)::int AS show_count, "
+                "(SELECT COUNT(*) FROM follows WHERE target_id=u.id)::int AS follower_count "
+                "FROM users u WHERE u.username ILIKE $1 AND u.id != $2 "
+                "ORDER BY u.username LIMIT $3 OFFSET $4",
+                f"%{q}%", user["id"], limit, offset,
+            )
+            total = await conn.fetchval(
+                "SELECT COUNT(*) FROM users WHERE username ILIKE $1 AND id != $2", f"%{q}%", user["id"]
+            )
+        else:
+            rows = await conn.fetch(
+                "SELECT u.id, u.username, u.avatar_url, u.bio, "
+                "(SELECT COUNT(*) FROM shows WHERE user_id=u.id)::int AS show_count, "
+                "(SELECT COUNT(*) FROM follows WHERE target_id=u.id)::int AS follower_count "
+                "FROM users u WHERE u.id != $1 "
+                "ORDER BY show_count DESC, u.username LIMIT $2 OFFSET $3",
+                user["id"], limit, offset,
+            )
+            total = await conn.fetchval("SELECT COUNT(*) FROM users WHERE id != $1", user["id"])
+        i_follow = await conn.fetch("SELECT target_id FROM follows WHERE user_id=$1", user["id"])
+    following_ids = {r["target_id"] for r in i_follow}
+    pages = (total + limit - 1) // limit
+    return templates.TemplateResponse(
+        "discover.html",
+        _ctx(request, user, rows=rows, following_ids=following_ids,
+             q=q, page=page, pages=pages, csrf=get_csrf_token(request)),
+    )
+
+
+@router.get("/api/feed")
+async def feed_api(request: Request, pool=Depends(get_pool), user=Depends(require_user),
+                   before: int = 0, limit: int = 20):
+    limit = min(limit, 40)
+    uid = user["id"]
+    async with pool.acquire() as conn:
+        sql = (
+            "SELECT s.*, u.username, u.avatar_url AS user_avatar, "
+            "(SELECT COUNT(*) FROM show_likes l WHERE l.show_id = s.id) AS like_count, "
+            "(SELECT COUNT(*) FROM show_comments c WHERE c.show_id = s.id) AS comment_count "
+            "FROM shows s "
+            "JOIN follows f ON f.target_id = s.user_id "
+            "JOIN users u ON u.id = s.user_id "
+            "WHERE f.user_id = $1"
+        )
+        params: list = [uid]
+        if before:
+            params.append(before)
+            sql += f" AND s.created_at < ${len(params)}"
+        sql += f" ORDER BY s.created_at DESC LIMIT ${len(params)+1}"
+        params.append(limit)
+        rows = await conn.fetch(sql, *params)
+    def _ser(r):
+        d = dict(r)
+        if d.get("date") is not None:
+            d["date"] = str(d["date"])
+        return d
+    items = [_ser(r) for r in rows]
+    return JSONResponse({"items": items, "has_more": len(items) == limit})
 
 
 @router.get("/u/{username}/followers", response_class=HTMLResponse)
@@ -358,7 +445,7 @@ async def friend_profile(
     username: str,
     request: Request,
     pool=Depends(get_pool),
-    user=Depends(require_user),
+    user=Depends(optional_user),
     year: str = "",
     artist_filter: str = "",
     kind: str = "",
@@ -379,11 +466,12 @@ async def friend_profile(
             username,
         )
         if not profile:
-            flash(request, "User not found", "error")
-            return RedirectResponse("/concert-tracker/social", status_code=302)
+            if user:
+                flash(request, "User not found", "error")
+            return RedirectResponse("/concert-tracker/social" if user else "/concert-tracker/login", status_code=302)
 
         pid = profile["id"]
-        uid = user["id"]
+        uid = user["id"] if user else None
 
         clauses = ["s.user_id = $1"]
         params: list = [pid]
@@ -412,10 +500,10 @@ async def friend_profile(
         )
         is_following = await conn.fetchval(
             "SELECT 1 FROM follows WHERE user_id = $1 AND target_id = $2", uid, pid
-        )
+        ) if uid else None
         is_follower = await conn.fetchval(
             "SELECT 1 FROM follows WHERE user_id = $1 AND target_id = $2", pid, uid
-        )
+        ) if uid else None
         per_year = await conn.fetch(
             "SELECT EXTRACT(YEAR FROM date)::int AS year, COUNT(*)::int AS count "
             "FROM shows WHERE user_id=$1 GROUP BY year ORDER BY year", pid,
@@ -445,7 +533,7 @@ async def friend_profile(
             "  AND s2.artist = s.artist AND s2.date = s.date"
             ") ORDER BY s.date DESC",
             uid, pid,
-        )
+        ) if uid else []
         show_count = await conn.fetchval(
             "SELECT (SELECT COUNT(*) FROM shows WHERE user_id=$1 AND (is_festival = FALSE OR festival_name IS NULL))"
             " + (SELECT COUNT(DISTINCT festival_name) FROM shows WHERE user_id=$1 AND is_festival = TRUE AND festival_name IS NOT NULL)",
@@ -501,7 +589,7 @@ async def friend_profile(
             is_following=bool(is_following),
             is_follower=bool(is_follower),
             is_mutual=bool(is_following and is_follower),
-            is_own_profile=uid == pid,
+            is_own_profile=uid is not None and uid == pid,
             per_year=[dict(r) for r in per_year],
             top_artists=top_artists,
             top_venues=top_venues,
@@ -511,6 +599,6 @@ async def friend_profile(
             pinned_show=pinned_show,
             social_links=dict(profile["social_links"] or {}),
             favorite_artists=[{"name": n, "thumb_url": fav_thumbs.get(n)} for n in fav_names],
-            csrf=get_csrf_token(request),
+            csrf=get_csrf_token(request) if user else "",
         ),
     )

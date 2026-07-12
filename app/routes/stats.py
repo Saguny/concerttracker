@@ -44,6 +44,9 @@ async def stats_data(request: Request, pool=Depends(get_pool), user=Depends(requ
         upcoming = await conn.fetchval(
             "SELECT COUNT(*) FROM shows WHERE user_id=$1 AND date >= CURRENT_DATE", uid
         )
+        unique_artists = await conn.fetchval(
+            "SELECT COUNT(DISTINCT artist) FROM shows WHERE user_id=$1", uid
+        )
 
     months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
     month_map = {r["month"]: r["count"] for r in by_month}
@@ -60,4 +63,5 @@ async def stats_data(request: Request, pool=Depends(get_pool), user=Depends(requ
         "by_month": [{"month": months[i], "count": month_map.get(i + 1, 0)} for i in range(12)],
         "festival": festival_count,
         "standalone": standalone_count,
+        "unique_artists": unique_artists,
     }

@@ -1,14 +1,58 @@
 {% extends "base.html" %}
-{% block title %}Invite · Concert Tracker{% endblock %}
+{% block title %}Invites · Concert Tracker{% endblock %}
 {% block content %}
-<div class="auth-wrap">
-  <h1 class="auth-title">Invite Link</h1>
-  <p class="auth-sub">Share this with someone you trust. It can only be used once.</p>
-  <div class="invite-box">
-    <code id="invite-url">{{ invite_url }}</code>
-    <button class="btn btn-sm btn-accent" onclick="navigator.clipboard.writeText('{{ invite_url }}');this.textContent='Copied!'">Copy</button>
-  </div>
-  <p class="auth-footer">Code only: <strong>{{ invite_code }}</strong></p>
-  <a href="/concert-tracker/shows" class="btn btn-ghost btn-full" style="margin-top:1rem">Back to Shows</a>
+<div class="page-header">
+  <h1>Invite Codes</h1>
+  <form method="post" action="/concert-tracker/invite">
+    <input type="hidden" name="_csrf" value="{{ csrf }}">
+    <button type="submit" class="btn btn-accent">+ Generate Code</button>
+  </form>
 </div>
+
+{% if codes %}
+<table class="invite-table">
+  <thead>
+    <tr>
+      <th>Code</th>
+      <th>Created</th>
+      <th>Status</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for c in codes %}
+    <tr>
+      <td class="invite-code-cell">
+        <span id="code-{{ loop.index }}">{{ c.code }}</span>
+        <button class="btn btn-sm btn-ghost" style="margin-left:.5rem"
+          onclick="_clipCopy('{{ base_url }}/concert-tracker/register?code={{ c.code }}', this)">
+          Copy link
+        </button>
+      </td>
+      <td class="muted small">{{ c.created_at | datetimeformat if c.created_at else '—' }}</td>
+      <td>
+        {% if c.used_by %}
+        <span class="invite-status-used">Used</span>
+        {% else %}
+        <span class="invite-status-open">Available</span>
+        {% endif %}
+      </td>
+      <td>
+        {% if not c.used_by %}
+        <form method="post" action="/concert-tracker/invite/{{ c.code }}/revoke" style="display:inline">
+          <input type="hidden" name="_csrf" value="{{ csrf }}">
+          <button type="submit" class="btn btn-sm btn-danger"
+            onclick="return confirm('Revoke this code?')">Revoke</button>
+        </form>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<div class="empty-state">
+  <p>No invite codes yet -generate one above.</p>
+</div>
+{% endif %}
 {% endblock %}

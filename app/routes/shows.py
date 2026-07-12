@@ -7,8 +7,9 @@ from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 
 from app.db import get_pool
-from app.auth import flash, get_csrf_token, get_flashes, require_user
+from app.auth import flash, get_csrf_token, get_flashes, require_user, optional_user
 from app.jinja import templates
+from app.routes.notifications import create_notification
 import app.setlistfm as setlistfm
 import app.spotify as spotify
 import app.musicbrainz as musicbrainz
@@ -54,6 +55,7 @@ async def list_shows(
     artist: str = "",
     kind: str = "",
     sort: str = "date_desc",
+    page: int = 1,
 ):
     order = {
         "date_desc": "date DESC",
@@ -77,15 +79,22 @@ async def list_shows(
         clauses.append("is_festival = FALSE")
 
     where = " AND ".join(clauses)
+    page_size = 50
+    offset = (max(page, 1) - 1) * page_size
+    count_params = list(params)
     sql = (
         f"SELECT s.*, "
         "(SELECT COUNT(*) FROM show_likes l WHERE l.show_id = s.id) AS like_count, "
         "(SELECT COUNT(*) FROM show_comments c WHERE c.show_id = s.id) AS comment_count "
-        f"FROM shows s WHERE {where} ORDER BY {order}"
+        f"FROM shows s WHERE {where} ORDER BY {order} "
+        f"LIMIT ${len(params)+1} OFFSET ${len(params)+2}"
     )
 
     async with pool.acquire() as conn:
-        rows = await conn.fetch(sql, *params)
+        rows = await conn.fetch(sql, *params, page_size, offset)
+        total_count = await conn.fetchval(
+            f"SELECT COUNT(*) FROM shows s WHERE {where}", *count_params
+        )
         years = await conn.fetch(
             "SELECT DISTINCT EXTRACT(YEAR FROM date)::int AS y FROM shows WHERE user_id = $1 ORDER BY y DESC",
             user["id"],
@@ -117,6 +126,7 @@ async def list_shows(
         else:
             items.append({"type": "show", "show": show})
 
+    total_pages = max(1, (total_count + page_size - 1) // page_size)
     return templates.TemplateResponse(
         "list.html",
         _ctx(
@@ -126,6 +136,9 @@ async def list_shows(
             years=[r["y"] for r in years],
             filters={"year": year, "artist": artist, "kind": kind, "sort": sort},
             today=time.strftime("%Y-%m-%d"),
+            page=page,
+            total_pages=total_pages,
+            total_count=total_count,
             csrf=get_csrf_token(request),
         ),
     )
@@ -354,6 +367,7 @@ async def festival_like(
     festival_id: int, request: Request, pool=Depends(get_pool), user=Depends(require_user)
 ):
     await verify_csrf(request)
+    owner_id = None
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
             "SELECT id FROM shows WHERE festival_id = $1 ORDER BY date ASC, artist ASC LIMIT 1",
@@ -376,7 +390,11 @@ async def festival_like(
                 show_id, user["id"],
             )
             liked = True
+            owner_id = await conn.fetchval("SELECT user_id FROM festivals WHERE id = $1", festival_id)
         count = await conn.fetchval("SELECT COUNT(*) FROM show_likes WHERE show_id = $1", show_id)
+    if liked and owner_id:
+        await create_notification(pool, user_id=owner_id, actor_id=user["id"], type="like",
+                                  show_id=show_id, festival_id=festival_id)
     if _is_ajax(request):
         return JSONResponse({"liked": liked, "count": int(count)})
     return RedirectResponse(f"/concert-tracker/shows/festival/{festival_id}", status_code=302)
@@ -390,6 +408,9 @@ async def festival_add_comment(
     form = await request.form()
     body = str(form.get("body", "")).strip()[:500]
     comment_row = None
+    owner_id = None
+    comment_id = None
+    show_id = None
     if body:
         async with pool.acquire() as conn:
             row = await conn.fetchrow(
@@ -397,13 +418,18 @@ async def festival_add_comment(
                 festival_id,
             )
             if row:
+                show_id = row["id"]
                 now = int(time.time())
                 comment_id = await conn.fetchval(
                     "INSERT INTO show_comments (show_id, user_id, body, created_at) VALUES ($1, $2, $3, $4) RETURNING id",
-                    row["id"], user["id"], body, now,
+                    show_id, user["id"], body, now,
                 )
-                comment_row = {"id": comment_id, "body": body, "created_at": now,
+                owner_id = await conn.fetchval("SELECT user_id FROM festivals WHERE id = $1", festival_id)
+                comment_row = {"id": comment_id, "body": _render_mentions(body), "created_at": now,
                                "username": user["username"], "avatar_url": user.get("avatar_url")}
+    if owner_id and comment_id:
+        await create_notification(pool, user_id=owner_id, actor_id=user["id"],
+                                  type="comment", show_id=show_id, festival_id=festival_id, comment_id=comment_id)
     if _is_ajax(request):
         return JSONResponse(comment_row or {"error": "empty"})
     return RedirectResponse(f"/concert-tracker/shows/festival/{festival_id}", status_code=302)
@@ -433,6 +459,7 @@ async def tag_festival_friend(
     friend_id = int(form.get("friend_id", 0))
     if not friend_id:
         return RedirectResponse(f"/concert-tracker/shows/festival/{festival_id}", status_code=302)
+    tagged = False
     async with pool.acquire() as conn:
         rows = await conn.fetch("SELECT id FROM shows WHERE festival_id = $1 AND user_id = $2", festival_id, user["id"])
         for row in rows:
@@ -440,6 +467,10 @@ async def tag_festival_friend(
                 "INSERT INTO show_attendees (show_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
                 row["id"], friend_id,
             )
+        if rows:
+            tagged = True
+    if tagged:
+        await create_notification(pool, user_id=friend_id, actor_id=user["id"], type="tag", festival_id=festival_id)
     return RedirectResponse(f"/concert-tracker/shows/festival/{festival_id}", status_code=302)
 
 
@@ -582,7 +613,7 @@ async def add_show(request: Request, pool=Depends(get_pool), user=Depends(requir
 
 
 @router.get("/shows/{show_id}", response_class=HTMLResponse)
-async def show_detail(show_id: int, request: Request, pool=Depends(get_pool), user=Depends(require_user)):
+async def show_detail(show_id: int, request: Request, pool=Depends(get_pool), user=Depends(optional_user)):
     async with pool.acquire() as conn:
         show = await conn.fetchrow(
             "SELECT s.*, u.username AS owner_username, u.avatar_url AS owner_avatar "
@@ -590,10 +621,11 @@ async def show_detail(show_id: int, request: Request, pool=Depends(get_pool), us
             show_id,
         )
         if not show:
-            flash(request, "Show not found", "error")
-            return RedirectResponse("/concert-tracker/social", status_code=302)
+            if user:
+                flash(request, "Show not found", "error")
+            return RedirectResponse("/concert-tracker/social" if user else "/concert-tracker/login", status_code=302)
         show = _parse_show(show)
-        is_owner = show["user_id"] == user["id"]
+        is_owner = user is not None and show["user_id"] == user["id"]
         attendees = await conn.fetch(
             "SELECT u.username FROM show_attendees sa JOIN users u ON u.id = sa.user_id "
             "WHERE sa.show_id = $1 AND sa.user_id <> $2",
@@ -602,7 +634,7 @@ async def show_detail(show_id: int, request: Request, pool=Depends(get_pool), us
         like_count = await conn.fetchval("SELECT COUNT(*) FROM show_likes WHERE show_id = $1", show_id)
         user_liked = await conn.fetchval(
             "SELECT 1 FROM show_likes WHERE show_id = $1 AND user_id = $2", show_id, user["id"]
-        )
+        ) if user else None
         comments = await conn.fetch(
             "SELECT c.id, c.body, c.created_at, u.username, u.avatar_url "
             "FROM show_comments c JOIN users u ON u.id = c.user_id "
@@ -648,7 +680,7 @@ async def show_detail(show_id: int, request: Request, pool=Depends(get_pool), us
              like_count=like_count, user_liked=bool(user_liked),
              comments=list(comments), support_artists=support_artists,
              taggable_friends=taggable_friends,
-             csrf=get_csrf_token(request)),
+             csrf=get_csrf_token(request) if user else ""),
     )
 
 
@@ -692,6 +724,7 @@ async def tag_friend(show_id: int, request: Request, pool=Depends(get_pool), use
     await verify_csrf(request)
     form = await request.form()
     friend_id = int(form.get("friend_id", 0))
+    tagged = False
     if friend_id:
         async with pool.acquire() as conn:
             show = await conn.fetchrow("SELECT id FROM shows WHERE id = $1 AND user_id = $2", show_id, user["id"])
@@ -704,7 +737,76 @@ async def tag_friend(show_id: int, request: Request, pool=Depends(get_pool), use
                     "INSERT INTO show_attendees (show_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
                     show_id, user["id"],
                 )
+                tagged = True
+    if tagged:
+        await create_notification(pool, user_id=friend_id, actor_id=user["id"], type="tag", show_id=show_id)
     return RedirectResponse(f"/concert-tracker/shows/{show_id}", status_code=302)
+
+
+@router.get("/shows/export")
+async def export_shows(
+    request: Request, pool=Depends(get_pool), user=Depends(require_user),
+    format: str = "csv",
+):
+    import csv, io, datetime as _dt
+    from fastapi.responses import Response, StreamingResponse
+
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            "SELECT artist, venue, city, date, is_festival, festival_name, notes, created_at "
+            "FROM shows WHERE user_id=$1 ORDER BY date DESC",
+            user["id"],
+        )
+
+    if format == "json":
+        data = [
+            {
+                "artist": r["artist"], "venue": r["venue"], "city": r["city"],
+                "date": str(r["date"]), "is_festival": r["is_festival"],
+                "festival_name": r["festival_name"], "notes": r["notes"],
+            }
+            for r in rows
+        ]
+        return JSONResponse(data, headers={"Content-Disposition": 'attachment; filename="shows.json"'})
+
+    if format == "ical":
+        lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//ConcertTracker//EN"]
+        for r in rows:
+            uid_str = f"{r['artist']}-{r['date']}-{r['venue']}@concerttracker".replace(" ", "_")
+            dt = r["date"].strftime("%Y%m%d")
+            lines += [
+                "BEGIN:VEVENT",
+                f"UID:{uid_str}",
+                f"DTSTART;VALUE=DATE:{dt}",
+                f"SUMMARY:{r['artist']} @ {r['venue']}",
+                f"LOCATION:{r['venue']}, {r['city']}",
+                "END:VEVENT",
+            ]
+        lines.append("END:VCALENDAR")
+        body = "\r\n".join(lines)
+        return Response(body, media_type="text/calendar",
+                        headers={"Content-Disposition": 'attachment; filename="shows.ics"'})
+
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow(["Artist", "Venue", "City", "Date", "Festival", "Festival Name", "Notes"])
+    for r in rows:
+        writer.writerow([r["artist"], r["venue"], r["city"], r["date"],
+                         "Yes" if r["is_festival"] else "No", r["festival_name"] or "", r["notes"] or ""])
+    buf.seek(0)
+    return Response(buf.read(), media_type="text/csv",
+                    headers={"Content-Disposition": 'attachment; filename="shows.csv"'})
+
+
+@router.get("/api/shows/{show_id}/likes")
+async def show_likes(show_id: int, request: Request, pool=Depends(get_pool), user=Depends(require_user)):
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            "SELECT u.id, u.username, u.avatar_url FROM show_likes l "
+            "JOIN users u ON u.id = l.user_id WHERE l.show_id=$1 ORDER BY u.username",
+            show_id,
+        )
+    return [{"username": r["username"], "avatar_url": r["avatar_url"]} for r in rows]
 
 
 @router.get("/api/setlistfm")
@@ -835,6 +937,19 @@ async def _handle_save(request: Request, pool, user: dict, show_id: int | None):
 
     now = int(time.time())
 
+    # Photo -read data now, upload after we have a show_id
+    _photo_data: bytes | None = None
+    _photo_ct: str | None = None
+    remove_photo = form.get("remove_photo") == "on"
+    photo_file = form.get("photo")
+    if not remove_photo and photo_file and hasattr(photo_file, "filename") and photo_file.filename:
+        _photo_data = await photo_file.read()
+        _photo_ct = photo_file.content_type or "application/octet-stream"
+        if len(_photo_data) > 15 * 1024 * 1024:
+            flash(request, "Photo too large (max 15 MB)", "error")
+            back = f"/concert-tracker/shows/{show_id}/edit" if show_id else "/concert-tracker/shows/add"
+            return RedirectResponse(back, status_code=302)
+
     # Spotify lookups for support acts (parallel with each other)
     support_sp_results = await asyncio.gather(
         *[spotify.search_artist(name) for name in support_acts],
@@ -864,16 +979,35 @@ async def _handle_save(request: Request, pool, user: dict, show_id: int | None):
                 support_acts or None,
                 mbid, spotify_id, image_url, thumb_url, genres, now,
             )
+            # Upload photo now that we have the real show_id
+            if _photo_data and show_id:
+                from app.r2 import upload_show_photo as _up
+                try:
+                    _new_url = await _up(show_id, _photo_data, _photo_ct)
+                    await conn.execute("UPDATE shows SET photo_url=$1 WHERE id=$2", _new_url, show_id)
+                except Exception:
+                    pass
         else:
+            # For edits, upload first (show_id is known), then include in UPDATE
+            _new_photo_url = None
+            if _photo_data:
+                from app.r2 import upload_show_photo as _up
+                try:
+                    _new_photo_url = await _up(show_id, _photo_data, _photo_ct)
+                except Exception:
+                    pass
+            update_photo = remove_photo or _new_photo_url is not None
             await conn.execute(
                 "UPDATE shows SET artist=$1, venue=$2, city=$3, date=$4, is_festival=$5, "
                 "festival_name=$6, notes=$7, setlist=$8, support_acts=$9, artist_mbid=$10, "
-                "artist_spotify_id=$11, artist_image_url=$12, artist_thumb_url=$13, artist_genres=$14 "
+                "artist_spotify_id=$11, artist_image_url=$12, artist_thumb_url=$13, artist_genres=$14, "
+                "photo_url = CASE WHEN $17 THEN $18 ELSE photo_url END "
                 "WHERE id=$15 AND user_id=$16",
                 artist, venue, city, date, is_festival, festival_name,
                 notes, _json.dumps(setlist_data) if setlist_data else None,
                 support_acts or None,
                 mbid, spotify_id, image_url, thumb_url, genres, show_id, user["id"],
+                update_photo, _new_photo_url if not remove_photo else None,
             )
 
         # Persist headliner and support acts to the global artist catalogue
@@ -905,6 +1039,16 @@ async def _handle_save(request: Request, pool, user: dict, show_id: int | None):
 
 
 from app.auth import verify_csrf
+import re as _re
+
+_MENTION_RE = _re.compile(r'@([A-Za-z0-9_]{2,30})')
+
+
+def _render_mentions(text: str) -> str:
+    return _MENTION_RE.sub(
+        lambda m: f'<a class="mention" href="/concert-tracker/u/{m.group(1)}">@{m.group(1)}</a>',
+        text,
+    )
 
 
 def _is_ajax(request: Request) -> bool:
@@ -914,6 +1058,7 @@ def _is_ajax(request: Request) -> bool:
 @router.post("/shows/{show_id}/like")
 async def toggle_like(show_id: int, request: Request, pool=Depends(get_pool), user=Depends(require_user)):
     await verify_csrf(request)
+    owner_id = None
     async with pool.acquire() as conn:
         existing = await conn.fetchval(
             "SELECT 1 FROM show_likes WHERE show_id = $1 AND user_id = $2", show_id, user["id"]
@@ -927,7 +1072,10 @@ async def toggle_like(show_id: int, request: Request, pool=Depends(get_pool), us
                 show_id, user["id"],
             )
             liked = True
+            owner_id = await conn.fetchval("SELECT user_id FROM shows WHERE id = $1", show_id)
         count = await conn.fetchval("SELECT COUNT(*) FROM show_likes WHERE show_id = $1", show_id)
+    if liked and owner_id:
+        await create_notification(pool, user_id=owner_id, actor_id=user["id"], type="like", show_id=show_id)
     if _is_ajax(request):
         return JSONResponse({"liked": liked, "count": int(count)})
     return RedirectResponse(f"/concert-tracker/shows/{show_id}", status_code=302)
@@ -939,17 +1087,23 @@ async def add_comment(show_id: int, request: Request, pool=Depends(get_pool), us
     form = await request.form()
     body = str(form.get("body", "")).strip()[:500]
     comment_row = None
+    owner_id = None
+    comment_id = None
     if body:
         async with pool.acquire() as conn:
-            exists = await conn.fetchval("SELECT 1 FROM shows WHERE id = $1", show_id)
-            if exists:
+            show_row = await conn.fetchrow("SELECT id, user_id FROM shows WHERE id = $1", show_id)
+            if show_row:
                 now = int(time.time())
                 comment_id = await conn.fetchval(
                     "INSERT INTO show_comments (show_id, user_id, body, created_at) VALUES ($1, $2, $3, $4) RETURNING id",
                     show_id, user["id"], body, now,
                 )
-                comment_row = {"id": comment_id, "body": body, "created_at": now,
+                owner_id = show_row["user_id"]
+                comment_row = {"id": comment_id, "body": _render_mentions(body), "created_at": now,
                                "username": user["username"], "avatar_url": user.get("avatar_url")}
+    if owner_id and comment_id:
+        await create_notification(pool, user_id=owner_id, actor_id=user["id"],
+                                  type="comment", show_id=show_id, comment_id=comment_id)
     if _is_ajax(request):
         return JSONResponse(comment_row or {"error": "empty"})
     return RedirectResponse(f"/concert-tracker/shows/{show_id}", status_code=302)

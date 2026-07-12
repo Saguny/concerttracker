@@ -87,7 +87,7 @@
   list-style: none; max-height: 280px; overflow-y: auto; box-shadow: 0 8px 24px rgba(0,0,0,.4);
 }
 .ac-item { display: flex; align-items: center; gap: .65rem; padding: .6rem .75rem; cursor: pointer; }
-.ac-item:hover { background: var(--accent-dim); }
+.ac-item:hover, .ac-item.ac-active { background: var(--accent-dim); }
 .ac-thumb    { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
 .ac-thumb-ph { background: var(--surface); display: flex; align-items: center; justify-content: center; font-size: .9rem; }
 .ac-info     { min-width: 0; }
@@ -246,3 +246,87 @@ input[type="radio"] { accent-color: var(--accent); }
   background-position: right .65rem center;
   padding-right: 2.25rem;
 }
+
+/* ── Chart helpers ── */
+.chart-empty { color: var(--muted); font-size: .85rem; padding: 1.5rem 0; text-align: center; }
+
+/* ── Onboarding / empty feed CTA ── */
+.onboarding-cta {
+  text-align: center; padding: 3rem 1rem; display: flex;
+  flex-direction: column; align-items: center; gap: 1rem;
+}
+.onboarding-cta h3 { font-size: 1.2rem; font-weight: 700; }
+.onboarding-cta p  { color: var(--muted); max-width: 340px; }
+
+/* ── Who-liked list ── */
+.liked-by-list { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .5rem; }
+.liked-by-chip {
+  display: flex; align-items: center; gap: .35rem;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 999px; padding: .2rem .6rem .2rem .3rem;
+  font-size: .78rem; color: var(--text); text-decoration: none;
+}
+.liked-by-chip:hover { background: var(--accent-dim); text-decoration: none; }
+.liked-by-chip img, .liked-by-chip .avatar-ph {
+  width: 20px; height: 20px; border-radius: 50%; object-fit: cover;
+}
+.liked-by-chip .avatar-ph {
+  background: var(--accent); color: #000;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .65rem; font-weight: 700;
+}
+
+/* ── Pagination load-more ── */
+.load-more-wrap { text-align: center; margin: 1.5rem 0; }
+
+/* ── Page navigation ── */
+.pagination { display: flex; align-items: center; justify-content: center; gap: .75rem; margin: 1.5rem 0; }
+.pagination-info { font-size: .85rem; }
+
+/* ── Show photo ── */
+.show-photo-wrap { margin-top: .75rem; }
+.show-photo-wrap img { max-width: 100%; border-radius: var(--radius); border: 1px solid var(--border); }
+
+/* ── Mention link ── */
+.mention { color: var(--accent); font-weight: 500; }
+.mention:hover { text-decoration: underline; }
+
+/* ── Discover page ── */
+.discover-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem; margin-top: 1.5rem;
+}
+.discover-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 1.25rem; text-align: center;
+  text-decoration: none; color: var(--text); transition: border-color .15s;
+}
+.discover-card:hover { border-color: var(--accent); text-decoration: none; }
+.discover-avatar { width: 52px; height: 52px; border-radius: 50%; object-fit: cover; margin-bottom: .6rem; }
+.discover-avatar-ph {
+  width: 52px; height: 52px; border-radius: 50%;
+  background: var(--accent); color: #000;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.2rem; font-weight: 700; margin: 0 auto .6rem;
+}
+.discover-username { font-weight: 600; font-size: .9rem; }
+.discover-meta { font-size: .78rem; color: var(--muted); margin-top: .2rem; display:flex; gap:.5rem; justify-content:center; }
+.discover-info { margin-bottom: .75rem; }
+.discover-bio { margin-top: .3rem; }
+.discover-avatar-link { display: block; }
+
+/* ── Invite management ── */
+.invite-table { width: 100%; border-collapse: collapse; margin-top: 1rem; font-size: .875rem; }
+.invite-table th, .invite-table td { padding: .55rem .75rem; text-align: left; border-bottom: 1px solid var(--border); }
+.invite-table th { color: var(--muted); font-weight: 600; }
+.invite-code-cell { font-family: monospace; letter-spacing: .05em; }
+.invite-status-used { color: var(--muted); }
+.invite-status-open { color: var(--success); }
+
+/* ── Password change form ── */
+.change-pw-wrap { max-width: 420px; margin: 0 auto; padding-top: 1.5rem; }
+
+/* ── Export button ── */
+.export-row { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; margin-top: .75rem; }
+.export-row .btn { font-size: .8rem; }

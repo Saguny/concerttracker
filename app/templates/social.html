@@ -16,11 +16,15 @@
 
     {% if not feed %}
     <div class="empty-state">
-      <span style="font-size:2rem">🎵</span>
-      <p>Follow people to see their shows here.</p>
+      {% if following_count == 0 %}
+      <p>Your feed is empty -find people to follow below or on the <a href="/concert-tracker/discover">Discover</a> page.</p>
+      <a href="/concert-tracker/discover" class="btn btn-accent">Find people</a>
+      {% else %}
+      <p>None of the people you follow have logged shows yet. Check back soon!</p>
+      {% endif %}
     </div>
     {% else %}
-    <div class="show-list">
+    <div class="show-list" id="feed-list">
       {% for item in feed %}
 
       {% if item.type == 'show' %}
@@ -30,7 +34,7 @@
         {% if show.artist_thumb_url %}
         <img class="show-thumb" src="{{ show.artist_thumb_url }}" alt="{{ show.artist }}" loading="lazy">
         {% else %}
-        <div class="show-thumb show-thumb-placeholder">🎵</div>
+        <div class="show-thumb show-thumb-placeholder" aria-hidden="true">🎵</div>
         {% endif %}
         <div class="show-card-body">
           <div class="show-artist">{{ show.artist }}{% if is_upcoming %} <span class="badge badge-upcoming">Upcoming</span>{% endif %}</div>
@@ -65,7 +69,7 @@
           {% if f.shows[0].artist_thumb_url %}
           <img class="show-thumb" src="{{ f.shows[0].artist_thumb_url }}" alt="{{ f.festival_name }}" loading="lazy">
           {% else %}
-          <div class="show-thumb show-thumb-placeholder festival-thumb">🎪</div>
+          <div class="show-thumb show-thumb-placeholder festival-thumb" aria-hidden="true">🎪</div>
           {% endif %}
           <div class="show-card-body">
             <div class="show-artist">{{ f.festival_name }} <span class="badge badge-festival">Festival</span>{% if is_upcoming %} <span class="badge badge-upcoming">Upcoming</span>{% endif %}</div>
@@ -110,6 +114,11 @@
 
       {% endfor %}
     </div>
+    {% if has_more %}
+    <div class="load-more-wrap" id="load-more-wrap">
+      <button class="btn btn-ghost" id="load-more-btn" type="button">Load more</button>
+    </div>
+    {% endif %}
     {% endif %}
   </div>
 
@@ -238,10 +247,6 @@ function switchTab(tab, btn) {
     if (q) goTo(q);
   });
 
-  input.addEventListener('keydown', function(e) {
-    if (e.key === 'Enter') { e.preventDefault(); const q = input.value.trim(); if (q) goTo(q); }
-  });
-
   let timer;
   input.addEventListener('input', function() {
     clearTimeout(timer);
@@ -268,9 +273,82 @@ function switchTab(tab, btn) {
     }, 200);
   });
 
+  input.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && !dropdown.querySelector('li.ac-active')) {
+      e.preventDefault();
+      const q = input.value.trim();
+      if (q) goTo(q);
+    }
+  });
+  _initAutocompleteKeys(input, dropdown, li => goTo(li.dataset.val));
+
   document.addEventListener('click', function(e) {
     if (!e.target.closest('.autocomplete-wrap')) dropdown.style.display = 'none';
   });
+})();
+
+(function() {
+  const btn = document.getElementById('load-more-btn');
+  if (!btn) return;
+  let before = {{ feed_cursor or 0 }};
+
+  btn.addEventListener('click', async function() {
+    btn.disabled = true;
+    btn.textContent = 'Loading…';
+    try {
+      const res = await fetch(`/concert-tracker/api/feed?before=${before}&limit=20`, {headers: {'X-Requested-With': 'fetch'}});
+      const data = await res.json();
+      const list = document.getElementById('feed-list');
+      if (data.items && data.items.length) {
+        const last = data.items[data.items.length - 1];
+        before = last.show ? last.show.created_at : (last.shows && last.shows[0] ? last.shows[0].created_at : before);
+        data.items.forEach(item => {
+          const div = document.createElement('div');
+          div.innerHTML = _renderFeedItem(item);
+          list.appendChild(div.firstElementChild);
+        });
+      }
+      if (!data.has_more) {
+        document.getElementById('load-more-wrap').remove();
+      } else {
+        btn.disabled = false;
+        btn.textContent = 'Load more';
+      }
+    } catch(e) {
+      btn.disabled = false;
+      btn.textContent = 'Load more';
+    }
+  });
+
+  function _esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  function _renderFeedItem(item) {
+    if (item.type === 'show') {
+      const s = item.show;
+      const thumb = s.artist_thumb_url
+        ? `<img class="show-thumb" src="${_esc(s.artist_thumb_url)}" alt="${_esc(s.artist)}" loading="lazy">`
+        : `<div class="show-thumb show-thumb-placeholder" aria-hidden="true">🎵</div>`;
+      const d = new Date(s.date);
+      const day = String(d.getUTCDate()).padStart(2,'0');
+      const mon = d.toLocaleString('en',{month:'short',timeZone:'UTC'});
+      const yr = d.getUTCFullYear();
+      const av = s.user_avatar
+        ? `<img src="${_esc(s.user_avatar)}" class="feed-user-avatar" alt="">`
+        : `<span class="feed-user-avatar feed-avatar-ph">${_esc(s.username[0].toUpperCase())}</span>`;
+      return `<a href="/concert-tracker/shows/${s.id}" class="show-card">
+        ${thumb}
+        <div class="show-card-body">
+          <div class="show-artist">${_esc(s.artist)}</div>
+          <div class="show-meta">${_esc(s.venue)} · ${_esc(s.city)}</div>
+          <div class="show-meta show-meta-row">
+            <span class="feed-user-chip">${av}${_esc(s.username)}</span>
+            <span class="feed-interactions"><span title="likes">♥ ${s.like_count}</span> <span title="comments">💬 ${s.comment_count}</span></span>
+          </div>
+        </div>
+        <div class="show-date"><span class="date-day">${day}</span><span class="date-mon">${mon}</span><span class="date-year">${yr}</span></div>
+      </a>`;
+    }
+    return '';
+  }
 })();
 </script>
 {% endblock %}

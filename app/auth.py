@@ -36,6 +36,10 @@ def require_user(request: Request) -> dict:
     return user
 
 
+def optional_user(request: Request) -> dict | None:
+    return get_current_user(request)
+
+
 def get_csrf_token(request: Request) -> str:
     if "_csrf" not in request.session:
         request.session["_csrf"] = secrets.token_hex(32)

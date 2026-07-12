@@ -42,7 +42,7 @@
   <div class="field-group">
     <label>Tag friends who were there</label>
     <select name="_tag_friend_id" id="tag-friend-select">
-      <option value="">— none —</option>
+      <option value="">-none —</option>
       {% for f in taggable %}
       <option value="{{ f.id }}">{{ f.username }}</option>
       {% endfor %}
@@ -76,7 +76,7 @@ function hideList(el) { el.style.display = 'none'; el.innerHTML = ''; }
 function renderArtists() {
   const list  = document.getElementById('artists-list');
   const count = document.getElementById('artists-count');
-  count.textContent = artists.length ? `— ${artists.length} act${artists.length !== 1 ? 's' : ''}` : '';
+  count.textContent = artists.length ? `-${artists.length} act${artists.length !== 1 ? 's' : ''}` : '';
   list.innerHTML = artists.map((a, i) => `
     <div class="festival-artist-row">
       ${a.thumb ? `<img src="${esc(a.thumb)}" class="festival-artist-thumb" alt="">` : '<div class="festival-artist-thumb-ph">🎵</div>'}

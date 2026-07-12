@@ -55,12 +55,16 @@
       </div>
 
       <div class="detail-actions-row">
+        {% if user %}
         <form method="post" action="/concert-tracker/shows/{{ show.id }}/like" class="like-form">
           <input type="hidden" name="_csrf" value="{{ csrf }}">
           <button type="submit" class="btn-like {% if user_liked %}liked{% endif %}">
             {% if user_liked %}♥{% else %}♡{% endif %} <span>{{ like_count }}</span>
           </button>
         </form>
+        {% else %}
+        <span class="btn-like">♡ <span>{{ like_count }}</span></span>
+        {% endif %}
         <a href="/concert-tracker/u/{{ show.owner_username }}" class="post-author-chip" style="display:inline-flex;align-items:center;gap:.45rem;color:var(--text);font-size:.875rem;font-weight:500;text-decoration:none;">
           {% if show.owner_avatar %}
           <img src="{{ show.owner_avatar }}" class="post-author-avatar" width="26" height="26" alt="{{ show.owner_username }}" style="width:26px;height:26px;border-radius:50%;object-fit:cover;flex-shrink:0;">
@@ -109,6 +113,12 @@
   <!-- Below-card two-column layout -->
   <div class="detail-columns">
     <div class="detail-col-main">
+      {% if show.photo_url %}
+      <div class="show-photo-wrap">
+        <img src="{{ show.photo_url }}" alt="Photo from {{ show.artist }} show">
+      </div>
+      {% endif %}
+
       {% if show.notes %}
       <div class="detail-notes">{{ show.notes }}</div>
       {% endif %}
@@ -143,6 +153,7 @@
         </div>
         {% endif %}
 
+        {% if user %}
         <form method="post" action="/concert-tracker/shows/{{ show.id }}/comments" class="comment-form">
           <input type="hidden" name="_csrf" value="{{ csrf }}">
           <div class="comment-input-wrap">
@@ -156,6 +167,9 @@
             <button type="submit" class="btn btn-sm btn-accent">Post</button>
           </div>
         </form>
+        {% else %}
+        <p class="muted small" style="margin-top:.75rem"><a href="/concert-tracker/login">Log in</a> to like or comment.</p>
+        {% endif %}
       </div>
     </div>
 
