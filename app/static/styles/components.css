@@ -539,7 +539,7 @@ input[type="radio"] { accent-color: var(--accent); }
   padding: .1em .5em;
   border-radius: 999px;
   font-weight: 500;
-  vertical-align: -10px;
+  vertical-align: 5px;
 }
 
 /* List detail page */
