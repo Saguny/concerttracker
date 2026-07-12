@@ -57,12 +57,12 @@
   {% if taggable %}
   <div class="field-group">
     <label>Tag friends who were there</label>
-    <select name="_tag_friend_id" id="tag-friend-select">
-      <option value="">-none —</option>
+    <input type="hidden" name="_tag_friend_ids" id="tag-friend-ids-hidden" value="">
+    <div class="friend-tag-chips" id="friend-tag-chips">
       {% for f in taggable %}
-      <option value="{{ f.id }}">{{ f.username }}</option>
+      <button type="button" class="friend-tag-chip{% if f.id in (tagged_friend_ids or []) %} active{% endif %}" data-id="{{ f.id }}">{{ f.username }}</button>
       {% endfor %}
-    </select>
+    </div>
   </div>
   {% endif %}
 
@@ -78,6 +78,27 @@
   <input type="hidden" name="_csrf" value="{{ csrf }}">
   <button type="submit" class="btn btn-danger">Delete Festival</button>
 </form>
+
+<style>
+.friend-tag-chips { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .35rem; }
+.friend-tag-chip {
+  padding: .35rem .75rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--text);
+  font-size: .82rem;
+  cursor: pointer;
+  transition: background .15s, border-color .15s, color .15s;
+}
+.friend-tag-chip:hover { border-color: var(--accent); }
+.friend-tag-chip.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #000;
+  font-weight: 600;
+}
+</style>
 {% endblock %}
 
 {% block scripts %}
@@ -166,6 +187,31 @@ function addArtist(name, thumb) {
 document.getElementById('festival-edit-form').addEventListener('submit', e => {
   document.getElementById('artists-json').value = JSON.stringify(artists);
 });
+
+// ── Friend tagging (multi-select) ───────────────────────────────────
+(function() {
+  const hidden = document.getElementById('tag-friend-ids-hidden');
+  if (!hidden) return;
+  const chips = Array.from(document.querySelectorAll('.friend-tag-chip'));
+  const selected = new Set(chips.filter(c => c.classList.contains('active')).map(c => c.dataset.id));
+
+  function sync() { hidden.value = JSON.stringify(Array.from(selected)); }
+  sync();
+
+  chips.forEach(chip => {
+    chip.addEventListener('click', () => {
+      const id = chip.dataset.id;
+      if (selected.has(id)) {
+        selected.delete(id);
+        chip.classList.remove('active');
+      } else {
+        selected.add(id);
+        chip.classList.add('active');
+      }
+      sync();
+    });
+  });
+})();
 
 // ── Star rating widget ────────────────────────────────────────────────
 (function() {

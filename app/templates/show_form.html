@@ -145,12 +145,12 @@
   {% if friends %}
   <div class="field-group">
     <label>Tag friends who were there</label>
-    <select name="tag_friend_id">
-      <option value="">- none -</option>
+    <input type="hidden" name="tag_friend_ids" id="tag-friend-ids-hidden" value="">
+    <div class="friend-tag-chips" id="friend-tag-chips">
       {% for f in friends %}
-      <option value="{{ f.id }}">{{ f.username }}</option>
+      <button type="button" class="friend-tag-chip" data-id="{{ f.id }}">{{ f.username }}</button>
       {% endfor %}
-    </select>
+    </div>
   </div>
   {% endif %}
 
@@ -168,6 +168,27 @@
   <button type="submit" class="btn btn-danger">Delete Show</button>
 </form>
 {% endif %}
+
+<style>
+.friend-tag-chips { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .35rem; }
+.friend-tag-chip {
+  padding: .35rem .75rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--text);
+  font-size: .82rem;
+  cursor: pointer;
+  transition: background .15s, border-color .15s, color .15s;
+}
+.friend-tag-chip:hover { border-color: var(--accent); }
+.friend-tag-chip.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #000;
+  font-weight: 600;
+}
+</style>
 {% endblock %}
 
 {% block scripts %}
@@ -632,6 +653,31 @@ showForm.addEventListener('submit', e => {
 
 // Pre-fetch upcoming if editing with an existing artist
 {% if show and show.artist %}fetchUpcoming({{ show.artist | tojson }});{% endif %}
+
+// ── Friend tagging (multi-select) ───────────────────────────────────
+(function() {
+  const hidden = document.getElementById('tag-friend-ids-hidden');
+  if (!hidden) return;
+  const chips = Array.from(document.querySelectorAll('.friend-tag-chip'));
+  const selected = new Set(chips.filter(c => c.classList.contains('active')).map(c => c.dataset.id));
+
+  function sync() { hidden.value = JSON.stringify(Array.from(selected)); }
+  sync();
+
+  chips.forEach(chip => {
+    chip.addEventListener('click', () => {
+      const id = chip.dataset.id;
+      if (selected.has(id)) {
+        selected.delete(id);
+        chip.classList.remove('active');
+      } else {
+        selected.add(id);
+        chip.classList.add('active');
+      }
+      sync();
+    });
+  });
+})();
 
 // ── Star rating widget ────────────────────────────────────────────────────────
 (function() {

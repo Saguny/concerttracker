@@ -347,26 +347,28 @@ async def festival_edit_save(
                 now,
             )
 
-    tag_uid_raw = str(form.get("tag_friend_id", "")).strip()
-    if tag_uid_raw:
+    tag_ids_raw = str(form.get("_tag_friend_ids", "")).strip()
+    tag_uids: list[int] = []
+    if tag_ids_raw:
         try:
-            tag_uid = int(tag_uid_raw)
-            if tag_uid:
-                async with pool.acquire() as conn:
-                    show_ids = await conn.fetch(
-                        "SELECT id FROM shows WHERE festival_id = $1 AND user_id = $2", festival_id, user["id"]
+            tag_uids = [int(v) for v in json.loads(tag_ids_raw) if str(v).strip()]
+        except (ValueError, TypeError, json.JSONDecodeError):
+            tag_uids = []
+    if tag_uids:
+        async with pool.acquire() as conn:
+            show_ids = await conn.fetch(
+                "SELECT id FROM shows WHERE festival_id = $1 AND user_id = $2", festival_id, user["id"]
+            )
+            for s in show_ids:
+                for tag_uid in tag_uids:
+                    await conn.execute(
+                        "INSERT INTO show_attendees (show_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
+                        s["id"], tag_uid,
                     )
-                    for s in show_ids:
-                        await conn.execute(
-                            "INSERT INTO show_attendees (show_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
-                            s["id"], tag_uid,
-                        )
-                        await conn.execute(
-                            "INSERT INTO show_attendees (show_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
-                            s["id"], user["id"],
-                        )
-        except (ValueError, TypeError):
-            pass
+                await conn.execute(
+                    "INSERT INTO show_attendees (show_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
+                    s["id"], user["id"],
+                )
 
     flash(request, "Festival updated!", "success")
     return RedirectResponse(f"/concert-tracker/shows/festival/{festival_id}", status_code=302)
@@ -611,25 +613,27 @@ async def add_festival(request: Request, pool=Depends(get_pool), user=Depends(re
             )
             await _upsert_artist(conn, artist_name, sp, now)
 
-        tag_uid_raw = str(form.get("tag_friend_id", "")).strip()
-        if tag_uid_raw:
+        tag_ids_raw = str(form.get("tag_friend_ids", "")).strip()
+        tag_uids: list[int] = []
+        if tag_ids_raw:
             try:
-                tag_uid = int(tag_uid_raw)
-                if tag_uid:
-                    show_rows = await conn.fetch(
-                        "SELECT id FROM shows WHERE festival_id = $1", festival_id
+                tag_uids = [int(v) for v in json.loads(tag_ids_raw) if str(v).strip()]
+            except (ValueError, TypeError, json.JSONDecodeError):
+                tag_uids = []
+        if tag_uids:
+            show_rows = await conn.fetch(
+                "SELECT id FROM shows WHERE festival_id = $1", festival_id
+            )
+            for s in show_rows:
+                for tag_uid in tag_uids:
+                    await conn.execute(
+                        "INSERT INTO show_attendees (show_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
+                        s["id"], tag_uid,
                     )
-                    for s in show_rows:
-                        await conn.execute(
-                            "INSERT INTO show_attendees (show_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
-                            s["id"], tag_uid,
-                        )
-                        await conn.execute(
-                            "INSERT INTO show_attendees (show_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
-                            s["id"], user["id"],
-                        )
-            except (ValueError, TypeError):
-                pass
+                await conn.execute(
+                    "INSERT INTO show_attendees (show_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
+                    s["id"], user["id"],
+                )
 
     flash(request, f"Logged {len(selected)} set{'s' if len(selected) != 1 else ''}!", "success")
     return RedirectResponse(f"/concert-tracker/shows/festival/{festival_id}", status_code=302)
@@ -1070,26 +1074,28 @@ async def _handle_save(request: Request, pool, user: dict, show_id: int | None):
             support_sp = sp_result if isinstance(sp_result, dict) else None
             await _upsert_artist(conn, name, support_sp, now)
 
-        # Tag a friend if submitted
-        tag_friend_id_raw = str(form.get("tag_friend_id", "")).strip()
-        if tag_friend_id_raw and show_id is not None:
+        # Tag friends if submitted
+        tag_ids_raw = str(form.get("tag_friend_ids", "")).strip()
+        tag_uids: list[int] = []
+        if tag_ids_raw:
             try:
-                tag_uid = int(tag_friend_id_raw)
-                if tag_uid:
-                    actual_id = await conn.fetchval(
-                        "SELECT id FROM shows WHERE id = $1 AND user_id = $2", show_id, user["id"]
+                tag_uids = [int(v) for v in json.loads(tag_ids_raw) if str(v).strip()]
+            except (ValueError, TypeError, json.JSONDecodeError):
+                tag_uids = []
+        if tag_uids and show_id is not None:
+            actual_id = await conn.fetchval(
+                "SELECT id FROM shows WHERE id = $1 AND user_id = $2", show_id, user["id"]
+            )
+            if actual_id:
+                for tag_uid in tag_uids:
+                    await conn.execute(
+                        "INSERT INTO show_attendees (show_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
+                        show_id, tag_uid,
                     )
-                    if actual_id:
-                        await conn.execute(
-                            "INSERT INTO show_attendees (show_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
-                            show_id, tag_uid,
-                        )
-                        await conn.execute(
-                            "INSERT INTO show_attendees (show_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
-                            show_id, user["id"],
-                        )
-            except (ValueError, TypeError):
-                pass
+                await conn.execute(
+                    "INSERT INTO show_attendees (show_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
+                    show_id, user["id"],
+                )
 
 
 from app.auth import verify_csrf
