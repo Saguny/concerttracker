@@ -22,6 +22,7 @@
 .show-card-body { flex: 1; min-width: 0; }
 .show-artist    { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: .4rem; }
 .show-meta      { font-size: .8rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.show-meta-row  { display: flex; align-items: center; gap: .4rem; overflow: visible; }
 .show-date  { text-align: right; flex-shrink: 0; line-height: 1.1; }
 .date-day   { display: block; font-size: 1.2rem; font-weight: 700; }
 .date-mon   { display: block; font-size: .7rem; text-transform: uppercase; color: var(--muted); }
