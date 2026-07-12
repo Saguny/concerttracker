@@ -4,19 +4,16 @@ import aiohttp
 
 _session: aiohttp.ClientSession | None = None
 
-
 def _get_session() -> aiohttp.ClientSession:
     global _session
     if _session is None or _session.closed:
         _session = aiohttp.ClientSession(base_url="https://app.ticketmaster.com")
     return _session
 
-
 async def close() -> None:
     global _session
     if _session and not _session.closed:
         await _session.close()
-
 
 async def search_upcoming(artist: str, max_results: int = 50) -> list[dict]:
     from app.redis_client import get_redis
@@ -33,7 +30,7 @@ async def search_upcoming(artist: str, max_results: int = 50) -> list[dict]:
             cached_data = json.loads(cached)
             return cached_data
 
-    page_size = 20  # Ticketmaster's page size for this fetch loop
+    page_size = 20                                                
     all_events: list[dict] = []
     page = 0
     total_pages = 1
@@ -92,7 +89,6 @@ async def search_upcoming(artist: str, max_results: int = 50) -> list[dict]:
 
     return results
 
-
 async def get_event_lineup(artist: str, date: str) -> list[str]:
     """Returns list of support act names for a given artist + date (YYYY-MM-DD)."""
     from app.redis_client import get_redis
@@ -130,12 +126,12 @@ async def get_event_lineup(artist: str, date: str) -> list[str]:
     if not events:
         return []
 
-    # Pick the first matching event and pull its full attraction/lineup list
+                                                                            
     event = events[0]
     attractions = event.get("_embedded", {}).get("attractions", [])
     names = [a.get("name") for a in attractions if a.get("name")]
 
-    # Exclude the headliner itself - everything else is a support act
+                                                                     
     support = [n for n in names if n.lower() != artist.lower()]
 
     if r:

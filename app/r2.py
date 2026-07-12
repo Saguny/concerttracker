@@ -5,7 +5,6 @@ import time
 import boto3
 from botocore.exceptions import ClientError
 
-
 def _client():
     account_id = os.environ.get("R2_ACCOUNT_ID", "")
     return boto3.client(
@@ -16,13 +15,11 @@ def _client():
         region_name="auto",
     )
 
-
 BUCKET = lambda: os.environ.get("R2_BUCKET", "social-credit-gacha")
 PUBLIC_URL = lambda: os.environ.get("R2_PUBLIC_URL", "https://cdn.off-by-one.digital").rstrip("/")
 
 ALLOWED_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
-MAX_BYTES = 15 * 1024 * 1024  # 15 MB
-
+MAX_BYTES = 15 * 1024 * 1024         
 
 def _compress(data: bytes, content_type: str, max_w: int, max_h: int) -> tuple[bytes, str]:
     """Resize and re-encode to WebP. GIFs pass through unchanged."""
@@ -36,7 +33,6 @@ def _compress(data: bytes, content_type: str, max_w: int, max_h: int) -> tuple[b
     out = io.BytesIO()
     img.save(out, format="WEBP", quality=82, method=4)
     return out.getvalue(), "image/webp"
-
 
 async def upload_avatar(user_id: int, data: bytes, content_type: str) -> str:
     """Upload avatar bytes to R2, return the public URL. Raises ValueError on bad input."""
@@ -60,7 +56,6 @@ async def upload_avatar(user_id: int, data: bytes, content_type: str) -> str:
     await asyncio.get_running_loop().run_in_executor(None, _run)
     return f"{PUBLIC_URL()}/{key}?v={int(time.time())}"
 
-
 async def upload_show_photo(show_id: int, data: bytes, content_type: str) -> str:
     """Upload a show photo to R2, return the public URL. Raises ValueError on bad input."""
     if content_type not in ALLOWED_TYPES:
@@ -82,7 +77,6 @@ async def upload_show_photo(show_id: int, data: bytes, content_type: str) -> str
 
     await asyncio.get_running_loop().run_in_executor(None, _run)
     return f"{PUBLIC_URL()}/{key}?v={int(time.time())}"
-
 
 async def upload_banner(user_id: int, data: bytes, content_type: str) -> str:
     """Upload banner bytes to R2, return the public URL. Raises ValueError on bad input."""

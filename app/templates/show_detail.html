@@ -3,7 +3,7 @@
 {% block content %}
 <div class="detail-wrap">
 
-  <!-- Top card: square image + info -->
+  
   <div class="detail-card">
     <div class="detail-square">
       {% if show.artist_image_url %}
@@ -113,10 +113,10 @@
       </div>
     </div>
     {% endif %}
-  </div><!-- /detail-info -->
-  </div><!-- /detail-card -->
+  </div>
+  </div>
 
-  <!-- Below-card two-column layout -->
+  
   <div class="detail-columns">
     <div class="detail-col-main">
       {% if show.photo_url %}
@@ -129,7 +129,7 @@
       <div class="detail-notes">{{ show.notes }}</div>
       {% endif %}
 
-      <!-- Comments -->
+      
       <div class="detail-section comments-section">
         <h3>Comments <span class="muted">{{ comments | length }}</span></h3>
 

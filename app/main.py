@@ -19,7 +19,6 @@ import app.lastfm as lastfm
 from app.routes import auth, shows, stats, social, artists, notifications, lists
 from app.routes import calendar as cal
 
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_pool()
@@ -30,7 +29,6 @@ async def lifespan(app: FastAPI):
     await spotify.close()
     await musicbrainz.close()
     await lastfm.close()
-
 
 app = FastAPI(lifespan=lifespan, docs_url=None, redoc_url=None)
 
@@ -59,7 +57,6 @@ app.include_router(notifications.router, prefix=_base)
 app.include_router(lists.router, prefix=_base)
 app.include_router(cal.router, prefix=_base)
 
-
 class _CSPMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         response = await call_next(request)
@@ -76,11 +73,9 @@ class _CSPMiddleware(BaseHTTPMiddleware):
 
 app.add_middleware(_CSPMiddleware)
 
-
 @app.exception_handler(NotAuthenticatedException)
 async def _not_auth(request: Request, exc: NotAuthenticatedException):
     return RedirectResponse(f"{_base}/login", status_code=302)
-
 
 @app.get(f"{_base}")
 @app.get(f"{_base}/")

@@ -15,7 +15,7 @@
   <input type="hidden" name="setlist_json" id="setlist-json" value="{% if show and show.setlist %}{{ show.setlist | tojson }}{% endif %}">
   <input type="hidden" name="support_acts_json" id="support-acts-json" value="{% if show and show.support_acts %}{{ show.support_acts | tojson }}{% endif %}">
 
-  <!-- Artist autocomplete -->
+  
   <div class="field-group">
     <label>Headliner <span class="required">*</span></label>
     <div class="autocomplete-wrap" id="artist-wrap">
@@ -30,7 +30,7 @@
     <div id="artist-genres" class="genre-list" style="margin-top:.4rem"></div>
   </div>
 
-  <!-- Upcoming events panel - appears after artist is selected -->
+  
   <div id="upcoming-panel" style="display:none">
     <button type="button" id="upcoming-toggle" class="upcoming-panel-label upcoming-toggle-btn">
       <span id="upcoming-chevron" class="upcoming-chevron">▾</span>
@@ -103,7 +103,7 @@
     <input type="file" name="photo" accept="image/*">
   </div>
 
-  <!-- Support acts -->
+  
   <div class="setlist-panel">
     <div class="setlist-header">
       <span>Support Acts <span class="muted" style="font-weight:400;font-size:.8rem">- who else played</span></span>
@@ -125,7 +125,7 @@
     </div>
   </div>
 
-  <!-- Setlist -->
+  
   <div class="setlist-panel">
     <div class="setlist-header">
       <span>Setlist <span class="muted" style="font-weight:400;font-size:.8rem">- songs played</span></span>

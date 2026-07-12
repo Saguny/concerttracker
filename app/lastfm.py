@@ -4,29 +4,24 @@ import aiohttp
 
 _session: aiohttp.ClientSession | None = None
 
-
 def _get_session() -> aiohttp.ClientSession:
     global _session
     if _session is None or _session.closed:
         _session = aiohttp.ClientSession()
     return _session
 
-
 async def close() -> None:
     global _session
     if _session and not _session.closed:
         await _session.close()
 
-
 def _key() -> str | None:
     return os.environ.get("LASTFM_API_KEY")
-
 
 def _strip_html(text: str) -> str:
     text = re.sub(r"<a\b[^>]*>.*?</a>", "", text, flags=re.DOTALL)
     text = re.sub(r"<[^>]+>", "", text)
     return text.strip()
-
 
 async def get_artist_info(name: str) -> dict | None:
     key = _key()

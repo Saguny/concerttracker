@@ -10,7 +10,6 @@ from app.jinja import templates
 
 router = APIRouter()
 
-
 @router.get("/calendar", response_class=HTMLResponse)
 async def calendar_page(
     request: Request,
@@ -43,7 +42,7 @@ async def calendar_page(
         d = row["date"].day
         shows_by_day.setdefault(d, []).append(dict(row))
 
-    # Build 6-row calendar grid (Mon–Sun)
+                                         
     cal_grid = calendar.monthcalendar(year, month)
 
     prev_month = month - 1 if month > 1 else 12

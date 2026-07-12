@@ -10,7 +10,6 @@ templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
 
 _MENTION_RE = _re.compile(r'@([A-Za-z0-9_]{2,30})')
 
-
 def render_mentions(text: str) -> Markup:
     escaped = _html.escape(str(text or ''))
     rendered = _MENTION_RE.sub(
@@ -19,13 +18,11 @@ def render_mentions(text: str) -> Markup:
     )
     return Markup(rendered)
 
-
 def _timestamp_fmt(ts) -> str:
     try:
         return datetime.datetime.fromtimestamp(int(ts)).strftime("%-d %b %Y")
     except Exception:
         return ""
-
 
 templates.env.filters["timestamp_fmt"] = _timestamp_fmt
 templates.env.filters["datetimeformat"] = _timestamp_fmt

@@ -1,12 +1,10 @@
-// Shared utilities used across pages
 
-// Auto-dismiss flash messages after 4s
+
 document.querySelectorAll('.flash').forEach(el => {
   setTimeout(() => el.style.opacity = '0', 4000);
   el.style.transition = 'opacity .4s';
 });
 
-// ── Clipboard helper (Firefox + HTTP fallback) ────────────────────────────────
 function _clipCopy(text, btn) {
   const label = btn ? btn.textContent : '';
   const done = () => { if (btn) { btn.textContent = 'Copied!'; setTimeout(() => { btn.textContent = label; }, 2000); } };
@@ -25,8 +23,6 @@ function _clipCopy(text, btn) {
     fallback();
   }
 }
-
-// ── AJAX helpers ──────────────────────────────────────────────────────────────
 
 function _xpost(url, formData) {
   return fetch(url, {

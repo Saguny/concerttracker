@@ -19,10 +19,8 @@ _GOOGLE_PLACES_KEY = os.environ.get("GOOGLE_PLACES_KEY", "")
 
 router = APIRouter()
 
-
 def _ctx(request: Request, user: dict, **kw) -> dict:
     return {"request": request, "user": user, "flashes": get_flashes(request), **kw}
-
 
 def _parse_show(row) -> dict | None:
     """Convert an asyncpg Record for a `shows` row into a plain dict with
@@ -44,7 +42,6 @@ def _parse_show(row) -> dict | None:
         except Exception:
             show["setlist"] = None
     return show
-
 
 @router.get("/shows", response_class=HTMLResponse)
 async def list_shows(
@@ -144,7 +141,6 @@ async def list_shows(
         ),
     )
 
-
 @router.get("/shows/festival/{festival_id}", response_class=HTMLResponse)
 async def festival_detail(
     festival_id: int, request: Request, pool=Depends(get_pool), user=Depends(require_user),
@@ -211,7 +207,6 @@ async def festival_detail(
         ),
     )
 
-
 @router.get("/shows/festival/{festival_id}/edit", response_class=HTMLResponse)
 async def festival_edit_page(
     festival_id: int, request: Request, pool=Depends(get_pool), user=Depends(require_user)
@@ -258,7 +253,6 @@ async def festival_edit_page(
              taggable=taggable,
              csrf=get_csrf_token(request)),
     )
-
 
 @router.post("/shows/festival/{festival_id}/edit")
 async def festival_edit_save(
@@ -389,7 +383,6 @@ async def festival_edit_save(
     flash(request, "Festival updated!", "success")
     return RedirectResponse("/concert-tracker/shows", status_code=302)
 
-
 @router.post("/shows/festival/{festival_id}/like")
 async def festival_like(
     festival_id: int, request: Request, pool=Depends(get_pool), user=Depends(require_user)
@@ -427,7 +420,6 @@ async def festival_like(
         return JSONResponse({"liked": liked, "count": int(count)})
     return RedirectResponse(f"/concert-tracker/shows/festival/{festival_id}", status_code=302)
 
-
 @router.post("/shows/festival/{festival_id}/comments")
 async def festival_add_comment(
     festival_id: int, request: Request, pool=Depends(get_pool), user=Depends(require_user)
@@ -462,7 +454,6 @@ async def festival_add_comment(
         return JSONResponse(comment_row or {"error": "empty"})
     return RedirectResponse(f"/concert-tracker/shows/festival/{festival_id}", status_code=302)
 
-
 @router.post("/shows/festival/{festival_id}/comments/{comment_id}/delete")
 async def festival_delete_comment(
     festival_id: int, comment_id: int, request: Request, pool=Depends(get_pool), user=Depends(require_user)
@@ -475,7 +466,6 @@ async def festival_delete_comment(
     if _is_ajax(request):
         return JSONResponse({"ok": True})
     return RedirectResponse(f"/concert-tracker/shows/festival/{festival_id}", status_code=302)
-
 
 @router.post("/shows/festival/{festival_id}/tag")
 async def tag_festival_friend(
@@ -501,7 +491,6 @@ async def tag_festival_friend(
         await create_notification(pool, user_id=friend_id, actor_id=user["id"], type="tag", festival_id=festival_id)
     return RedirectResponse(f"/concert-tracker/shows/festival/{festival_id}", status_code=302)
 
-
 @router.post("/shows/festival/{festival_id}/untag")
 async def untag_festival_friend(
     festival_id: int, request: Request, pool=Depends(get_pool), user=Depends(require_user)
@@ -520,7 +509,6 @@ async def untag_festival_friend(
             show_ids, friend_id,
         )
     return RedirectResponse(f"/concert-tracker/shows/festival/{festival_id}", status_code=302)
-
 
 @router.post("/shows/festival/{festival_id}/delete")
 async def delete_festival(
@@ -544,7 +532,6 @@ async def delete_festival(
     flash(request, f"{display_name} deleted", "info")
     return RedirectResponse("/concert-tracker/shows", status_code=302)
 
-
 @router.get("/shows/add-festival", response_class=HTMLResponse)
 async def add_festival_page(request: Request, user=Depends(require_user), pool=Depends(get_pool)):
     async with pool.acquire() as conn:
@@ -557,7 +544,6 @@ async def add_festival_page(request: Request, user=Depends(require_user), pool=D
         _ctx(request, user, friends=friends, csrf=get_csrf_token(request)),
     )
 
-
 @router.post("/shows/add-festival")
 async def add_festival(request: Request, pool=Depends(get_pool), user=Depends(require_user)):
     from app.auth import verify_csrf
@@ -568,7 +554,7 @@ async def add_festival(request: Request, pool=Depends(get_pool), user=Depends(re
     import datetime
 
     festival_name = str(form.get("festival_name", "")).strip()[:200]
-    venue = festival_name  # for festivals the name IS the venue
+    venue = festival_name                                       
     city = str(form.get("city", "")).strip()[:200]
     festival_notes = str(form.get("festival_notes", "")).strip()[:2000] or None
     rating_raw = str(form.get("rating", "")).strip()
@@ -654,7 +640,6 @@ async def add_festival(request: Request, pool=Depends(get_pool), user=Depends(re
     flash(request, f"Logged {len(selected)} set{'s' if len(selected) != 1 else ''}!", "success")
     return RedirectResponse(f"/concert-tracker/shows/festival/{festival_id}", status_code=302)
 
-
 @router.get("/shows/add", response_class=HTMLResponse)
 async def add_show_page(request: Request, user=Depends(require_user), pool=Depends(get_pool)):
     async with pool.acquire() as conn:
@@ -667,13 +652,11 @@ async def add_show_page(request: Request, user=Depends(require_user), pool=Depen
         _ctx(request, user, show=None, friends=friends, csrf=get_csrf_token(request), errors={}, google_places_key=_GOOGLE_PLACES_KEY),
     )
 
-
 @router.post("/shows/add")
 async def add_show(request: Request, pool=Depends(get_pool), user=Depends(require_user)):
     if redirect := await _handle_save(request, pool, user, show_id=None):
         return redirect
     return RedirectResponse("/concert-tracker/shows", status_code=302)
-
 
 @router.get("/shows/{show_id:int}", response_class=HTMLResponse)
 async def show_detail(show_id: int, request: Request, pool=Depends(get_pool), user=Depends(optional_user)):
@@ -746,7 +729,6 @@ async def show_detail(show_id: int, request: Request, pool=Depends(get_pool), us
              csrf=get_csrf_token(request) if user else ""),
     )
 
-
 @router.get("/shows/{show_id}/edit", response_class=HTMLResponse)
 async def edit_show_page(show_id: int, request: Request, pool=Depends(get_pool), user=Depends(require_user)):
     async with pool.acquire() as conn:
@@ -763,13 +745,11 @@ async def edit_show_page(show_id: int, request: Request, pool=Depends(get_pool),
         _ctx(request, user, show=show, friends=friends, csrf=get_csrf_token(request), errors={}, google_places_key=_GOOGLE_PLACES_KEY),
     )
 
-
 @router.post("/shows/{show_id}/edit")
 async def edit_show(show_id: int, request: Request, pool=Depends(get_pool), user=Depends(require_user)):
     if redirect := await _handle_save(request, pool, user, show_id=show_id):
         return redirect
     return RedirectResponse("/concert-tracker/shows", status_code=302)
-
 
 @router.post("/shows/{show_id}/delete")
 async def delete_show(show_id: int, request: Request, pool=Depends(get_pool), user=Depends(require_user)):
@@ -780,7 +760,6 @@ async def delete_show(show_id: int, request: Request, pool=Depends(get_pool), us
         return JSONResponse({"ok": True})
     flash(request, "Show deleted", "info")
     return RedirectResponse("/concert-tracker/shows", status_code=302)
-
 
 @router.post("/shows/{show_id}/tag")
 async def tag_friend(show_id: int, request: Request, pool=Depends(get_pool), user=Depends(require_user)):
@@ -804,7 +783,6 @@ async def tag_friend(show_id: int, request: Request, pool=Depends(get_pool), use
     if tagged:
         await create_notification(pool, user_id=friend_id, actor_id=user["id"], type="tag", show_id=show_id)
     return RedirectResponse(f"/concert-tracker/shows/{show_id}", status_code=302)
-
 
 @router.get("/shows/export")
 async def export_shows(
@@ -860,7 +838,6 @@ async def export_shows(
     return Response(buf.read(), media_type="text/csv",
                     headers={"Content-Disposition": 'attachment; filename="shows.csv"'})
 
-
 @router.get("/api/shows/{show_id}/likes")
 async def show_likes(show_id: int, request: Request, pool=Depends(get_pool), user=Depends(require_user)):
     async with pool.acquire() as conn:
@@ -870,7 +847,6 @@ async def show_likes(show_id: int, request: Request, pool=Depends(get_pool), use
             show_id,
         )
     return [{"username": r["username"], "avatar_url": r["avatar_url"]} for r in rows]
-
 
 @router.get("/api/setlistfm")
 async def api_setlistfm(request: Request, artist: str = "", date: str = "", _=Depends(require_user)):
@@ -882,20 +858,17 @@ async def api_setlistfm(request: Request, artist: str = "", date: str = "", _=De
         return {"found": False}
     return {"found": True, **result}
 
-
 @router.get("/api/upcoming")
 async def api_upcoming(request: Request, artist: str = "", _=Depends(require_user)):
     if not artist:
         return []
     return await ticketmaster.search_upcoming(artist)
 
-
 @router.get("/api/lineup")
 async def api_lineup(request: Request, artist: str = "", date: str = "", _=Depends(require_user)):
     if not artist or not date:
         return []
     return await ticketmaster.get_event_lineup(artist, date)
-
 
 @router.get("/api/lineup-setlistfm")
 async def api_lineup_setlistfm(request: Request, artist: str = "", date: str = "", _=Depends(require_user)):
@@ -908,13 +881,11 @@ async def api_lineup_setlistfm(request: Request, artist: str = "", date: str = "
     mbid = await musicbrainz.search_artist(artist)
     return await setlistfm.search_lineup(artist, date, artist_mbid=mbid)
 
-
 @router.get("/api/artist-search")
 async def api_artist_search(request: Request, q: str = "", _=Depends(require_user)):
     if len(q) < 2:
         return []
     return await spotify.search_artists(q)
-
 
 @router.get("/api/artist-info")
 async def api_artist_info(request: Request, artist: str = "", _=Depends(require_user)):
@@ -923,8 +894,7 @@ async def api_artist_info(request: Request, artist: str = "", _=Depends(require_
     info = await spotify.search_artist(artist)
     return info or {}
 
-
-# ─── internal helpers ────────────────────────────────────────────────────────
+                                                                               
 
 async def _upsert_artist(conn, name: str, sp: dict | None, now: int) -> None:
     await conn.execute(
@@ -945,7 +915,6 @@ async def _upsert_artist(conn, name: str, sp: dict | None, now: int) -> None:
         sp["genres"]    if sp else None,
         now,
     )
-
 
 async def _handle_save(request: Request, pool, user: dict, show_id: int | None):
     from app.auth import verify_csrf
@@ -992,7 +961,7 @@ async def _handle_save(request: Request, pool, user: dict, show_id: int | None):
         except Exception:
             pass
 
-    # Enrich artist data asynchronously
+                                       
     import asyncio
     mbid_task = asyncio.create_task(musicbrainz.search_artist(artist))
     spotify_task = asyncio.create_task(spotify.search_artist(artist))
@@ -1009,7 +978,7 @@ async def _handle_save(request: Request, pool, user: dict, show_id: int | None):
 
     now = int(time.time())
 
-    # Photo -read data now, upload after we have a show_id
+                                                          
     _photo_data: bytes | None = None
     _photo_ct: str | None = None
     remove_photo = form.get("remove_photo") == "on"
@@ -1022,7 +991,7 @@ async def _handle_save(request: Request, pool, user: dict, show_id: int | None):
             back = f"/concert-tracker/shows/{show_id}/edit" if show_id else "/concert-tracker/shows/add"
             return RedirectResponse(back, status_code=302)
 
-    # Spotify lookups for support acts (parallel with each other)
+                                                                 
     support_sp_results = await asyncio.gather(
         *[spotify.search_artist(name) for name in support_acts],
         return_exceptions=True,
@@ -1051,7 +1020,7 @@ async def _handle_save(request: Request, pool, user: dict, show_id: int | None):
                 support_acts or None,
                 mbid, spotify_id, image_url, thumb_url, genres, now, rating,
             )
-            # Upload photo now that we have the real show_id
+                                                            
             if _photo_data and show_id:
                 from app.r2 import upload_show_photo as _up
                 try:
@@ -1060,7 +1029,7 @@ async def _handle_save(request: Request, pool, user: dict, show_id: int | None):
                 except Exception:
                     pass
         else:
-            # For edits, upload first (show_id is known), then include in UPDATE
+                                                                                
             _new_photo_url = None
             if _photo_data:
                 from app.r2 import upload_show_photo as _up
@@ -1084,13 +1053,13 @@ async def _handle_save(request: Request, pool, user: dict, show_id: int | None):
                 rating,
             )
 
-        # Persist headliner and support acts to the global artist catalogue
+                                                                           
         await _upsert_artist(conn, artist, sp, now)
         for name, sp_result in zip(support_acts, support_sp_results):
             support_sp = sp_result if isinstance(sp_result, dict) else None
             await _upsert_artist(conn, name, support_sp, now)
 
-        # Tag friends if submitted
+                                  
         tag_ids_raw = str(form.get("tag_friend_ids", "")).strip()
         tag_uids: list[int] = []
         if tag_ids_raw:
@@ -1113,14 +1082,11 @@ async def _handle_save(request: Request, pool, user: dict, show_id: int | None):
                     show_id, user["id"],
                 )
 
-
 from app.auth import verify_csrf
 from app.jinja import render_mentions as _render_mentions
 
-
 def _is_ajax(request: Request) -> bool:
     return request.headers.get("X-Requested-With") == "fetch"
-
 
 @router.post("/shows/{show_id}/like")
 async def toggle_like(show_id: int, request: Request, pool=Depends(get_pool), user=Depends(require_user)):
@@ -1146,7 +1112,6 @@ async def toggle_like(show_id: int, request: Request, pool=Depends(get_pool), us
     if _is_ajax(request):
         return JSONResponse({"liked": liked, "count": int(count)})
     return RedirectResponse(f"/concert-tracker/shows/{show_id}", status_code=302)
-
 
 @router.post("/shows/{show_id}/comments")
 async def add_comment(show_id: int, request: Request, pool=Depends(get_pool), user=Depends(require_user)):
@@ -1174,7 +1139,6 @@ async def add_comment(show_id: int, request: Request, pool=Depends(get_pool), us
     if _is_ajax(request):
         return JSONResponse(comment_row or {"error": "empty"})
     return RedirectResponse(f"/concert-tracker/shows/{show_id}", status_code=302)
-
 
 @router.post("/shows/{show_id}/comments/{comment_id}/delete")
 async def delete_comment(

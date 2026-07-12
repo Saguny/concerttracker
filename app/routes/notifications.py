@@ -10,7 +10,6 @@ router = APIRouter()
 
 _LIMIT = 30
 
-
 async def create_notification(pool, *, user_id: int, actor_id: int, type: str,
                                show_id: int | None = None, festival_id: int | None = None,
                                comment_id: int | None = None):
@@ -22,7 +21,6 @@ async def create_notification(pool, *, user_id: int, actor_id: int, type: str,
             "VALUES ($1, $2, $3, $4, $5, $6, $7) ON CONFLICT DO NOTHING",
             user_id, actor_id, type, show_id, festival_id, comment_id, int(time.time()),
         )
-
 
 @router.get("/api/notifications")
 async def get_notifications(request: Request, pool=Depends(get_pool), user=Depends(require_user)):
@@ -38,7 +36,6 @@ async def get_notifications(request: Request, pool=Depends(get_pool), user=Depen
         )
     return [dict(r) for r in rows]
 
-
 @router.get("/api/notifications/unread-count")
 async def unread_count(request: Request, pool=Depends(get_pool), user=Depends(require_user)):
     async with pool.acquire() as conn:
@@ -48,7 +45,6 @@ async def unread_count(request: Request, pool=Depends(get_pool), user=Depends(re
         )
     return {"count": int(count)}
 
-
 @router.post("/api/notifications/read")
 async def mark_all_read(request: Request, pool=Depends(get_pool), user=Depends(require_user)):
     async with pool.acquire() as conn:
@@ -57,7 +53,6 @@ async def mark_all_read(request: Request, pool=Depends(get_pool), user=Depends(r
             user["id"],
         )
     return JSONResponse({"ok": True})
-
 
 @router.post("/api/notifications/{notif_id}/read")
 async def mark_one_read(notif_id: int, request: Request, pool=Depends(get_pool), user=Depends(require_user)):

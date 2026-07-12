@@ -22,7 +22,6 @@
 .nav-muted { color: var(--muted); font-size: .85rem; }
 .nav-muted:hover { color: var(--text); }
 
-/* Hamburger (mobile only) */
 .nav-hamburger {
   display: none; flex-direction: column; justify-content: center; gap: 5px;
   background: transparent; border: none; cursor: pointer; padding: .4rem;
@@ -33,7 +32,6 @@
   border-radius: 2px; transition: transform .2s, opacity .2s;
 }
 
-/* User menu */
 .nav-user-wrap { position: relative; }
 .nav-user-btn {
   display: flex; align-items: center; gap: .45rem;
@@ -71,7 +69,6 @@
 .nav-drop-danger { color: var(--danger); }
 .nav-drop-danger:hover { background: rgba(239,68,68,.1); }
 
-/* Notification bell */
 .nav-notif-wrap { position: relative; }
 .nav-right .btn { height: 40px; box-sizing: border-box; }
 .nav-notif-btn {
@@ -137,7 +134,6 @@
 .nav-notif-dot:hover { transform: scale(1.4); opacity: .8; }
 .nav-notif-empty { padding: 1.2rem 1rem; font-size: .85rem; color: var(--muted); text-align: center; }
 
-/* Mobile breakpoint */
 @media (max-width: 640px) {
   .nav { padding: 0 1rem; gap: .75rem; }
   .nav-hamburger { display: flex; }

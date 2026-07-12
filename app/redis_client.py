@@ -3,7 +3,6 @@ import redis.asyncio as aioredis
 
 _client: aioredis.Redis | None = None
 
-
 async def get_redis() -> aioredis.Redis | None:
     global _client
     if _client is not None:
@@ -18,7 +17,6 @@ async def get_redis() -> aioredis.Redis | None:
         return _client
     except Exception:
         return None
-
 
 async def close_redis() -> None:
     global _client

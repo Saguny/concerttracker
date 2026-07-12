@@ -4,7 +4,6 @@ import aiohttp
 
 _session: aiohttp.ClientSession | None = None
 
-
 def _get_session() -> aiohttp.ClientSession:
     global _session
     if _session is None or _session.closed:
@@ -14,16 +13,13 @@ def _get_session() -> aiohttp.ClientSession:
         )
     return _session
 
-
 def _headers() -> dict:
     return {"x-api-key": os.environ.get("SETLISTFM_API_KEY", "")}
-
 
 async def close() -> None:
     global _session
     if _session and not _session.closed:
         await _session.close()
-
 
 async def search(artist_name: str, date: str, artist_mbid: str | None = None) -> dict | None:
     """date: YYYY-MM-DD. Returns {songs, venue, city, url, id} or None."""
@@ -82,7 +78,6 @@ async def search(artist_name: str, date: str, artist_mbid: str | None = None) ->
 
     return result
 
-
 async def search_lineup(artist_name: str, date: str, artist_mbid: str | None = None) -> list[str]:
     """Backfill support acts for a *past* show via setlist.fm.
 
@@ -111,7 +106,7 @@ async def search_lineup(artist_name: str, date: str, artist_mbid: str | None = N
     y, m, d = date.split("-")
     slfm_date = f"{d}-{m}-{y}"
 
-    # Step 1: locate the headliner's own setlist to find the venue.
+                                                                   
     headliner_params: dict = {"p": 1, "date": slfm_date}
     if artist_mbid:
         headliner_params["artistMbid"] = artist_mbid
@@ -136,8 +131,8 @@ async def search_lineup(artist_name: str, date: str, artist_mbid: str | None = N
     if not venue_id and not venue_name:
         return []
 
-    # Step 2: pull every setlist logged for that venue on that date -- each
-    # support act that has a setlist.fm entry shows up here as its own result.
+                                                                           
+                                                                              
     lineup_params: dict = {"date": slfm_date}
     if venue_id:
         lineup_params["venueId"] = venue_id
@@ -148,7 +143,7 @@ async def search_lineup(artist_name: str, date: str, artist_mbid: str | None = N
     seen = {artist_name.lower()}
     try:
         page = 1
-        while page <= 3:  # a night's lineup is never more than a few pages
+        while page <= 3:                                                   
             lineup_params["p"] = page
             async with _get_session().get("/rest/1.0/search/setlists", params=lineup_params, headers=_headers()) as resp:
                 if resp.status != 200:

@@ -11,7 +11,6 @@ from app.jinja import templates
 
 router = APIRouter()
 
-
 async def _smart_items(conn, user_id: int, smart_filter: dict) -> list:
     ftype = smart_filter.get("type", "")
     clauses = ["user_id = $1"]
@@ -37,14 +36,11 @@ async def _smart_items(conn, user_id: int, smart_filter: dict) -> list:
     )
     return [dict(r) for r in rows]
 
-
 def _ctx(request: Request, user, **kw) -> dict:
     return {"request": request, "user": user, "flashes": get_flashes(request), **kw}
 
-
 def _is_ajax(request: Request) -> bool:
     return request.headers.get("X-Requested-With") == "fetch"
-
 
 @router.get("/lists", response_class=HTMLResponse)
 async def lists_index(request: Request, pool=Depends(get_pool), user=Depends(require_user)):
@@ -63,7 +59,6 @@ async def lists_index(request: Request, pool=Depends(get_pool), user=Depends(req
         "lists.html",
         _ctx(request, user, lists=list(rows), years=[r["y"] for r in year_rows], csrf=get_csrf_token(request)),
     )
-
 
 @router.post("/lists/create")
 async def create_list(request: Request, pool=Depends(get_pool), user=Depends(require_user)):
@@ -96,7 +91,6 @@ async def create_list(request: Request, pool=Depends(get_pool), user=Depends(req
             user["id"], title, is_ranked, list_type, smart_filter, now,
         )
     return RedirectResponse(f"/concert-tracker/lists/{lst_id}", status_code=302)
-
 
 @router.get("/lists/{list_id}", response_class=HTMLResponse)
 async def list_detail(list_id: int, request: Request, pool=Depends(get_pool), user=Depends(optional_user)):
@@ -132,7 +126,6 @@ async def list_detail(list_id: int, request: Request, pool=Depends(get_pool), us
         ),
     )
 
-
 @router.get("/lists/{list_id}/edit", response_class=HTMLResponse)
 async def edit_list_page(list_id: int, request: Request, pool=Depends(get_pool), user=Depends(require_user)):
     async with pool.acquire() as conn:
@@ -147,7 +140,6 @@ async def edit_list_page(list_id: int, request: Request, pool=Depends(get_pool),
         "list_edit.html",
         _ctx(request, user, lst=dict(lst), years=[r["y"] for r in year_rows], csrf=get_csrf_token(request)),
     )
-
 
 @router.post("/lists/{list_id}/edit")
 async def edit_list(list_id: int, request: Request, pool=Depends(get_pool), user=Depends(require_user)):
@@ -177,14 +169,12 @@ async def edit_list(list_id: int, request: Request, pool=Depends(get_pool), user
         )
     return RedirectResponse(f"/concert-tracker/lists/{list_id}", status_code=302)
 
-
 @router.post("/lists/{list_id}/delete")
 async def delete_list(list_id: int, request: Request, pool=Depends(get_pool), user=Depends(require_user)):
     await verify_csrf(request)
     async with pool.acquire() as conn:
         await conn.execute("DELETE FROM lists WHERE id=$1 AND user_id=$2", list_id, user["id"])
     return RedirectResponse("/concert-tracker/lists", status_code=302)
-
 
 @router.get("/lists/{list_id}/add", response_class=HTMLResponse)
 async def add_shows_page(
@@ -242,7 +232,6 @@ async def add_shows_page(
         ),
     )
 
-
 @router.post("/lists/{list_id}/add")
 async def add_show(list_id: int, request: Request, pool=Depends(get_pool), user=Depends(require_user)):
     await verify_csrf(request)
@@ -283,7 +272,6 @@ async def add_show(list_id: int, request: Request, pool=Depends(get_pool), user=
         return JSONResponse({"ok": True, "item_id": item_id})
     return RedirectResponse(f"/concert-tracker/lists/{list_id}/add", status_code=302)
 
-
 @router.post("/lists/{list_id}/items/{item_id}/remove")
 async def remove_item(
     list_id: int,
@@ -306,7 +294,6 @@ async def remove_item(
     if _is_ajax(request):
         return JSONResponse({"ok": True})
     return RedirectResponse(f"/concert-tracker/lists/{list_id}", status_code=302)
-
 
 @router.post("/lists/{list_id}/reorder")
 async def reorder_items(list_id: int, request: Request, pool=Depends(get_pool), user=Depends(require_user)):

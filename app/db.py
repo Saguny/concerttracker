@@ -4,11 +4,9 @@ import asyncpg
 
 _pool: asyncpg.Pool | None = None
 
-
 async def _init_conn(conn: asyncpg.Connection) -> None:
     await conn.set_type_codec("jsonb", encoder=json.dumps, decoder=json.loads, schema="pg_catalog")
     await conn.set_type_codec("json", encoder=json.dumps, decoder=json.loads, schema="pg_catalog")
-
 
 async def init_pool() -> asyncpg.Pool:
     global _pool
@@ -21,17 +19,14 @@ async def init_pool() -> asyncpg.Pool:
     await _migrate()
     return _pool
 
-
 async def close_pool() -> None:
     global _pool
     if _pool:
         await _pool.close()
         _pool = None
 
-
 def get_pool() -> asyncpg.Pool:
     return _pool
-
 
 async def _migrate() -> None:
     migrations_dir = os.path.join(os.path.dirname(__file__), "..", "migrations")

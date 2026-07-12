@@ -23,7 +23,6 @@ a:hover { text-decoration: underline; }
 input, select, textarea, button { font: inherit; }
 img { max-width: 100%; }
 
-/* ── Nav ── */
 .nav {
   display: flex; align-items: center; gap: 1.5rem;
   padding: 0 1.5rem; height: 56px;
@@ -40,12 +39,10 @@ img { max-width: 100%; }
 .nav-muted { color: var(--muted); font-size: .85rem; }
 .nav-muted:hover { color: var(--text); }
 
-/* ── Layout ── */
 .main { max-width: 1100px; margin: 0 auto; padding: 1.5rem; }
 .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; gap: 1rem; flex-wrap: wrap; }
 .page-header h1 { font-size: 1.5rem; font-weight: 700; }
 
-/* ── Buttons ── */
 .btn {
   display: inline-flex; align-items: center; gap: .4rem;
   padding: .45rem .9rem; border-radius: var(--radius-sm);
@@ -61,13 +58,11 @@ img { max-width: 100%; }
 .btn-sm { padding: .3rem .65rem; font-size: .8rem; }
 .btn-full { width: 100%; justify-content: center; }
 
-/* ── Flash messages ── */
 .flash { padding: .65rem 1rem; border-radius: var(--radius-sm); margin-bottom: 1rem; font-size: .875rem; }
 .flash-info { background: rgba(59,130,246,.15); border: 1px solid rgba(59,130,246,.3); color: var(--blue); }
 .flash-error { background: rgba(239,68,68,.15); border: 1px solid rgba(239,68,68,.3); color: var(--danger); }
 .flash-success { background: rgba(34,197,94,.15); border: 1px solid rgba(34,197,94,.3); color: var(--success); }
 
-/* ── Auth ── */
 .auth-wrap { max-width: 400px; margin: 4rem auto; }
 .auth-title { font-size: 1.75rem; font-weight: 800; margin-bottom: .25rem; }
 .auth-sub { color: var(--muted); margin-bottom: 1.5rem; }
@@ -82,16 +77,13 @@ img { max-width: 100%; }
 .auth-form textarea { resize: vertical; }
 .auth-footer { margin-top: 1rem; font-size: .85rem; color: var(--muted); text-align: center; }
 
-/* ── Invite ── */
 .invite-box { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: .75rem; word-break: break-all; }
 .invite-box code { font-size: .8rem; color: var(--accent); }
 
-/* ── Filter bar ── */
 .filter-bar { display: flex; gap: .5rem; margin-bottom: 1.25rem; flex-wrap: wrap; }
 .filter-bar select, .filter-bar input { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: .4rem .65rem; color: var(--text); font-size: .85rem; }
 .filter-bar input { min-width: 160px; }
 
-/* ── Show list ── */
 .show-list { display: flex; flex-direction: column; gap: .5rem; }
 .show-card {
   display: flex; align-items: center; gap: 1rem;
@@ -117,7 +109,6 @@ img { max-width: 100%; }
 .date-mon { display: block; font-size: .7rem; text-transform: uppercase; color: var(--muted); }
 .date-year { display: block; font-size: .7rem; color: var(--muted); }
 
-/* ── Badges ── */
 .badge { display: inline-block; font-size: .65rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; padding: .15rem .4rem; border-radius: 99px; }
 .badge-festival { background: rgba(245,158,11,.2); color: var(--accent); }
 .badge-upcoming { background: rgba(34,197,94,.2); color: var(--success); }
@@ -128,10 +119,8 @@ img { max-width: 100%; }
 .small { font-size: .8rem; }
 .required { color: var(--accent); }
 
-/* ── Empty state ── */
 .empty-state { text-align: center; padding: 4rem 1rem; color: var(--muted); display: flex; flex-direction: column; align-items: center; gap: 1rem; }
 
-/* ── Autocomplete ── */
 .autocomplete-wrap { position: relative; }
 .autocomplete-input-row { display: flex; align-items: center; gap: .5rem; }
 .autocomplete-input-row input { flex: 1; }
@@ -156,7 +145,6 @@ img { max-width: 100%; }
 }
 .field-group input:focus, .field-group select:focus, .field-group textarea:focus { outline: none; border-color: var(--accent); }
 
-/* ── Show form ── */
 .form-layout { display: grid; grid-template-columns: 1fr 300px; gap: 1.5rem; align-items: start; }
 @media (max-width: 768px) { .form-layout { grid-template-columns: 1fr; } }
 .show-form { display: flex; flex-direction: column; gap: 1rem; }
@@ -179,7 +167,6 @@ img { max-width: 100%; }
 .setlist-songs { padding-left: 1.2rem; font-size: .85rem; line-height: 1.8; color: var(--muted); max-height: 260px; overflow-y: auto; }
 .tag-panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem; }
 
-/* ── Upcoming sidebar ── */
 .upcoming-sidebar { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem; }
 .upcoming-sidebar h3 { font-size: .9rem; margin-bottom: .75rem; }
 .upcoming-item { padding: .5rem; border-radius: var(--radius-sm); cursor: pointer; border: 1px solid transparent; margin-bottom: .3rem; transition: background .15s; }
@@ -188,7 +175,6 @@ img { max-width: 100%; }
 .upcoming-meta { font-size: .75rem; color: var(--muted); }
 .upcoming-date { font-size: .75rem; color: var(--accent); }
 
-/* ── Show detail ── */
 .detail-wrap { max-width: 860px; margin: 0 auto; }
 
 .detail-card { display: flex; gap: 1.5rem; margin-bottom: 1.5rem; align-items: flex-start; }
@@ -247,7 +233,6 @@ img { max-width: 100%; }
 .genre-list { display: flex; gap: .3rem; flex-wrap: wrap; }
 .genre-tag { font-size: .7rem; background: var(--surface2); border: 1px solid var(--border); border-radius: 99px; padding: .15rem .5rem; color: var(--muted); }
 
-/* ── Artist page ── */
 .artist-page { max-width: 860px; margin: 0 auto; }
 .artist-header { display: flex; gap: 1.75rem; align-items: flex-start; margin-bottom: 2rem; }
 .artist-page-img { width: 200px; height: 200px; object-fit: cover; border-radius: var(--radius); flex-shrink: 0; }
@@ -275,7 +260,6 @@ img { max-width: 100%; }
   .artist-page-img { width: 100%; height: 180px; }
 }
 
-/* ── Calendar ── */
 .cal-nav { display: flex; align-items: center; gap: 1rem; }
 .cal-nav h1 { min-width: 200px; text-align: center; }
 .cal-grid { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
@@ -294,7 +278,6 @@ img { max-width: 100%; }
 .cal-show-thumb { width: 14px; height: 14px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
 .cal-show span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-/* ── Stats ── */
 .stats-hero { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1.5rem; }
 @media (max-width: 600px) { .stats-hero { grid-template-columns: repeat(2, 1fr); } }
 .stat-tile { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; display: flex; flex-direction: column; gap: .25rem; }
@@ -306,7 +289,6 @@ img { max-width: 100%; }
 .chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; }
 .chart-card h3 { font-size: .8rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-bottom: 1rem; }
 
-/* ── Social ── */
 .social-layout { display: grid; grid-template-columns: 1fr 280px; gap: 1.5rem; align-items: start; }
 @media (max-width: 768px) { .social-layout { grid-template-columns: 1fr; } }
 .social-section { margin-bottom: 1.5rem; }
@@ -326,7 +308,6 @@ img { max-width: 100%; }
 .follow-row a { flex: 1; color: var(--text); }
 .follow-row:last-child { border-bottom: none; }
 
-/* ── Profile ── */
 .profile-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 1.5rem; gap: 1rem; flex-wrap: wrap; }
 .profile-info h1 { font-size: 1.5rem; font-weight: 800; display: flex; align-items: center; gap: .5rem; }
 .profile-actions { display: flex; gap: .5rem; }
@@ -337,11 +318,9 @@ img { max-width: 100%; }
 .mini-bar-label { color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px; }
 .mini-bar-count { color: var(--accent); font-weight: 700; flex-shrink: 0; }
 
-/* ── Lineup tags ── */
 .lineup-tags { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .25rem; }
 .lineup-tag { background: var(--surface2); border: 1px solid var(--border); border-radius: 99px; padding: .2rem .65rem; font-size: .8rem; color: var(--text); }
 
-/* ── Log show/festival tabs ── */
 .log-tabs {
   display: flex; gap: 0;
   border-bottom: 2px solid var(--border);
@@ -356,7 +335,6 @@ img { max-width: 100%; }
 .log-tab:hover { color: var(--text); text-decoration: none; }
 .log-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
 
-/* ── Festival form ── */
 .festival-badge {
   margin-top: .4rem; font-size: .8rem; font-weight: 600;
   color: var(--accent); background: var(--accent-dim);
@@ -373,7 +351,6 @@ img { max-width: 100%; }
 .day-btn-row { display: flex; gap: .4rem; flex-wrap: wrap; margin-bottom: .75rem; }
 .day-assign-btn { font-size: .75rem; }
 
-/* ── Festival artist list (manual-add flow) ── */
 .festival-artist-list { display: flex; flex-direction: column; gap: .3rem; margin-top: .25rem; }
 .festival-artist-row {
   display: flex; align-items: center; gap: .65rem;
@@ -390,7 +367,6 @@ img { max-width: 100%; }
 }
 .festival-remove:hover { color: var(--danger); }
 
-/* ── Artist grid ── */
 .artists-grid { display: flex; flex-direction: column; gap: .3rem; max-height: 480px; overflow-y: auto; }
 .artist-row {
   display: flex; align-items: center; gap: .65rem;
@@ -417,7 +393,6 @@ img { max-width: 100%; }
 }
 .artist-date:focus { outline: none; border-color: var(--accent); }
 
-/* ── Auto-fetch panels ── */
 .fetch-placeholder {
   font-size: .8rem; color: var(--muted); font-style: italic;
   padding: .5rem 0;
@@ -429,7 +404,6 @@ img { max-width: 100%; }
 }
 @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .4; } }
 
-/* ── Editable tag chips ── */
 .editable-tags { min-height: 2rem; }
 .editable-tag {
   display: inline-flex; align-items: center; gap: .3rem;
@@ -441,7 +415,6 @@ img { max-width: 100%; }
 }
 .tag-remove:hover { color: var(--danger); }
 
-/* ── Tag add row ── */
 .tag-add-row {
   display: flex; gap: .4rem; margin-top: .65rem; align-items: center;
 }
@@ -452,7 +425,6 @@ img { max-width: 100%; }
 }
 .tag-add-row input:focus { outline: none; border-color: var(--accent); }
 
-/* ── Setlist editable textarea ── */
 #setlist-textarea {
   width: 100%; background: var(--surface); border: 1px solid var(--border);
   border-radius: var(--radius-sm); padding: .6rem .75rem;
@@ -461,7 +433,6 @@ img { max-width: 100%; }
 }
 #setlist-textarea:focus { outline: none; border-color: var(--accent); }
 
-/* ── Nav dropdown ── */
 .nav-right { display: flex; align-items: center; gap: .75rem; margin-left: auto; }
 .nav-user-wrap { position: relative; }
 .nav-user-btn {
@@ -500,7 +471,6 @@ img { max-width: 100%; }
 .nav-drop-danger { color: var(--danger); }
 .nav-drop-danger:hover { background: rgba(239,68,68,.1); }
 
-/* ── Profile avatar / bio ── */
 .profile-header-left { display: flex; align-items: flex-start; gap: 1rem; }
 .profile-avatar {
   width: 72px; height: 72px; border-radius: 50%; object-fit: cover; flex-shrink: 0;
@@ -513,7 +483,6 @@ img { max-width: 100%; }
 }
 .profile-bio { font-size: .875rem; color: var(--muted); margin-top: .3rem; max-width: 480px; }
 
-/* ── Feed user chip / interactions ── */
 .social-top-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; flex-wrap: wrap; gap: .75rem; }
 .social-top-bar h2 { font-size: 1rem; font-weight: 700; }
 .show-meta-row { display: flex; align-items: center; gap: .4rem; overflow: visible; white-space: nowrap; }
@@ -526,7 +495,6 @@ img { max-width: 100%; }
 }
 .feed-interactions { display: inline-flex; align-items: center; gap: .65rem; font-size: .78rem; color: var(--muted); }
 
-/* ── Follow row avatars ── */
 .follow-avatar { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
 .follow-avatar-ph {
   display: inline-flex; align-items: center; justify-content: center;
@@ -534,7 +502,6 @@ img { max-width: 100%; }
   font-size: .65rem; font-weight: 700;
 }
 
-/* ── Like button ── */
 .like-form { margin-bottom: 1rem; }
 .btn-like {
   display: inline-flex; align-items: center; gap: .4rem;
@@ -546,7 +513,6 @@ img { max-width: 100%; }
 .btn-like:hover { border-color: #e05;  color: #e05; }
 .btn-like.liked { border-color: #e05; color: #e05; background: rgba(238,0,85,.08); }
 
-/* ── Comments ── */
 .comments-section { margin-top: 1.5rem; }
 .comment-list { display: flex; flex-direction: column; gap: .75rem; margin-bottom: 1.25rem; }
 .comment {

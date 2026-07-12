@@ -5,23 +5,19 @@ import aiohttp
 
 _session: aiohttp.ClientSession | None = None
 
-
 def _get_session() -> aiohttp.ClientSession:
     global _session
     if _session is None or _session.closed:
         _session = aiohttp.ClientSession(headers={"Accept": "application/json"})
     return _session
 
-
 async def close() -> None:
     global _session
     if _session and not _session.closed:
         await _session.close()
 
-
 def _key() -> str | None:
     return os.environ.get("SONGKICK_API_KEY")
-
 
 async def _search_artist_id(name: str) -> int | None:
     key = _key()
@@ -39,7 +35,6 @@ async def _search_artist_id(name: str) -> int | None:
         return results[0]["id"] if results else None
     except Exception:
         return None
-
 
 async def search_upcoming(artist: str, limit: int = 8) -> list[dict]:
     """Returns upcoming event stubs for venue autocomplete."""
@@ -91,7 +86,6 @@ async def search_upcoming(artist: str, limit: int = 8) -> list[dict]:
         await r.set(cache_key, json.dumps(results), ex=3600)
     return results
 
-
 async def get_event_lineup(artist: str, date: str) -> list[str]:
     """Returns list of support act names for a given artist + date (YYYY-MM-DD)."""
     from app.redis_client import get_redis
@@ -111,7 +105,7 @@ async def get_event_lineup(artist: str, date: str) -> list[str]:
     if not artist_id:
         return []
 
-    # Fetch calendar around the date - min_date/max_date narrow the window
+                                                                          
     try:
         async with _get_session().get(
             f"https://api.songkick.com/api/3.0/artists/{artist_id}/calendar.json",
@@ -127,7 +121,7 @@ async def get_event_lineup(artist: str, date: str) -> list[str]:
     if not events:
         return []
 
-    # Pick the first matching event and extract non-headline performers
+                                                                       
     event = events[0]
     performances = event.get("performance", []) or []
     support = [

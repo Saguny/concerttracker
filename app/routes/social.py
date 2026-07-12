@@ -10,15 +10,12 @@ from app.routes.notifications import create_notification
 
 router = APIRouter()
 
-
 def _ctx(request: Request, user: dict, **kw) -> dict:
     return {"request": request, "user": user, "flashes": get_flashes(request), **kw}
-
 
 @router.get("/profile", response_class=HTMLResponse)
 async def own_profile(request: Request, user=Depends(require_user)):
     return RedirectResponse(f"/concert-tracker/u/{user['username']}", status_code=302)
-
 
 @router.get("/profile/edit", response_class=HTMLResponse)
 async def edit_profile_page(request: Request, pool=Depends(get_pool), user=Depends(require_user)):
@@ -36,7 +33,6 @@ async def edit_profile_page(request: Request, pool=Depends(get_pool), user=Depen
         "profile_edit.html",
         _ctx(request, user, me=me, user_shows=user_shows, csrf=get_csrf_token(request)),
     )
-
 
 @router.post("/profile/edit")
 async def save_profile(request: Request, pool=Depends(get_pool), user=Depends(require_user)):
@@ -148,7 +144,6 @@ async def save_profile(request: Request, pool=Depends(get_pool), user=Depends(re
 
     flash(request, "Profile updated", "success")
     return RedirectResponse(f"/concert-tracker/u/{user['username']}", status_code=302)
-
 
 @router.get("/social", response_class=HTMLResponse)
 async def social_page(request: Request, pool=Depends(get_pool), user=Depends(require_user)):
@@ -267,7 +262,6 @@ async def social_page(request: Request, pool=Depends(get_pool), user=Depends(req
         ),
     )
 
-
 @router.get("/api/user-search")
 async def user_search(q: str = "", pool=Depends(get_pool), user=Depends(require_user)):
     if len(q) < 1:
@@ -279,10 +273,8 @@ async def user_search(q: str = "", pool=Depends(get_pool), user=Depends(require_
         )
     return [{"username": r["username"], "avatar_url": r["avatar_url"]} for r in rows]
 
-
 def _is_ajax(request: Request) -> bool:
     return request.headers.get("X-Requested-With") == "fetch"
-
 
 @router.post("/u/follow")
 async def follow(request: Request, pool=Depends(get_pool), user=Depends(require_user)):
@@ -309,7 +301,6 @@ async def follow(request: Request, pool=Depends(get_pool), user=Depends(require_
         return JSONResponse({"following": True, "username": username})
     return RedirectResponse(f"/concert-tracker/u/{username}", status_code=302)
 
-
 @router.post("/u/unfollow")
 async def unfollow(request: Request, pool=Depends(get_pool), user=Depends(require_user)):
     await verify_csrf(request)
@@ -327,7 +318,6 @@ async def unfollow(request: Request, pool=Depends(get_pool), user=Depends(requir
     if _is_ajax(request):
         return JSONResponse({"following": False, "username": username})
     return RedirectResponse(f"/concert-tracker/u/{username}", status_code=302)
-
 
 @router.get("/discover", response_class=HTMLResponse)
 async def discover_page(request: Request, pool=Depends(get_pool), user=Depends(require_user), q: str = "", page: int = 1):
@@ -371,7 +361,6 @@ async def discover_page(request: Request, pool=Depends(get_pool), user=Depends(r
         _ctx(request, user, rows=rows, following_ids=following_ids,
              q=q, page=page, pages=pages, artist_rows=list(artist_rows), csrf=get_csrf_token(request)),
     )
-
 
 @router.get("/api/feed")
 async def feed_api(request: Request, pool=Depends(get_pool), user=Depends(require_user),
@@ -431,7 +420,6 @@ async def feed_api(request: Request, pool=Depends(get_pool), user=Depends(requir
 
     return JSONResponse({"items": feed_items, "has_more": len(rows) == limit})
 
-
 @router.get("/u/{username}/followers", response_class=HTMLResponse)
 async def followers_page(username: str, request: Request, pool=Depends(get_pool), user=Depends(require_user)):
     async with pool.acquire() as conn:
@@ -452,7 +440,6 @@ async def followers_page(username: str, request: Request, pool=Depends(get_pool)
         mutual_ids=mutual_ids, list_type="followers", csrf=get_csrf_token(request),
     ))
 
-
 @router.get("/u/{username}/following", response_class=HTMLResponse)
 async def following_page(username: str, request: Request, pool=Depends(get_pool), user=Depends(require_user)):
     async with pool.acquire() as conn:
@@ -472,7 +459,6 @@ async def following_page(username: str, request: Request, pool=Depends(get_pool)
         request, user, profile=profile, rows=rows, following_ids=following_ids,
         mutual_ids=mutual_ids, list_type="following", csrf=get_csrf_token(request),
     ))
-
 
 def _group_festivals(rows) -> list:
     seen: dict = {}
@@ -500,7 +486,6 @@ def _group_festivals(rows) -> list:
         else:
             items.append({"type": "show", "show": row})
     return items
-
 
 @router.get("/u/{username}", response_class=HTMLResponse)
 async def friend_profile(
@@ -621,7 +606,6 @@ async def friend_profile(
         ),
     )
 
-
 @router.get("/u/{username}/tab/{tab}", response_class=HTMLResponse)
 async def profile_tab(
     username: str,
@@ -741,7 +725,7 @@ async def profile_tab(
                      is_own_profile=(uid == pid)),
             )
 
-        # tab == "stats"
+                        
         per_year_stats = await conn.fetch(
             "SELECT EXTRACT(YEAR FROM date)::int AS year, COUNT(*)::int AS count "
             "FROM shows WHERE user_id=$1 GROUP BY year ORDER BY year",

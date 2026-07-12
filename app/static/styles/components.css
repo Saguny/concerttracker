@@ -1,4 +1,4 @@
-/* ── Buttons ── */
+
 .btn {
   display: inline-flex; align-items: center; gap: .4rem;
   padding: .45rem .9rem; border-radius: var(--radius-sm);
@@ -7,20 +7,18 @@
   white-space: nowrap;
 }
 .btn:hover { opacity: .85; text-decoration: none; }
-/* Primary action - solid accent */
+
 .btn-accent { background: var(--accent); color: #000; border-color: var(--accent); }
-/* Secondary / ghost - outlined */
+
 .btn-ghost  { background: transparent; border-color: var(--border); color: var(--text); }
 .btn-ghost:hover { background: var(--surface2); opacity: 1; }
-/* Destructive - outlined danger, NOT solid red */
+
 .btn-danger { background: transparent; border-color: var(--danger); color: var(--danger); }
 .btn-danger:hover { background: rgba(239,68,68,.1); opacity: 1; }
 
 .btn-sm   { padding: .3rem .65rem; font-size: .8rem; }
 .btn-full { width: 100%; justify-content: center; }
 
-/* ── Unified pill / chip system ── */
-/* genre tags, similar-artist chips, lineup tags, attendee chips all share the same base */
 .genre-tag,
 .artist-similar-chip,
 .lineup-tag,
@@ -38,11 +36,10 @@
 .genre-list          { display: flex; gap: .35rem; flex-wrap: wrap; }
 .lineup-tags         { display: flex; gap: .35rem; flex-wrap: wrap; margin-top: .25rem; }
 .artist-similar-list { display: flex; gap: .35rem; flex-wrap: wrap; }
-/* interactive chips get a hover accent border */
+
 .artist-similar-chip:hover,
 .attendee-chip:hover { border-color: var(--accent); color: var(--accent); text-decoration: none; }
 
-/* ── Shared inputs (all form contexts) ── */
 .field-group { display: flex; flex-direction: column; gap: .35rem; }
 .field-group label { font-size: .875rem; color: var(--muted); }
 
@@ -68,17 +65,14 @@
 .list-create-form input[type="text"]:focus { outline: none; border-color: var(--accent); }
 .show-form textarea { resize: vertical; }
 
-/* ── Filter bar ── */
 .filter-bar { display: flex; gap: .5rem; margin-bottom: 1.25rem; flex-wrap: wrap; }
 .filter-bar select,
 .filter-bar input  { width: auto; padding: .4rem .65rem; font-size: .85rem; }
 .filter-bar input  { min-width: 160px; }
 
-/* ── Invite ── */
 .invite-box { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: .75rem; word-break: break-all; }
 .invite-box code { font-size: .8rem; color: var(--accent); }
 
-/* ── Autocomplete ── */
 .autocomplete-wrap { position: relative; }
 .autocomplete-input-row { display: flex; align-items: center; gap: .5rem; }
 .autocomplete-input-row input { flex: 1; }
@@ -96,7 +90,6 @@
 .ac-name     { font-size: .875rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ac-meta     { font-size: .75rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-/* ── Log show / festival tabs ── */
 .log-tabs { display: flex; border-bottom: 2px solid var(--border); margin-bottom: 1.75rem; }
 .log-tab  {
   padding: .6rem 1.25rem; font-size: .9rem; font-weight: 600;
@@ -106,7 +99,6 @@
 .log-tab:hover { color: var(--text); text-decoration: none; }
 .log-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
 
-/* ── Setlist panel (form sidebar) ── */
 .setlist-panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem; }
 .setlist-status { font-size: .8rem; color: var(--muted); margin-bottom: .5rem; min-height: 1.2rem; }
 .setlist-header .setlist-status { margin-bottom: 0; min-height: 0; text-transform: none; letter-spacing: 0; font-size: .8rem; font-weight: 400; }
@@ -122,7 +114,6 @@
 }
 #setlist-textarea:focus { outline: none; border-color: var(--accent); }
 
-/* ── Setlist display - orange counter badges instead of plain numbers ── */
 .setlist-songs {
   list-style: none;
   padding: 0;
@@ -156,10 +147,8 @@
   flex-shrink: 0;
 }
 
-/* ── Tag panel ── */
 .tag-panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem; }
 
-/* ── Upcoming sidebar ── */
 .upcoming-sidebar { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem; }
 .upcoming-item { padding: .5rem; border-radius: var(--radius-sm); cursor: pointer; border: 1px solid transparent; margin-bottom: .3rem; transition: background .15s; }
 .upcoming-item:hover { background: var(--surface2); border-color: var(--border); }
@@ -167,7 +156,6 @@
 .upcoming-meta { font-size: .75rem; color: var(--muted); }
 .upcoming-date { font-size: .75rem; color: var(--accent); }
 
-/* ── Like button ── */
 .like-form { display: inline; }
 .btn-like {
   display: inline-flex; align-items: center; gap: .4rem;
@@ -179,7 +167,6 @@
 .btn-like:hover { border-color: #e05; color: #e05; }
 .btn-like.liked { border-color: #e05; color: #e05; background: rgba(238,0,85,.08); }
 
-/* ── Comments ── */
 .comments-section { margin-top: 0; }
 .comment-list     { display: flex; flex-direction: column; gap: .75rem; margin-bottom: 1.25rem; }
 .comment          { display: flex; gap: .65rem; align-items: flex-start; position: relative; }
@@ -194,7 +181,7 @@
 .comment-input-wrap { display: flex; gap: .65rem; align-items: flex-start; }
 .comment-input {
   flex: 1; background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--radius); /* rounder to match card style */
+  border-radius: var(--radius); 
   padding: .55rem .75rem; color: var(--text);
   resize: vertical; font-size: .875rem; width: 100%;
 }
@@ -207,7 +194,6 @@
 }
 .btn-icon-danger:hover { color: var(--danger); }
 
-/* ── Editable tag chips ── */
 .editable-tags { min-height: 2rem; }
 .editable-tag  { display: inline-flex; align-items: center; gap: .3rem; padding-right: .35rem; }
 .tag-remove    { background: none; border: none; padding: 0; color: var(--muted); font-size: .9rem; cursor: pointer; line-height: 1; }
@@ -215,12 +201,10 @@
 .tag-add-row   { display: flex; gap: .4rem; margin-top: .65rem; align-items: center; }
 .tag-add-row input { flex: 1; width: auto; padding: .35rem .65rem; font-size: .8rem; }
 
-/* ── Fetch state ── */
 .fetch-placeholder { font-size: .8rem; color: var(--muted); font-style: italic; padding: .5rem 0; }
 .fetch-loading     { font-size: .8rem; color: var(--muted); padding: .5rem 0; animation: pulse 1.2s ease-in-out infinite; }
 @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .4; } }
 
-/* ── Auth ── */
 .auth-wrap  { max-width: 400px; margin: 4rem auto; }
 .auth-title { font-size: 1.75rem; font-weight: 800; margin-bottom: .25rem; }
 .auth-sub   { color: var(--muted); margin-bottom: 1.5rem; }
@@ -229,12 +213,9 @@
 .auth-form textarea { resize: vertical; }
 .auth-footer { margin-top: 1rem; font-size: .85rem; color: var(--muted); text-align: center; }
 
-/* ── Global form element fixes (Firefox cross-browser) ── */
-/* Checkbox / radio accent follows the site accent color */
 input[type="checkbox"],
 input[type="radio"] { accent-color: var(--accent); }
 
-/* Select elements: strip native appearance so dark theme renders correctly in Firefox */
 .field-group select,
 .auth-form select,
 .show-form select,
@@ -249,10 +230,8 @@ input[type="radio"] { accent-color: var(--accent); }
   padding-right: 2.25rem;
 }
 
-/* ── Chart helpers ── */
 .chart-empty { color: var(--muted); font-size: .85rem; padding: 1.5rem 0; text-align: center; }
 
-/* ── Onboarding / empty feed CTA ── */
 .onboarding-cta {
   text-align: center; padding: 3rem 1rem; display: flex;
   flex-direction: column; align-items: center; gap: 1rem;
@@ -260,7 +239,6 @@ input[type="radio"] { accent-color: var(--accent); }
 .onboarding-cta h3 { font-size: 1.2rem; font-weight: 700; }
 .onboarding-cta p  { color: var(--muted); max-width: 340px; }
 
-/* ── Who-liked list ── */
 .liked-by-list { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .5rem; }
 .liked-by-chip {
   display: flex; align-items: center; gap: .35rem;
@@ -278,18 +256,14 @@ input[type="radio"] { accent-color: var(--accent); }
   font-size: .65rem; font-weight: 700;
 }
 
-/* ── Pagination load-more ── */
 .load-more-wrap { text-align: center; margin: 1.5rem 0; }
 
-/* ── Page navigation ── */
 .pagination { display: flex; align-items: center; justify-content: center; gap: .75rem; margin: 1.5rem 0; }
 .pagination-info { font-size: .85rem; }
 
-/* ── Show photo ── */
 .show-photo-wrap { margin-top: .75rem; }
 .show-photo-wrap img { max-width: 100%; border-radius: var(--radius); border: 1px solid var(--border); }
 
-/* ── Mention link ── */
 .mention {
   color: var(--accent); font-weight: 600;
   background: var(--accent-dim); border-radius: 3px;
@@ -297,7 +271,6 @@ input[type="radio"] { accent-color: var(--accent); }
 }
 .mention:hover { background: var(--accent); color: #000; text-decoration: none; }
 
-/* ── Mention autocomplete dropdown ── */
 .mention-ac-list {
   position: absolute; z-index: 500;
   background: var(--surface2); border: 1px solid var(--border);
@@ -322,7 +295,6 @@ input[type="radio"] { accent-color: var(--accent); }
   font-size: .65rem; font-weight: 700; flex-shrink: 0;
 }
 
-/* ── Discover page ── */
 .discover-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -347,7 +319,6 @@ input[type="radio"] { accent-color: var(--accent); }
 .discover-bio { margin-top: .3rem; }
 .discover-avatar-link { display: block; }
 
-/* ── Discover artist search ── */
 .discover-section-heading {
   font-size: 1rem; font-weight: 700; margin: 1.5rem 0 .75rem;
   color: var(--muted); text-transform: uppercase; letter-spacing: .06em;
@@ -378,7 +349,6 @@ input[type="radio"] { accent-color: var(--accent); }
 .artist-search-genres { margin-top: .1rem; }
 .artist-search-meta { margin-top: .1rem; }
 
-/* ── Invite management ── */
 .invite-table { width: 100%; border-collapse: collapse; margin-top: 1rem; font-size: .875rem; }
 .invite-table th, .invite-table td { padding: .55rem .75rem; text-align: left; border-bottom: 1px solid var(--border); }
 .invite-table th { color: var(--muted); font-weight: 600; }
@@ -386,14 +356,11 @@ input[type="radio"] { accent-color: var(--accent); }
 .invite-status-used { color: var(--muted); }
 .invite-status-open { color: var(--success); }
 
-/* ── Password change form ── */
 .change-pw-wrap { max-width: 420px; margin: 0 auto; padding-top: 1.5rem; }
 
-/* ── Export button ── */
 .export-row { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; margin-top: .75rem; }
 .export-row .btn { font-size: .8rem; }
 
-/* ── Star rating widget (show form) ── */
 .star-rating { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; }
 .stars-row { display: flex; gap: 2px; }
 .star {
@@ -409,7 +376,7 @@ input[type="radio"] { accent-color: var(--accent); }
 }
 .star:hover { transform: scale(1.1); }
 .star.filled { color: var(--accent); }
-/* half: base star stays muted; ::before overlays left 50% in amber */
+
 .star.half::before {
   content: '★';
   position: absolute;
@@ -426,7 +393,6 @@ input[type="radio"] { accent-color: var(--accent); }
 }
 .rating-clear-btn:hover { color: var(--text); border-color: var(--text); }
 
-/* ── Star display (show cards + detail) ── */
 .rating-badge {
   display: inline-block;
   color: var(--accent);
@@ -434,7 +400,7 @@ input[type="radio"] { accent-color: var(--accent); }
   font-weight: 600;
   letter-spacing: .02em;
 }
-/* Full visual star-fill bar in show detail */
+
 .rating-stars-display {
   position: relative;
   display: inline-block;
@@ -452,7 +418,6 @@ input[type="radio"] { accent-color: var(--accent); }
   white-space: nowrap;
 }
 
-/* ── Profile tabs ── */
 .profile-tabs-section { padding-top: 0; }
 .profile-tabs-nav {
   display: flex;
@@ -477,7 +442,6 @@ input[type="radio"] { accent-color: var(--accent); }
 .ptab:hover { color: var(--text); }
 .ptab.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 500; }
 
-/* ── Stats tab ── */
 .stats-summary-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
@@ -524,7 +488,6 @@ input[type="radio"] { accent-color: var(--accent); }
   margin: 0 0 .6rem;
 }
 
-/* ── Lists ── */
 .list-create-form {
   display: flex;
   gap: .6rem;
@@ -587,7 +550,6 @@ input[type="radio"] { accent-color: var(--accent); }
   vertical-align: 5px;
 }
 
-/* List detail page */
 .list-item-card {
   display: flex;
   align-items: center;
@@ -620,7 +582,6 @@ input[type="radio"] { accent-color: var(--accent); }
   min-width: 80px;
 }
 
-/* form-card */
 .form-card {
   max-width: 540px;
   display: flex;
@@ -628,7 +589,6 @@ input[type="radio"] { accent-color: var(--accent); }
   gap: 1rem;
 }
 
-/* ── Lists ── */
 .lists-page-layout {
   display: grid;
   grid-template-columns: 1fr 300px;

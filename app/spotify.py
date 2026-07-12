@@ -8,19 +8,16 @@ _session: aiohttp.ClientSession | None = None
 _token: str | None = None
 _token_exp: float = 0.0
 
-
 def _get_session() -> aiohttp.ClientSession:
     global _session
     if _session is None or _session.closed:
         _session = aiohttp.ClientSession()
     return _session
 
-
 async def close() -> None:
     global _session
     if _session and not _session.closed:
         await _session.close()
-
 
 async def _token_valid() -> str | None:
     global _token, _token_exp
@@ -51,7 +48,6 @@ async def _token_valid() -> str | None:
     _token_exp = time.monotonic() + data["expires_in"] - 60
     return _token
 
-
 async def search_artists(query: str, limit: int = 6) -> list[dict]:
     """Returns up to `limit` artist matches for autocomplete."""
     token = await _token_valid()
@@ -79,7 +75,6 @@ async def search_artists(query: str, limit: int = 6) -> list[dict]:
             "thumb_url": images[-1]["url"] if images else None,
         })
     return results
-
 
 async def search_artist(name: str) -> dict | None:
     """Returns {id, name, genres, image_url, thumb_url, popularity, spotify_url} or None."""

@@ -4,8 +4,7 @@ import aiohttp
 
 _session: aiohttp.ClientSession | None = None
 _last_req: float = 0.0
-_RATE = 1.1  # seconds between requests (MB enforces 1/s)
-
+_RATE = 1.1                                              
 
 def _get_session() -> aiohttp.ClientSession:
     global _session
@@ -16,12 +15,10 @@ def _get_session() -> aiohttp.ClientSession:
         )
     return _session
 
-
 async def close() -> None:
     global _session
     if _session and not _session.closed:
         await _session.close()
-
 
 async def _throttle() -> None:
     global _last_req
@@ -29,7 +26,6 @@ async def _throttle() -> None:
     if wait > 0:
         await asyncio.sleep(wait)
     _last_req = time.monotonic()
-
 
 async def search_artist(name: str) -> str | None:
     """Returns MBID string or None."""

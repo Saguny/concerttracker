@@ -17,11 +17,10 @@ router = APIRouter()
 
 _USERNAME_RE = re.compile(r"^[a-zA-Z0-9_]{3,32}$")
 
-# In-memory rate limiter: max 10 attempts per IP per 5 minutes
-_RATE_WINDOW = 300  # seconds
+                                                              
+_RATE_WINDOW = 300           
 _RATE_LIMIT = 10
 _rate_buckets: dict[str, collections.deque] = collections.defaultdict(collections.deque)
-
 
 def _check_rate(ip: str) -> bool:
     """Return True if the request is allowed, False if rate-limited."""
@@ -34,22 +33,18 @@ def _check_rate(ip: str) -> bool:
     dq.append(now)
     return True
 
-
 def _client_ip(request: Request) -> str:
     forwarded = request.headers.get("X-Forwarded-For", "")
     return forwarded.split(",")[0].strip() or request.client.host or "unknown"
 
-
 def _ctx(request: Request, **kw) -> dict:
     return {"request": request, "flashes": get_flashes(request), "user": None, **kw}
-
 
 @router.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request):
     if request.session.get("user_id"):
         return RedirectResponse("/concert-tracker/shows", status_code=302)
     return templates.TemplateResponse("login.html", _ctx(request, csrf=get_csrf_token(request)))
-
 
 @router.post("/login")
 async def login(request: Request, pool=Depends(get_pool)):
@@ -82,12 +77,10 @@ async def login(request: Request, pool=Depends(get_pool)):
     request.session["accent_color"] = row["accent_color"]
     return RedirectResponse("/concert-tracker/shows", status_code=302)
 
-
 @router.get("/logout")
 async def logout(request: Request):
     request.session.clear()
     return RedirectResponse("/concert-tracker/login", status_code=302)
-
 
 @router.get("/register", response_class=HTMLResponse)
 async def register_page(request: Request, code: str = ""):
@@ -97,7 +90,6 @@ async def register_page(request: Request, code: str = ""):
         "register.html",
         _ctx(request, csrf=get_csrf_token(request), prefill_code=code),
     )
-
 
 @router.post("/register")
 async def register(request: Request, pool=Depends(get_pool)):
@@ -175,7 +167,6 @@ async def register(request: Request, pool=Depends(get_pool)):
     request.session["accent_color"] = None
     return RedirectResponse("/concert-tracker/shows", status_code=302)
 
-
 @router.get("/invite", response_class=HTMLResponse)
 async def invite_page(request: Request, pool=Depends(get_pool), user=Depends(require_user)):
     async with pool.acquire() as conn:
@@ -191,7 +182,6 @@ async def invite_page(request: Request, pool=Depends(get_pool), user=Depends(req
          "flashes": get_flashes(request), "csrf": get_csrf_token(request)},
     )
 
-
 @router.post("/invite")
 async def create_invite(request: Request, pool=Depends(get_pool), user=Depends(require_user)):
     await verify_csrf(request)
@@ -205,7 +195,6 @@ async def create_invite(request: Request, pool=Depends(get_pool), user=Depends(r
     flash(request, f"Invite code created: {code}", "success")
     return RedirectResponse("/concert-tracker/invite", status_code=302)
 
-
 @router.post("/invite/{code}/revoke")
 async def revoke_invite(code: str, request: Request, pool=Depends(get_pool), user=Depends(require_user)):
     await verify_csrf(request)
@@ -217,14 +206,12 @@ async def revoke_invite(code: str, request: Request, pool=Depends(get_pool), use
     flash(request, "Invite revoked", "info")
     return RedirectResponse("/concert-tracker/invite", status_code=302)
 
-
 @router.get("/profile/change-password", response_class=HTMLResponse)
 async def change_password_page(request: Request, user=Depends(require_user)):
     return templates.TemplateResponse(
         "change_password.html",
         {"request": request, "user": user, "flashes": get_flashes(request), "csrf": get_csrf_token(request)},
     )
-
 
 @router.post("/profile/change-password")
 async def change_password(request: Request, pool=Depends(get_pool), user=Depends(require_user)):
@@ -258,7 +245,6 @@ async def change_password(request: Request, pool=Depends(get_pool), user=Depends
 
     flash(request, "Password updated", "success")
     return RedirectResponse(f"/concert-tracker/u/{user['username']}", status_code=302)
-
 
 @router.post("/admin/invite")
 async def admin_create_invite(request: Request, pool=Depends(get_pool)):

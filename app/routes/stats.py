@@ -7,14 +7,12 @@ from app.jinja import templates
 
 router = APIRouter()
 
-
 @router.get("/stats", response_class=HTMLResponse)
 async def stats_page(request: Request, user=Depends(require_user)):
     return templates.TemplateResponse(
         "stats.html",
         {"request": request, "user": user, "flashes": get_flashes(request)},
     )
-
 
 @router.get("/api/stats")
 async def stats_data(request: Request, pool=Depends(get_pool), user=Depends(require_user)):

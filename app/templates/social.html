@@ -297,7 +297,7 @@ function switchTab(tab, btn) {
     btn.disabled = true;
     btn.textContent = 'Loading…';
     try {
-      const res = await fetch(`/concert-tracker/api/feed?before=${before}&limit=20`, {headers: {'X-Requested-With': 'fetch'}});
+      const res = await fetch(`/api/feed?before=${before}&limit=20`, {headers: {'X-Requested-With': 'fetch'}});
       const data = await res.json();
       const list = document.getElementById('feed-list');
       if (data.items && data.items.length) {

@@ -25,9 +25,6 @@ img { max-width: 100%; }
 
 .main { max-width: 1100px; margin: 0 auto; padding: 1.5rem; }
 
-/* Scale up for 2K+ monitors without requiring browser zoom.
-   2000px = 2K at typical 125% Windows DPI (2560/1.25 = 2048 CSS px).
-   2400px = 2K at 100% Windows DPI (2560 CSS px). */
 @media (min-width: 2000px) {
   html { font-size: 17px; }
   .main { max-width: 1400px; }
@@ -52,14 +49,12 @@ img { max-width: 100%; }
 
 .empty-state { text-align: center; padding: 4rem 1rem; color: var(--muted); display: flex; flex-direction: column; align-items: center; gap: 1rem; }
 
-/* Badges */
 .badge { display: inline-block; font-size: .65rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; padding: .15rem .4rem; border-radius: 99px; }
 .badge-festival { background: var(--accent-dim); color: var(--accent); }
 .badge-upcoming { background: rgba(34,197,94,.2);  color: var(--success); }
 .badge-mutual   { background: rgba(59,130,246,.2); color: var(--blue); }
 .badge-ghost    { background: var(--surface2); color: var(--muted); }
 
-/* Shared section title - uppercase, tracked, muted */
 .section-title,
 .detail-section h3,
 .chart-card h3,
@@ -76,7 +71,7 @@ img { max-width: 100%; }
   align-items: center;
   gap: .5rem;
 }
-/* sub-text inside a section title (e.g. song count) resets case */
+
 .detail-section h3 .sub,
 .detail-section h3 span:not(.badge) {
   text-transform: none;

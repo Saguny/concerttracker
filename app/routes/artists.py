@@ -11,10 +11,8 @@ import app.spotify as spotify
 
 router = APIRouter()
 
-
 def _ctx(request: Request, user: dict, **kw) -> dict:
     return {"request": request, "user": user, "flashes": get_flashes(request), **kw}
-
 
 @router.get("/artists/{name}", response_class=HTMLResponse)
 async def artist_page(name: str, request: Request, pool=Depends(get_pool), user=Depends(require_user)):
@@ -40,10 +38,9 @@ async def artist_page(name: str, request: Request, pool=Depends(get_pool), user=
         )
         circle_seen = await conn.fetchval(
             "SELECT COUNT(*) FROM shows "
-            "WHERE (LOWER(artist) = LOWER($1) "
-            "       OR EXISTS(SELECT 1 FROM unnest(support_acts) sa WHERE LOWER(sa) = LOWER($1))) "
-            "AND (user_id = $2 OR user_id IN (SELECT target_id FROM follows WHERE user_id = $2))",
-            name, user["id"],
+            "WHERE LOWER(artist) = LOWER($1) "
+            "   OR EXISTS(SELECT 1 FROM unnest(support_acts) sa WHERE LOWER(sa) = LOWER($1))",
+            name,
         )
         comments = await conn.fetch(
             "SELECT ac.id, ac.body, ac.created_at, u.username, u.avatar_url "
@@ -104,10 +101,8 @@ async def artist_page(name: str, request: Request, pool=Depends(get_pool), user=
         ),
     )
 
-
 def _is_ajax(request: Request) -> bool:
     return request.headers.get("X-Requested-With") == "fetch"
-
 
 @router.post("/artists/{name}/comments")
 async def add_artist_comment(name: str, request: Request, pool=Depends(get_pool), user=Depends(require_user)):
@@ -128,7 +123,6 @@ async def add_artist_comment(name: str, request: Request, pool=Depends(get_pool)
     if _is_ajax(request):
         return JSONResponse(comment_row or {"error": "empty"})
     return RedirectResponse(f"/concert-tracker/artists/{name}", status_code=302)
-
 
 @router.post("/artists/{name}/comments/{comment_id}/delete")
 async def delete_artist_comment(name: str, comment_id: int, request: Request, pool=Depends(get_pool), user=Depends(require_user)):
