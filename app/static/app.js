@@ -300,5 +300,21 @@ document.addEventListener('submit', async e => {
            <input type="hidden" name="follow_user" value="${_esc(username)}">
            <button class="btn btn-sm btn-accent">Follow</button>
          </form>`;
+    return;
+  }
+
+  const card = form.closest('.discover-card');
+  if (card) {
+    form.outerHTML = data.following
+      ? `<form method="post" action="/concert-tracker/u/unfollow">
+           <input type="hidden" name="_csrf" value="${_esc(csrf)}">
+           <input type="hidden" name="username" value="${_esc(username)}">
+           <button class="btn btn-sm btn-ghost">Unfollow</button>
+         </form>`
+      : `<form method="post" action="/concert-tracker/u/follow">
+           <input type="hidden" name="_csrf" value="${_esc(csrf)}">
+           <input type="hidden" name="follow_user" value="${_esc(username)}">
+           <button class="btn btn-sm btn-accent">Follow</button>
+         </form>`;
   }
 });
