@@ -39,7 +39,7 @@
   background: transparent; border: 1px solid var(--border);
   border-radius: var(--radius-sm); padding: .3rem .6rem;
   color: var(--text); cursor: pointer; font-size: .85rem;
-  height: 30px; box-sizing: border-box;
+  height: 40px; box-sizing: border-box;
   transition: background .15s;
 }
 .nav-user-btn:hover { background: var(--surface2); }
@@ -72,15 +72,15 @@
 
 /* Notification bell */
 .nav-notif-wrap { position: relative; }
-.nav-right .btn { height: 30px; box-sizing: border-box; }
+.nav-right .btn { height: 40px; box-sizing: border-box; }
 .nav-notif-btn {
   position: relative; display: flex; align-items: center; justify-content: center;
   background: transparent; border: 1px solid var(--border);
   border-radius: var(--radius-sm); padding: .3rem .5rem;
-  cursor: pointer; color: var(--text); height: 30px; box-sizing: border-box;
+  cursor: pointer; color: var(--text); height: 40px; box-sizing: border-box;
   transition: background .15s;
 }
-.nav-notif-icon { width: 16px; height: 16px; display: block; }
+.nav-notif-icon { width: 20px; height: 20px; display: block; }
 .nav-notif-btn:hover { background: var(--surface2); }
 .nav-notif-badge {
   position: absolute; top: -5px; right: -5px;
