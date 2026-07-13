@@ -33,7 +33,8 @@ async def _link_festival_event(conn, festival_id: int, festival_name: str, city:
     if not first_date:
         return
     year_str = str(first_date.year)
-    norm_key = f"{festival_name.lower()}|{year_str}|{(city or '').lower()}"
+    # Key is name+year only — city varies too much between users for the same festival
+    norm_key = f"{festival_name.lower()}|{year_str}"
     event_id = await conn.fetchval(
         "INSERT INTO events (normalized_key, artist, date, venue, city, event_type) "
         "VALUES ($1,$2,$3,$4,$5,'festival') ON CONFLICT (normalized_key) DO NOTHING RETURNING id",

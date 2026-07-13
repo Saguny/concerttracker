@@ -1,4 +1,5 @@
 -- Create events for existing festivals (keyed by festival_name + year + city)
+-- Create one event per (festival_name, year) — city excluded from key since users spell it differently
 WITH festival_dates AS (
     SELECT
         f.id AS festival_id,
@@ -23,7 +24,7 @@ inserted AS (
         'festival'
     FROM (
         SELECT
-            LOWER(festival_name) || '|' || year_str || '|' || LOWER(COALESCE(city, '')) AS norm_key,
+            LOWER(festival_name) || '|' || year_str AS norm_key,
             festival_name,
             first_date,
             city
@@ -37,19 +38,18 @@ UPDATE festivals f
 SET event_id = ins.id
 FROM festival_dates fd
 JOIN inserted ins
-  ON ins.normalized_key = LOWER(fd.festival_name) || '|' || fd.year_str || '|' || LOWER(COALESCE(fd.city, ''))
+  ON ins.normalized_key = LOWER(fd.festival_name) || '|' || fd.year_str
 WHERE f.id = fd.festival_id AND f.event_id IS NULL;
 
--- Also link any remaining festivals that now have an existing event but no event_id
--- (handles duplicate festivals that weren't first in the DISTINCT ON)
+-- Link remaining festivals where the event already existed (DISTINCT ON skipped them)
 WITH festival_dates AS (
     SELECT
         f.id AS festival_id,
-        LOWER(f.festival_name) || '|' || EXTRACT(YEAR FROM MIN(s.date))::TEXT || '|' || LOWER(COALESCE(f.city, '')) AS norm_key
+        LOWER(f.festival_name) || '|' || EXTRACT(YEAR FROM MIN(s.date))::TEXT AS norm_key
     FROM festivals f
     JOIN shows s ON s.festival_id = f.id
     WHERE f.event_id IS NULL AND f.festival_name IS NOT NULL
-    GROUP BY f.id, f.festival_name, f.city
+    GROUP BY f.id, f.festival_name
 )
 UPDATE festivals f
 SET event_id = e.id

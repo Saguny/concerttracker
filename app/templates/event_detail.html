@@ -35,6 +35,7 @@
           {% endif %}
         </div>
 
+        {% set _log_count = (logs | length) if is_festival else (shows | length) %}
         <div class="event-stats-row">
           {% if avg_rating %}
           <div class="event-stat">
@@ -44,14 +45,14 @@
           <div class="event-stat-sep"></div>
           {% endif %}
           <div class="event-stat">
-            <span class="event-stat-val">{{ shows | length }}</span>
-            <span class="event-stat-label">log{{ 's' if shows | length != 1 else '' }}</span>
+            <span class="event-stat-val">{{ _log_count }}</span>
+            <span class="event-stat-label">log{{ 's' if _log_count != 1 else '' }}</span>
           </div>
-          {% if shows | length > 1 %}
+          {% if _log_count > 1 %}
           <div class="event-stat-sep"></div>
           <div class="event-stat">
-            <span class="event-stat-val">{{ shows | selectattr('username') | list | length }}</span>
-            <span class="event-stat-label">attendee{{ 's' if shows | length != 1 else '' }}</span>
+            <span class="event-stat-val">{{ _log_count }}</span>
+            <span class="event-stat-label">attendee{{ 's' if _log_count != 1 else '' }}</span>
           </div>
           {% endif %}
         </div>
