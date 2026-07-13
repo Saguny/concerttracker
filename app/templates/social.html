@@ -5,13 +5,10 @@
   <div class="social-main">
     <div class="social-top-bar">
       <h2>Activity Feed</h2>
-      <div class="follow-form">
-        <div class="follow-input-wrap autocomplete-wrap">
-          <input type="text" id="follow-user-input" placeholder="Find a user…" autocomplete="off" spellcheck="false">
-          <ul class="autocomplete-list" id="follow-dropdown"></ul>
-        </div>
-        <button type="button" class="btn btn-sm btn-accent" id="follow-search-btn">Search</button>
-      </div>
+      <form class="follow-form" method="get" action="/concert-tracker/search">
+        <input type="text" name="q" class="follow-input-wrap" placeholder="Search artists or users…" autocomplete="off" spellcheck="false">
+        <button type="submit" class="btn btn-sm btn-accent">Search</button>
+      </form>
     </div>
 
     {% if not feed %}

@@ -113,6 +113,7 @@
     </form>
   </div>
 
+  {% if shows %}
   <div class="detail-section">
     <h3>Your shows</h3>
     <div class="artist-shows-list">
@@ -127,11 +128,58 @@
       {% endfor %}
     </div>
   </div>
+  {% endif %}
+
+  {% if global_events %}
+  <div class="detail-section">
+    <div class="artist-shows-header">
+      <h3>All shows <span class="muted" style="font-weight:400;font-size:.9rem">{{ global_events | length }}</span></h3>
+      <div class="artist-shows-filters">
+        {% if event_years %}
+        <select class="filter-select" onchange="applyArtistFilter(this, 'year')">
+          <option value="">All years</option>
+          {% for y in event_years %}
+          <option value="{{ y }}" {% if year == y|string %}selected{% endif %}>{{ y }}</option>
+          {% endfor %}
+        </select>
+        {% endif %}
+        <select class="filter-select" onchange="applyArtistFilter(this, 'sort')">
+          <option value="date_desc" {% if sort == 'date_desc' %}selected{% endif %}>Newest first</option>
+          <option value="date_asc" {% if sort == 'date_asc' %}selected{% endif %}>Oldest first</option>
+          <option value="rating" {% if sort == 'rating' %}selected{% endif %}>Top rated</option>
+          <option value="popular" {% if sort == 'popular' %}selected{% endif %}>Most logged</option>
+        </select>
+      </div>
+    </div>
+    <div class="artist-shows-list">
+      {% for e in global_events %}
+      <a href="/concert-tracker/events/{{ e.id }}" class="artist-show-row">
+        <span class="artist-show-date">{{ e.date.strftime('%b %d, %Y').replace(' 0', ' ') }}</span>
+        <span class="artist-show-venue">
+          {% if e.venue and e.venue != e.artist %}{{ e.venue }}{% endif %}
+          {% if e.city %} · {{ e.city }}{% endif %}
+        </span>
+        {% if e.event_type == 'festival' %}<span class="badge badge-festival" style="font-size:.7rem">Festival</span>{% endif %}
+        <span class="artist-show-meta">
+          {% if e.avg_rating %}<span class="rating-badge" style="font-size:.75rem">★ {{ "%.1f"|format(e.avg_rating|float) }}</span>{% endif %}
+          <span class="muted small">{{ e.log_count }} log{{ 's' if e.log_count != 1 }}</span>
+        </span>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script>
 _initComments('{{ user.username }}', '{{ user.avatar_url or "" }}');
+
+function applyArtistFilter(sel, key) {
+  const url = new URL(window.location.href);
+  url.searchParams.set(key, sel.value);
+  window.location.href = url.toString();
+}
 </script>
 {% endblock %}

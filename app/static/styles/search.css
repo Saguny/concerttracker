@@ -1,0 +1,56 @@
+/* ── Search page ───────────────────────────────────────────────── */
+.search-page { max-width: 720px; margin: 2rem auto; padding: 0 1rem; }
+
+.search-bar-form { display: flex; gap: .5rem; margin-bottom: 1.5rem; }
+.search-bar-input {
+  flex: 1; background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: .55rem .85rem;
+  color: var(--text); font-size: .95rem;
+}
+.search-bar-input:focus { outline: none; border-color: var(--accent); }
+
+.search-tabs { display: flex; gap: .25rem; border-bottom: 1px solid var(--border); margin-bottom: 1.25rem; }
+.search-tab {
+  padding: .5rem 1rem; font-size: .875rem; font-weight: 500;
+  color: var(--muted); border-bottom: 2px solid transparent;
+  margin-bottom: -1px; text-decoration: none; transition: color .15s;
+}
+.search-tab:hover { color: var(--text); }
+.search-tab.active { color: var(--text); border-bottom-color: var(--accent); }
+.search-tab-count {
+  display: inline-block; background: var(--border); color: var(--muted);
+  border-radius: 99px; padding: .05rem .45rem; font-size: .75rem; margin-left: .3rem;
+}
+
+.search-results { display: flex; flex-direction: column; gap: .25rem; }
+.search-result-row {
+  display: flex; align-items: center; gap: .85rem;
+  padding: .6rem .75rem; border-radius: var(--radius-sm);
+  text-decoration: none; color: var(--text);
+  transition: background .15s;
+}
+.search-result-row:hover { background: var(--surface); }
+.search-result-img {
+  width: 44px; height: 44px; border-radius: var(--radius-sm);
+  object-fit: cover; flex-shrink: 0;
+  background: var(--surface); display: flex; align-items: center; justify-content: center;
+  font-size: 1.1rem; font-weight: 700; color: var(--muted);
+}
+.search-result-img-round { border-radius: 50%; }
+.search-result-ph { background: var(--border); }
+.search-result-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: .15rem; }
+.search-result-name { font-weight: 600; font-size: .925rem; }
+.search-result-sub { font-size: .775rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.search-result-meta { display: flex; flex-direction: column; align-items: flex-end; gap: .2rem; flex-shrink: 0; }
+
+/* ── Artist page — all shows section ──────────────────────────── */
+.artist-shows-header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: .75rem; }
+.artist-shows-header h3 { margin: 0; }
+.artist-shows-filters { display: flex; gap: .5rem; }
+.filter-select {
+  background: var(--surface); border: 1px solid var(--border);
+  color: var(--text); border-radius: var(--radius-sm);
+  padding: .3rem .6rem; font-size: .8rem; cursor: pointer;
+}
+.filter-select:focus { outline: none; border-color: var(--accent); }
+.artist-show-meta { display: flex; align-items: center; gap: .4rem; margin-left: auto; }

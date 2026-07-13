@@ -15,7 +15,14 @@ def _ctx(request: Request, user: dict, **kw) -> dict:
     return {"request": request, "user": user, "flashes": get_flashes(request), **kw}
 
 @router.get("/artists/{name}", response_class=HTMLResponse)
-async def artist_page(name: str, request: Request, pool=Depends(get_pool), user=Depends(require_user)):
+async def artist_page(
+    name: str,
+    request: Request,
+    sort: str = "date_desc",
+    year: str = "",
+    pool=Depends(get_pool),
+    user=Depends(require_user),
+):
     async with pool.acquire() as conn:
         artist_row = await conn.fetchrow("SELECT * FROM artists WHERE LOWER(name) = LOWER($1)", name)
         rows = await conn.fetch(
@@ -46,6 +53,35 @@ async def artist_page(name: str, request: Request, pool=Depends(get_pool), user=
             "SELECT ac.id, ac.body, ac.created_at, u.username, u.avatar_url "
             "FROM artist_comments ac JOIN users u ON u.id = ac.user_id "
             "WHERE LOWER(ac.artist_name) = LOWER($1) ORDER BY ac.created_at ASC",
+            name,
+        )
+
+        # Global shows/events for this artist with filters
+        order_sql = {
+            "date_desc": "e.date DESC",
+            "date_asc": "e.date ASC",
+            "rating": "avg_rating DESC NULLS LAST",
+            "popular": "log_count DESC",
+        }.get(sort, "e.date DESC")
+
+        year_filter = "AND EXTRACT(YEAR FROM e.date)::TEXT = $2" if year else ""
+        year_param = [name, year] if year else [name]
+
+        global_events = await conn.fetch(
+            f"SELECT e.id, e.artist, e.date, e.venue, e.city, e.event_type, "
+            f"COUNT(DISTINCT s.id) AS log_count, "
+            f"ROUND(AVG(s.rating)::numeric, 1) AS avg_rating "
+            f"FROM events e "
+            f"LEFT JOIN shows s ON s.event_id = e.id "
+            f"WHERE LOWER(e.artist) = LOWER($1) {year_filter} "
+            f"GROUP BY e.id, e.artist, e.date, e.venue, e.city, e.event_type "
+            f"ORDER BY {order_sql}",
+            *year_param,
+        )
+
+        event_years = await conn.fetch(
+            "SELECT DISTINCT EXTRACT(YEAR FROM date)::INT AS y FROM events "
+            "WHERE LOWER(artist) = LOWER($1) ORDER BY y DESC",
             name,
         )
 
@@ -97,6 +133,10 @@ async def artist_page(name: str, request: Request, pool=Depends(get_pool), user=
             global_avg_rating=float(global_avg_rating) if global_avg_rating is not None else None,
             global_rating_count=int(global_rating_count or 0),
             comments=list(comments),
+            global_events=list(global_events),
+            event_years=[r["y"] for r in event_years],
+            sort=sort,
+            year=year,
             csrf=get_csrf_token(request),
         ),
     )

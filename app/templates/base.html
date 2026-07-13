@@ -73,7 +73,7 @@
 
 <main class="main" id="main-content">
   {% for f in flashes %}
-  <div class="flash flash-{{ f.category }}">{{ f.message | safe }}</div>
+  <div class="flash flash-{{ f.category }}" role="alert">{{ f.message | safe }}</div>
   {% endfor %}
   {% block content %}{% endblock %}
 </main>

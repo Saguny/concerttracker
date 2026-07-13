@@ -29,8 +29,8 @@
 })();
 
 document.querySelectorAll('.flash').forEach(el => {
-  setTimeout(() => el.style.opacity = '0', 4000);
   el.style.transition = 'opacity .4s';
+  setTimeout(() => { el.style.opacity = '0'; }, 4000);
 });
 
 function _clipCopy(text, btn) {
