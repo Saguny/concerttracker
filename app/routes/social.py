@@ -345,6 +345,64 @@ async def search(
         ),
     )
 
+
+@router.get("/api/search")
+async def api_search(
+    request: Request,
+    q: str = "",
+    pool=Depends(get_pool),
+    user=Depends(optional_user),
+):
+    from fastapi.responses import JSONResponse as _JSONResponse
+    q = q.strip()
+    artists_results = []
+    users_results = []
+    if q:
+        async with pool.acquire() as conn:
+            artist_rows = await conn.fetch(
+                "SELECT a.name, a.image_url, a.thumb_url, a.genres, "
+                "COUNT(DISTINCT s.id) AS show_count, "
+                "ROUND(AVG(s.rating)::numeric, 1) AS avg_rating "
+                "FROM artists a "
+                "LEFT JOIN shows s ON LOWER(s.artist) = LOWER(a.name) "
+                "WHERE a.name ILIKE $1 "
+                "GROUP BY a.name, a.image_url, a.thumb_url, a.genres "
+                "ORDER BY COUNT(DISTINCT s.id) DESC, a.name ASC LIMIT 20",
+                f"%{q}%",
+            )
+            extra_artist_rows = await conn.fetch(
+                "SELECT LOWER(artist) AS name_lower, MAX(artist) AS name, "
+                "MAX(artist_image_url) AS image_url, MAX(artist_thumb_url) AS thumb_url, "
+                "COUNT(*) AS show_count, ROUND(AVG(rating)::numeric,1) AS avg_rating "
+                "FROM shows WHERE artist ILIKE $1 "
+                "AND LOWER(artist) NOT IN (SELECT LOWER(name) FROM artists WHERE name ILIKE $1) "
+                "GROUP BY LOWER(artist) LIMIT 10",
+                f"%{q}%",
+            )
+            artists_results = [
+                {"name": r["name"], "image_url": r["image_url"], "thumb_url": r["thumb_url"],
+                 "genres": list(r["genres"] or []), "show_count": int(r["show_count"] or 0),
+                 "avg_rating": float(r["avg_rating"]) if r["avg_rating"] else None}
+                for r in artist_rows
+            ] + [
+                {"name": r["name"], "image_url": r["image_url"], "thumb_url": r["thumb_url"],
+                 "genres": [], "show_count": int(r["show_count"] or 0),
+                 "avg_rating": float(r["avg_rating"]) if r["avg_rating"] else None}
+                for r in extra_artist_rows
+            ]
+            user_rows = await conn.fetch(
+                "SELECT u.username, u.avatar_url, u.location, "
+                "COUNT(DISTINCT s.id) AS show_count "
+                "FROM users u LEFT JOIN shows s ON s.user_id = u.id "
+                "WHERE u.username ILIKE $1 "
+                "GROUP BY u.username, u.avatar_url, u.location "
+                "ORDER BY u.username ASC LIMIT 20",
+                f"%{q}%",
+            )
+            users_results = [dict(r) for r in user_rows]
+    return _JSONResponse({"artists": artists_results, "users": users_results})
+
+
 def _is_ajax(request: Request) -> bool:
     return request.headers.get("X-Requested-With") == "fetch"
 

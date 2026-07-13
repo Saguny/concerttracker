@@ -1,87 +1,131 @@
 {% extends "base.html" %}
-{% block title %}Search{% if q %} · {{ q }}{% endif %} · Moshd{% endblock %}
+{% block title %}Search · Moshd{% endblock %}
 {% block content %}
 <div class="search-page">
-  <form class="search-bar-form" method="get" action="/concert-tracker/search">
-    <input class="search-bar-input" type="text" name="q" value="{{ q }}" placeholder="Search artists or users…" autofocus>
-    <input type="hidden" name="tab" value="{{ tab }}">
-    <button type="submit" class="btn btn-accent">Search</button>
-  </form>
-
-  {% if q %}
-  <div class="search-tabs">
-    <a href="/concert-tracker/search?q={{ q | urlquote }}&tab=artists"
-       class="search-tab{% if tab == 'artists' %} active{% endif %}">
-      Artists <span class="search-tab-count">{{ artists | length }}</span>
-    </a>
-    <a href="/concert-tracker/search?q={{ q | urlquote }}&tab=users"
-       class="search-tab{% if tab == 'users' %} active{% endif %}">
-      Users <span class="search-tab-count">{{ users | length }}</span>
-    </a>
+  <div class="search-bar-form">
+    <input id="search-input" class="search-bar-input" type="text" placeholder="Search artists or users…" autofocus autocomplete="off" spellcheck="false" value="{{ q }}">
   </div>
 
-  {% if tab == 'artists' %}
-    {% if artists %}
-    <div class="search-results">
-      {% for a in artists %}
-      <a href="/concert-tracker/artists/{{ a.name | urlquote }}" class="search-result-row">
-        {% if a.thumb_url or a.image_url %}
-        <img src="{{ a.thumb_url or a.image_url }}" class="search-result-img" alt="{{ a.name }}">
-        {% else %}
-        <div class="search-result-img search-result-ph">{{ a.name[0] | upper }}</div>
-        {% endif %}
-        <div class="search-result-info">
-          <span class="search-result-name">{{ a.name }}</span>
-          {% if a.genres %}
-          <span class="search-result-sub">{{ a.genres[:3] | join(' · ') }}</span>
-          {% endif %}
-        </div>
-        <div class="search-result-meta">
-          {% if a.avg_rating %}
-          <span class="rating-badge" style="font-size:.8rem">★ {{ "%.1f"|format(a.avg_rating) }}</span>
-          {% endif %}
-          {% if a.show_count %}
-          <span class="muted small">{{ a.show_count }} log{{ 's' if a.show_count != 1 }}</span>
-          {% endif %}
-        </div>
-      </a>
-      {% endfor %}
-    </div>
-    {% else %}
-    <div class="empty-state">No artists found for "{{ q }}"</div>
-    {% endif %}
+  <div class="search-tabs" id="search-tabs" style="display:none">
+    <button class="search-tab active" data-tab="artists" onclick="switchTab('artists')">
+      Artists <span class="search-tab-count" id="count-artists">0</span>
+    </button>
+    <button class="search-tab" data-tab="users" onclick="switchTab('users')">
+      Users <span class="search-tab-count" id="count-users">0</span>
+    </button>
+  </div>
 
-  {% else %}
-    {% if users %}
-    <div class="search-results">
-      {% for u in users %}
-      <a href="/concert-tracker/u/{{ u.username }}" class="search-result-row">
-        {% if u.avatar_url %}
-        <img src="{{ u.avatar_url }}" class="search-result-img search-result-img-round" alt="{{ u.username }}">
-        {% else %}
-        <div class="search-result-img search-result-img-round search-result-ph">{{ u.username[0] | upper }}</div>
-        {% endif %}
-        <div class="search-result-info">
-          <span class="search-result-name">{{ u.username }}</span>
-          {% if u.location %}
-          <span class="search-result-sub">{{ u.location }}</span>
-          {% endif %}
-        </div>
-        <div class="search-result-meta">
-          {% if u.show_count %}
-          <span class="muted small">{{ u.show_count }} show{{ 's' if u.show_count != 1 }}</span>
-          {% endif %}
-        </div>
-      </a>
-      {% endfor %}
-    </div>
-    {% else %}
-    <div class="empty-state">No users found for "{{ q }}"</div>
-    {% endif %}
-  {% endif %}
-
-  {% else %}
-  <div class="empty-state" style="margin-top:3rem">Enter a name to search artists and users</div>
-  {% endif %}
+  <div id="search-results-artists" class="search-results" style="display:none"></div>
+  <div id="search-results-users" class="search-results" style="display:none"></div>
+  <div id="search-empty" class="empty-state" style="margin-top:3rem">Enter a name to search artists and users</div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  const input = document.getElementById('search-input');
+  const tabs = document.getElementById('search-tabs');
+  const elArtists = document.getElementById('search-results-artists');
+  const elUsers = document.getElementById('search-results-users');
+  const elEmpty = document.getElementById('search-empty');
+  const cntArtists = document.getElementById('count-artists');
+  const cntUsers = document.getElementById('count-users');
+
+  let activeTab = 'artists';
+  let debounce = null;
+  let lastQ = null;
+
+  function switchTab(tab) {
+    activeTab = tab;
+    document.querySelectorAll('.search-tab').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+    elArtists.style.display = tab === 'artists' ? 'flex' : 'none';
+    elUsers.style.display   = tab === 'users'   ? 'flex' : 'none';
+  }
+
+  function artistHTML(a) {
+    const img = (a.thumb_url || a.image_url)
+      ? `<img src="${esc(a.thumb_url || a.image_url)}" class="search-result-img" alt="${esc(a.name)}">`
+      : `<div class="search-result-img search-result-ph">${esc(a.name[0].toUpperCase())}</div>`;
+    const genres = a.genres && a.genres.length
+      ? `<span class="search-result-sub">${esc(a.genres.slice(0,3).join(' · '))}</span>` : '';
+    const rating = a.avg_rating
+      ? `<span class="rating-badge" style="font-size:.8rem">★ ${a.avg_rating.toFixed(1)}</span>` : '';
+    const logs = a.show_count
+      ? `<span class="muted small">${a.show_count} log${a.show_count !== 1 ? 's' : ''}</span>` : '';
+    return `<a href="/concert-tracker/artists/${encodeURIComponent(a.name)}" class="search-result-row">
+      ${img}
+      <div class="search-result-info"><span class="search-result-name">${esc(a.name)}</span>${genres}</div>
+      <div class="search-result-meta">${rating}${logs}</div>
+    </a>`;
+  }
+
+  function userHTML(u) {
+    const img = u.avatar_url
+      ? `<img src="${esc(u.avatar_url)}" class="search-result-img search-result-img-round" alt="${esc(u.username)}">`
+      : `<div class="search-result-img search-result-img-round search-result-ph">${esc(u.username[0].toUpperCase())}</div>`;
+    const loc = u.location ? `<span class="search-result-sub">${esc(u.location)}</span>` : '';
+    const shows = u.show_count
+      ? `<span class="muted small">${u.show_count} show${u.show_count !== 1 ? 's' : ''}</span>` : '';
+    return `<a href="/concert-tracker/u/${encodeURIComponent(u.username)}" class="search-result-row">
+      ${img}
+      <div class="search-result-info"><span class="search-result-name">${esc(u.username)}</span>${loc}</div>
+      <div class="search-result-meta">${shows}</div>
+    </a>`;
+  }
+
+  function esc(str) {
+    return String(str ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function render(data, q) {
+    if (!q) {
+      tabs.style.display = 'none';
+      elArtists.style.display = 'none';
+      elUsers.style.display = 'none';
+      elEmpty.style.display = '';
+      return;
+    }
+    elEmpty.style.display = 'none';
+    tabs.style.display = 'flex';
+
+    cntArtists.textContent = data.artists.length;
+    cntUsers.textContent = data.users.length;
+
+    elArtists.innerHTML = data.artists.length
+      ? data.artists.map(artistHTML).join('')
+      : `<div class="empty-state">No artists found for "${esc(q)}"</div>`;
+
+    elUsers.innerHTML = data.users.length
+      ? data.users.map(userHTML).join('')
+      : `<div class="empty-state">No users found for "${esc(q)}"</div>`;
+
+    elArtists.style.display = activeTab === 'artists' ? 'flex' : 'none';
+    elUsers.style.display   = activeTab === 'users'   ? 'flex' : 'none';
+  }
+
+  async function doSearch(q) {
+    if (q === lastQ) return;
+    lastQ = q;
+    if (!q) { render({artists:[], users:[]}, ''); return; }
+    try {
+      const res = await fetch(`/concert-tracker/api/search?q=${encodeURIComponent(q)}`, {headers:{'X-Requested-With':'fetch'}});
+      const data = await res.json();
+      if (input.value.trim() === q) render(data, q);
+    } catch (_) {}
+  }
+
+  input.addEventListener('input', () => {
+    clearTimeout(debounce);
+    const q = input.value.trim();
+    debounce = setTimeout(() => doSearch(q), 280);
+  });
+
+  window.switchTab = switchTab;
+
+  // run on load if q was pre-filled
+  const initialQ = input.value.trim();
+  if (initialQ) doSearch(initialQ);
+})();
+</script>
 {% endblock %}
