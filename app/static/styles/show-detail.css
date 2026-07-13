@@ -240,7 +240,7 @@
 .artist-row .artist-date { width: 140px; }
 
 /* ── Event detail page ─────────────────────────────────────────────── */
-.event-page { max-width: 960px; margin: 0 auto; }
+.event-page { max-width: 960px; margin: -.75rem auto 0; }
 
 .event-hero {
   position: relative; border-radius: var(--radius); overflow: hidden;
@@ -344,6 +344,19 @@
 .rating-hist-bar { height: 100%; background: var(--accent); border-radius: 4px; min-width: 3px; transition: width .35s; }
 .rating-hist-bar.rating-hist-bar-empty { min-width: 0; background: transparent; }
 .rating-hist-count { font-size: .68rem; color: var(--muted); flex-shrink: 0; width: 18px; text-align: right; }
+
+/* Support acts sidebar */
+.event-support-list { display: flex; flex-direction: column; gap: .2rem; }
+.event-support-row {
+  display: flex; align-items: center; gap: .55rem;
+  padding: .35rem .3rem; border-radius: var(--radius-sm);
+  text-decoration: none; color: var(--text); transition: background .12s;
+}
+.event-support-row:hover { background: rgba(255,255,255,.04); text-decoration: none; }
+.event-support-thumb { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+.event-support-ph { background: var(--surface2); display: flex; align-items: center; justify-content: center; font-size: .75rem; font-weight: 700; color: var(--muted); }
+.event-support-name { flex: 1; font-size: .825rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.event-support-count { font-size: .7rem; color: var(--muted); flex-shrink: 0; }
 
 /* Event sidebar meta list */
 .event-meta-list { display: flex; flex-direction: column; gap: .35rem; }

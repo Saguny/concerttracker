@@ -182,6 +182,27 @@
         </div>
       </div>
 
+      {% if support_artists %}
+      <div class="detail-section">
+        <h3 style="font-size:.8rem;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:.65rem;font-weight:700">Support Acts</h3>
+        <div class="event-support-list">
+          {% for a in support_artists %}
+          <a href="/concert-tracker/artists/{{ a.name | urlquote }}" class="event-support-row">
+            {% if a.thumb %}
+            <img src="{{ a.thumb }}" class="event-support-thumb" alt="{{ a.name }}">
+            {% else %}
+            <div class="event-support-thumb event-support-ph">{{ a.name[0] | upper }}</div>
+            {% endif %}
+            <span class="event-support-name">{{ a.name }}</span>
+            {% if a.count > 1 %}
+            <span class="event-support-count">×{{ a.count }}</span>
+            {% endif %}
+          </a>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
       {% if event.setlistfm_id %}
       <a href="https://www.setlist.fm/setlist/x/{{ event.setlistfm_id }}" target="_blank" rel="noopener" class="btn btn-ghost" style="width:100%;justify-content:center;text-align:center">View setlist ↗</a>
       {% endif %}

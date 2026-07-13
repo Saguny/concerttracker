@@ -30,7 +30,7 @@ async def event_detail(
 
         shows = await conn.fetch(
             "SELECT s.id, s.artist, s.venue, s.city, s.date, s.rating, s.photo_url, "
-            "s.artist_thumb_url, s.notes, u.username, u.avatar_url, "
+            "s.artist_thumb_url, s.notes, s.support_acts, u.username, u.avatar_url, "
             "COALESCE(lc.cnt, 0) AS like_count, COALESCE(cc.cnt, 0) AS comment_count "
             "FROM shows s "
             "JOIN users u ON u.id = s.user_id "
@@ -60,6 +60,22 @@ async def event_detail(
                     user_show_id = s["id"]
                     break
 
+        support_tally: dict[str, int] = {}
+        for s in shows:
+            for name in (s["support_acts"] or []):
+                support_tally[name] = support_tally.get(name, 0) + 1
+        support_artists: list[dict] = []
+        if support_tally:
+            art_rows = await conn.fetch(
+                "SELECT name, thumb_url FROM artists WHERE name = ANY($1)",
+                list(support_tally.keys()),
+            )
+            thumb_map = {r["name"]: r["thumb_url"] for r in art_rows}
+            support_artists = sorted(
+                [{"name": n, "thumb": thumb_map.get(n), "count": c} for n, c in support_tally.items()],
+                key=lambda x: -x["count"],
+            )
+
     return templates.TemplateResponse(
         "event_detail.html",
         _ctx(
@@ -72,6 +88,7 @@ async def event_detail(
             max_rating_count=max_rating_count,
             hero_url=hero_url,
             user_show_id=user_show_id,
+            support_artists=support_artists,
             today=time.strftime("%Y-%m-%d"),
             csrf=get_csrf_token(request),
         ),
