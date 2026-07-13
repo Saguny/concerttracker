@@ -35,7 +35,7 @@
           <div style="flex:1;min-width:0">
             <input id="ep-avatar" type="file" name="avatar"
               accept="image/jpeg,image/png,image/webp,image/gif"
-              onchange="previewAvatar(this)">
+              onchange="checkFileSize(this, 15) && previewAvatar(this)">
             <div class="ep-hint" style="margin-top:.35rem">JPEG · PNG · WebP · GIF · max 15 MB</div>
             {% if me.avatar_url %}
             <label class="ep-checkbox-label" style="margin-top:.4rem">
@@ -57,7 +57,8 @@
         </label>
         {% endif %}
         <input id="ep-banner" type="file" name="banner"
-          accept="image/jpeg,image/png,image/webp,image/gif">
+          accept="image/jpeg,image/png,image/webp,image/gif"
+          onchange="checkFileSize(this, 15)">
         <span class="ep-hint">Wide image works best · JPEG · PNG · WebP · max 15 MB</span>
       </div>
 
@@ -237,6 +238,16 @@ function updateCounter(el, counterId, max) {
   var len = el.value.length;
   counter.textContent = len + '/' + max;
   counter.classList.toggle('warn', len >= Math.floor(max * 0.85));
+}
+
+function checkFileSize(input, maxMB) {
+  if (!input.files || !input.files[0]) return true;
+  if (input.files[0].size > maxMB * 1024 * 1024) {
+    alert('File is too large. Maximum size is ' + maxMB + ' MB.');
+    input.value = '';
+    return false;
+  }
+  return true;
 }
 
 function previewAvatar(input) {
