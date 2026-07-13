@@ -311,7 +311,11 @@ function switchTab(tab, btn) {
         });
       }
       if (!data.has_more) {
-        document.getElementById('load-more-wrap').remove();
+        btn.style.display = 'none';
+        const end = document.createElement('p');
+        end.className = 'feed-end-msg';
+        end.textContent = 'You reached the end meow meow prrt prrt >w<';
+        document.getElementById('load-more-wrap').appendChild(end);
       } else {
         btn.disabled = false;
         btn.textContent = 'Load more';
