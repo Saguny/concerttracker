@@ -2,8 +2,21 @@
 -- Add year column so the same festival name can recur across years
 ALTER TABLE festivals ADD COLUMN IF NOT EXISTS year INT;
 
--- Remove year=NULL ghost rows created when migration 001 re-runs after the year-based
--- unique constraint is in place (NULL doesn't conflict with 2025, so 001 inserts a duplicate).
+-- Re-link shows away from year=NULL ghost festivals onto the real (year-set) row,
+-- then delete the ghosts. Guards against FK violations when migration 001 re-ran
+-- and its UPDATE linked shows to a ghost ID before tracking was introduced.
+WITH ghost_ids AS (
+    SELECT g.id AS ghost_id, r.id AS real_id
+    FROM festivals g
+    JOIN festivals r
+      ON r.user_id = g.user_id AND r.festival_name = g.festival_name AND r.year IS NOT NULL
+    WHERE g.year IS NULL
+)
+UPDATE shows
+SET festival_id = ghost_ids.real_id
+FROM ghost_ids
+WHERE shows.festival_id = ghost_ids.ghost_id;
+
 DELETE FROM festivals
 WHERE year IS NULL
   AND (user_id, festival_name) IN (
