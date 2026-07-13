@@ -32,9 +32,17 @@
     <div class="detail-info">
     <div class="detail-info-main">
       <div>
+        {% if show.headliners and show.headliners | length > 1 %}
+        <h1 class="detail-artist-name">
+          {% for h in show.headliners %}
+          <a href="/concert-tracker/artists/{{ h | urlquote }}" class="detail-artist-link">{{ h }}</a>{% if not loop.last %}<span class="detail-headliner-sep"> &amp; </span>{% endif %}
+          {% endfor %}
+        </h1>
+        {% else %}
         <a href="/concert-tracker/artists/{{ show.artist | urlquote }}" class="detail-artist-link">
           <h1 class="detail-artist-name">{{ show.artist }}</h1>
         </a>
+        {% endif %}
         {% if show.artist_genres %}
         <div class="genre-list">{% for g in show.artist_genres[:3] %}<span class="genre-tag">{{ g }}</span>{% endfor %}</div>
         {% endif %}
@@ -58,6 +66,9 @@
           Festival{% if show.festival_name %}: {{ show.festival_name }}{% endif %} ↑
         </a>
         {% elif show.is_festival %}<span class="badge badge-festival">Festival{% if show.festival_name %}: {{ show.festival_name }}{% endif %}</span>{% endif %}
+        {% if show.event_id %}
+        <a href="/concert-tracker/events/{{ show.event_id }}" class="badge badge-ghost" style="text-decoration:none">Who else was there ↑</a>
+        {% endif %}
       </div>
 
       <div class="detail-actions-row">

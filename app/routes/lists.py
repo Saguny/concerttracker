@@ -13,34 +13,96 @@ router = APIRouter()
 
 async def _smart_items(conn, user_id: int, smart_filter: dict) -> list:
     ftype = smart_filter.get("type", "")
-    clauses = ["user_id = $1"]
-    params: list = [user_id]
+    value = smart_filter.get("value", "")
 
-    if ftype == "year":
-        params.append(int(smart_filter["value"]))
-        clauses.append(f"EXTRACT(YEAR FROM date) = ${len(params)}")
-    elif ftype == "rating_min":
-        params.append(float(smart_filter["value"]))
-        clauses.append(f"rating >= ${len(params)}")
-    elif ftype == "show_type":
-        if smart_filter["value"] == "festival":
-            clauses.append("is_festival = TRUE")
-        else:
-            clauses.append("(is_festival = FALSE OR is_festival IS NULL)")
+    # Phase 1 filters (no extra joins needed)
+    if ftype in ("year", "rating_min", "show_type"):
+        clauses = ["user_id = $1"]
+        params: list = [user_id]
+        if ftype == "year":
+            params.append(int(value))
+            clauses.append(f"EXTRACT(YEAR FROM date) = ${len(params)}")
+        elif ftype == "rating_min":
+            params.append(float(value))
+            clauses.append(f"rating >= ${len(params)}")
+        elif ftype == "show_type":
+            if value == "festival":
+                clauses.append("is_festival = TRUE")
+            else:
+                clauses.append("(is_festival = FALSE OR is_festival IS NULL)")
+        where = " AND ".join(clauses)
+        rows = await conn.fetch(
+            f"SELECT id AS show_id, artist, venue, city, date, artist_thumb_url, rating, 0 AS position "
+            f"FROM shows WHERE {where} ORDER BY date DESC",
+            *params,
+        )
+        return [dict(r) for r in rows]
 
-    where = " AND ".join(clauses)
-    rows = await conn.fetch(
-        f"SELECT id AS show_id, artist, venue, city, date, artist_thumb_url, rating, 0 AS position "
-        f"FROM shows WHERE {where} ORDER BY date DESC",
-        *params,
-    )
-    return [dict(r) for r in rows]
+    # Phase 2 filters — location & venue
+    if ftype == "by_city":
+        rows = await conn.fetch(
+            "SELECT id AS show_id, artist, venue, city, date, artist_thumb_url, rating, 0 AS position "
+            "FROM shows WHERE user_id = $1 AND LOWER(city) = LOWER($2) ORDER BY date DESC",
+            user_id, str(value),
+        )
+        return [dict(r) for r in rows]
+
+    if ftype == "by_venue":
+        rows = await conn.fetch(
+            "SELECT id AS show_id, artist, venue, city, date, artist_thumb_url, rating, 0 AS position "
+            "FROM shows WHERE user_id = $1 AND LOWER(venue) ILIKE LOWER($2) ORDER BY date DESC",
+            user_id, f"%{value}%",
+        )
+        return [dict(r) for r in rows]
+
+    # Phase 3 filters — metadata-dependent
+    if ftype == "by_genre":
+        rows = await conn.fetch(
+            "SELECT DISTINCT s.id AS show_id, s.artist, s.venue, s.city, s.date, "
+            "s.artist_thumb_url, s.rating, 0 AS position "
+            "FROM shows s "
+            "JOIN artists a ON LOWER(a.name) = LOWER(s.artist) "
+            "WHERE s.user_id = $1 AND $2 = ANY(a.genres) "
+            "ORDER BY s.date DESC",
+            user_id, str(value),
+        )
+        return [dict(r) for r in rows]
+
+    if ftype == "by_artist_appearance":
+        rows = await conn.fetch(
+            "SELECT id AS show_id, artist, venue, city, date, artist_thumb_url, rating, 0 AS position "
+            "FROM shows "
+            "WHERE user_id = $1 "
+            "AND (LOWER(artist) = LOWER($2) "
+            "     OR LOWER($2) = ANY(SELECT LOWER(h) FROM unnest(COALESCE(headliners,'{}')) h) "
+            "     OR LOWER($2) = ANY(SELECT LOWER(sa) FROM unnest(COALESCE(support_acts,'{}')) sa)) "
+            "ORDER BY date DESC",
+            user_id, str(value),
+        )
+        return [dict(r) for r in rows]
+
+    # unknown filter type — return empty
+    return []
 
 def _ctx(request: Request, user, **kw) -> dict:
     return {"request": request, "user": user, "flashes": get_flashes(request), **kw}
 
 def _is_ajax(request: Request) -> bool:
     return request.headers.get("X-Requested-With") == "fetch"
+
+@router.get("/api/smart-list-preview")
+async def smart_list_preview(
+    request: Request,
+    smart_type: str = "",
+    smart_value: str = "",
+    pool=Depends(get_pool),
+    user=Depends(require_user),
+):
+    if not smart_type or not smart_value:
+        return JSONResponse({"count": 0})
+    async with pool.acquire() as conn:
+        items = await _smart_items(conn, user["id"], {"type": smart_type, "value": smart_value})
+    return JSONResponse({"count": len(items)})
 
 @router.get("/lists", response_class=HTMLResponse)
 async def lists_index(request: Request, pool=Depends(get_pool), user=Depends(require_user)):

@@ -1,5 +1,33 @@
 
 
+(function() {
+  const _VIEW_KEY = 'moshd-show-view';
+  function _apply(regionId, mode) {
+    const el = document.getElementById(regionId);
+    if (!el) return;
+    const list = el.querySelector('.show-list');
+    if (list) list.classList.toggle('show-grid', mode === 'grid');
+  }
+  function _initToggle(toggle) {
+    const regionId = toggle.dataset.region;
+    const mode = localStorage.getItem(_VIEW_KEY) || 'list';
+    _apply(regionId, mode);
+    toggle.querySelectorAll('.view-toggle-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.view === mode);
+      btn.addEventListener('click', function() {
+        const m = this.dataset.view;
+        localStorage.setItem(_VIEW_KEY, m);
+        _apply(regionId, m);
+        toggle.querySelectorAll('.view-toggle-btn').forEach(b => b.classList.toggle('active', b.dataset.view === m));
+      });
+    });
+  }
+  window._initViewToggles = function() {
+    document.querySelectorAll('.view-toggle[data-region]').forEach(_initToggle);
+  };
+  document.addEventListener('DOMContentLoaded', window._initViewToggles);
+})();
+
 document.querySelectorAll('.flash').forEach(el => {
   setTimeout(() => el.style.opacity = '0', 4000);
   el.style.transition = 'opacity .4s';

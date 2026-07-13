@@ -60,10 +60,20 @@
         </div>
         <div class="field-group">
           <label class="field-label">Filter by</label>
-          <select name="smart_type" id="smart-type" onchange="updateSmartValue()">
-            <option value="year">Year</option>
-            <option value="rating_min">Minimum Rating</option>
-            <option value="show_type">Show Type</option>
+          <select name="smart_type" id="smart-type">
+            <optgroup label="Basic">
+              <option value="year">Year</option>
+              <option value="rating_min">Minimum Rating</option>
+              <option value="show_type">Show Type</option>
+            </optgroup>
+            <optgroup label="Location &amp; Venue">
+              <option value="by_city">City</option>
+              <option value="by_venue">Venue</option>
+            </optgroup>
+            <optgroup label="Artist &amp; Genre">
+              <option value="by_genre">Genre</option>
+              <option value="by_artist_appearance">Artist Appearance</option>
+            </optgroup>
           </select>
         </div>
         <div class="field-group" id="smart-value-wrap">
@@ -83,7 +93,10 @@
             <option value="3.5">★ 3.5+</option>
             <option value="3.0">★ 3.0+</option>
           </select>
+          <input type="text" id="smart-value-text" name="smart_value" style="display:none"
+                 placeholder="" autocomplete="off">
         </div>
+        <div id="smart-preview" class="muted small" style="margin-top:.35rem;min-height:1.2em"></div>
         <button type="submit" class="btn btn-accent" style="width:100%;margin-top:.75rem">Create smart list</button>
       </form>
     </section>
@@ -91,14 +104,56 @@
 </div>
 
 <script>
+const _smartType    = document.getElementById('smart-type');
+const _svYear       = document.getElementById('smart-value-year');
+const _svType       = document.getElementById('smart-value-type');
+const _svRating     = document.getElementById('smart-value-rating');
+const _svText       = document.getElementById('smart-value-text');
+const _smartPreview = document.getElementById('smart-preview');
+const _TEXT_PLACEHOLDERS = {
+  by_city: 'e.g. Köln', by_venue: 'e.g. Gebäude 9',
+  by_genre: 'e.g. black metal', by_artist_appearance: 'e.g. Lorna Shore',
+};
+let _previewTimer = null;
+
 function updateSmartValue() {
-  const t = document.getElementById('smart-type').value;
-  document.getElementById('smart-value-year').style.display   = t === 'year'       ? '' : 'none';
-  document.getElementById('smart-value-type').style.display   = t === 'show_type'  ? '' : 'none';
-  document.getElementById('smart-value-rating').style.display = t === 'rating_min' ? '' : 'none';
-  document.querySelectorAll('[name="smart_value"]').forEach(el => el.disabled = (el.style.display === 'none'));
+  const t = _smartType.value;
+  _svYear.style.display   = t === 'year'       ? '' : 'none';
+  _svType.style.display   = t === 'show_type'  ? '' : 'none';
+  _svRating.style.display = t === 'rating_min' ? '' : 'none';
+  const isText = ['by_city','by_venue','by_genre','by_artist_appearance'].includes(t);
+  _svText.style.display   = isText ? '' : 'none';
+  if (isText) _svText.placeholder = _TEXT_PLACEHOLDERS[t] || '';
+  document.querySelectorAll('[name="smart_value"]').forEach(el => {
+    el.disabled = el.style.display === 'none';
+  });
+  updatePreview();
+}
+async function updatePreview() {
+  clearTimeout(_previewTimer);
+  _previewTimer = setTimeout(async () => {
+    const t = _smartType.value;
+    let v = '';
+    if (t === 'year') v = _svYear.value;
+    else if (t === 'show_type') v = _svType.value;
+    else if (t === 'rating_min') v = _svRating.value;
+    else v = _svText.value.trim();
+    if (!v) { _smartPreview.textContent = ''; return; }
+    try {
+      const r = await fetch(
+        `/concert-tracker/api/smart-list-preview?smart_type=${encodeURIComponent(t)}&smart_value=${encodeURIComponent(v)}`,
+        { headers: { 'X-Requested-With': 'fetch' } }
+      );
+      const d = await r.json();
+      _smartPreview.textContent = `${d.count} show${d.count !== 1 ? 's' : ''} match`;
+    } catch { _smartPreview.textContent = ''; }
+  }, 400);
 }
 updateSmartValue();
-document.getElementById('smart-type').addEventListener('change', updateSmartValue);
+_smartType.addEventListener('change', updateSmartValue);
+_svYear.addEventListener('change', updatePreview);
+_svType.addEventListener('change', updatePreview);
+_svRating.addEventListener('change', updatePreview);
+_svText.addEventListener('input', updatePreview);
 </script>
 {% endblock %}

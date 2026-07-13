@@ -13,7 +13,7 @@
     <div class="show-thumb show-thumb-placeholder">🎵</div>
     {% endif %}
     <div class="show-card-body">
-      <div class="show-artist">{{ show.artist }}{% if is_upcoming %} <span class="badge badge-upcoming">Upcoming</span>{% endif %}</div>
+      <div class="show-artist">{{ (show.headliners | headliner_display) if show.headliners else show.artist }}{% if is_upcoming %} <span class="badge badge-upcoming">Upcoming</span>{% endif %}</div>
       <div class="show-meta">{{ show.venue }} · {{ show.city }}</div>
       <div class="show-meta">
         {% if show.rating %}<span class="rating-badge">★ {{ "%.1f"|format(show.rating|float) }}</span> &nbsp;{% endif %}<span class="feed-interactions">♥ {{ show.like_count }} &nbsp; 💬 {{ show.comment_count }}</span>

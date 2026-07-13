@@ -19,6 +19,12 @@
     <option value="rating_desc" {% if filters.sort == 'rating_desc' %}selected{% endif %}>Rating ↓</option>
   </select>
 </form>
+<div class="tab-toolbar">
+  <div class="view-toggle" data-region="profile-tab-list-region">
+    <button class="view-toggle-btn" data-view="list" title="List view"><svg width="14" height="12" viewBox="0 0 14 12"><rect y="0" width="14" height="2" rx="1" fill="currentColor"/><rect y="5" width="14" height="2" rx="1" fill="currentColor"/><rect y="10" width="14" height="2" rx="1" fill="currentColor"/></svg></button>
+    <button class="view-toggle-btn" data-view="grid" title="Grid view"><svg width="12" height="12" viewBox="0 0 12 12"><rect x="0" y="0" width="5" height="5" rx="1" fill="currentColor"/><rect x="7" y="0" width="5" height="5" rx="1" fill="currentColor"/><rect x="0" y="7" width="5" height="5" rx="1" fill="currentColor"/><rect x="7" y="7" width="5" height="5" rx="1" fill="currentColor"/></svg></button>
+  </div>
+</div>
 <div id="profile-tab-list-region">
   {% if not items %}
   <p class="muted" style="padding:.75rem 0">No shows match your filters.</p>
@@ -35,7 +41,7 @@
       <div class="show-thumb show-thumb-placeholder">🎵</div>
       {% endif %}
       <div class="show-card-body">
-        <div class="show-artist">{{ show.artist }}{% if is_upcoming %} <span class="badge badge-upcoming">Upcoming</span>{% endif %}</div>
+        <div class="show-artist">{{ (show.headliners | headliner_display) if show.headliners else show.artist }}{% if is_upcoming %} <span class="badge badge-upcoming">Upcoming</span>{% endif %}</div>
         <div class="show-meta">{{ show.venue }} · {{ show.city }}</div>
         <div class="show-meta">
           {% if show.rating %}<span class="rating-badge">★ {{ "%.1f"|format(show.rating|float) }}</span> &nbsp;{% endif %}<span class="feed-interactions">♥ {{ show.like_count }} &nbsp; 💬 {{ show.comment_count }}</span>

@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}{{ event.artist }} · {{ event.date.strftime('%b %d, %Y') }} · Moshd{% endblock %}
+{% block content %}
+<div class="detail-wrap">
+
+  <div class="detail-card">
+    <div class="detail-info">
+      <div class="detail-info-main">
+        <div>
+          <a href="/concert-tracker/artists/{{ event.artist | urlquote }}" class="detail-artist-link">
+            <h1 class="detail-artist-name">{{ event.artist }}</h1>
+          </a>
+          <span class="badge{% if event.event_type == 'verified' %} badge-festival{% else %} badge-ghost{% endif %}" style="margin-top:.35rem;display:inline-block">
+            {{ 'Verified' if event.event_type == 'verified' else 'Community' }}
+          </span>
+        </div>
+
+        <div class="detail-meta-stack">
+          <span class="detail-date">{{ event.date.strftime('%B %d, %Y').replace(' 0', ' ') }}</span>
+          {% if event.venue %}
+          <a href="https://maps.google.com/?q={{ (event.venue ~ (', ' ~ event.city if event.city else '')) | urlquote }}"
+             target="_blank" rel="noopener" class="detail-location-link">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
+            {{ event.venue }}{% if event.city %} · {{ event.city }}{% endif %}
+          </a>
+          {% endif %}
+          {% if avg_rating %}
+          <div style="display:flex;align-items:center;gap:.5rem">
+            <span class="rating-stars-display" style="--fill:{{ (avg_rating / 5 * 100)|int }}%">★★★★★</span>
+            <span class="muted small">{{ "%.1f"|format(avg_rating) }} avg · {{ shows | length }} log{{ 's' if shows | length != 1 else '' }}</span>
+          </div>
+          {% else %}
+          <span class="muted small">{{ shows | length }} log{{ 's' if shows | length != 1 else '' }}</span>
+          {% endif %}
+          {% if event.setlistfm_id %}
+          <a href="https://www.setlist.fm/setlist/x/{{ event.setlistfm_id }}" target="_blank" rel="noopener" class="setlist-link">View on Setlist.fm ↗</a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% if shows %}
+  <h2 style="margin:1.5rem 0 .75rem;font-size:1.05rem;font-weight:700">Who was there</h2>
+  <div class="show-list">
+    {% for show in shows %}
+    {% set is_upcoming = show.date | string >= today %}
+    <a href="/concert-tracker/shows/{{ show.id }}" class="show-card{% if is_upcoming %} show-upcoming{% endif %}{% if show.photo_url %} has-photo-bg{% endif %}"{% if show.photo_url %} style="--card-photo:url('{{ show.photo_url }}')"{% endif %}>
+      {% if show.artist_thumb_url %}
+      <img class="show-thumb" src="{{ show.artist_thumb_url }}" alt="{{ show.artist }}" loading="lazy">
+      {% else %}
+      <div class="show-thumb show-thumb-placeholder">🎵</div>
+      {% endif %}
+      <div class="show-card-body">
+        <div class="show-meta show-meta-row">
+          <span class="feed-user-chip">
+            {% if show.avatar_url %}
+            <img src="{{ show.avatar_url }}" class="feed-user-avatar" alt="">
+            {% else %}
+            <span class="feed-user-avatar feed-avatar-ph">{{ show.username[0] | upper }}</span>
+            {% endif %}
+            <a href="/concert-tracker/u/{{ show.username }}" style="color:inherit">{{ show.username }}</a>
+          </span>
+        </div>
+        {% if show.rating %}<div class="show-meta"><span class="rating-badge">★ {{ "%.1f"|format(show.rating|float) }}</span></div>{% endif %}
+        {% if show.notes %}<div class="show-meta" style="font-style:italic;color:var(--muted)">{{ show.notes | truncate(80) }}</div>{% endif %}
+        <div class="show-meta"><span class="feed-interactions">♥ {{ show.like_count }} &nbsp; 💬 {{ show.comment_count }}</span></div>
+      </div>
+      <div class="show-date">
+        <span class="date-day">{{ show.date.strftime('%d') }}</span>
+        <span class="date-mon">{{ show.date.strftime('%b') }}</span>
+        <span class="date-year">{{ show.date.strftime('%Y') }}</span>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="muted" style="padding:1.5rem 0">No one has logged this show yet.</p>
+  {% endif %}
+
+  {% if user %}
+  <div style="margin-top:1.5rem">
+    <a href="/concert-tracker/shows/add?artist={{ event.artist | urlquote }}&date={{ event.date }}&venue={{ (event.venue or '') | urlquote }}&city={{ (event.city or '') | urlquote }}" class="btn btn-accent">Log this show</a>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

@@ -19,6 +19,23 @@ _GOOGLE_PLACES_KEY = os.environ.get("GOOGLE_PLACES_KEY", "")
 
 router = APIRouter()
 
+_CITY_ALIASES: dict[str, str] = {
+    "cologne": "Köln",
+    "colgone": "Köln",
+    "koeln": "Köln",
+    "köln": "Köln",
+}
+
+def _normalize_city(city: str) -> str:
+    city = city.strip()
+    normalized = (
+        city
+        .replace("ä", "ae").replace("ö", "oe").replace("ü", "ue")
+        .replace("Ä", "Ae").replace("Ö", "Oe").replace("Ü", "Ue")
+    )
+    canonical = _CITY_ALIASES.get(normalized.lower())
+    return canonical if canonical else city.strip()
+
 def _ctx(request: Request, user: dict, **kw) -> dict:
     return {"request": request, "user": user, "flashes": get_flashes(request), **kw}
 
@@ -263,7 +280,7 @@ async def festival_edit_save(
     form = await request.form()
 
     festival_name = str(form.get("festival_name", "")).strip()[:200]
-    city = str(form.get("city", "")).strip()[:200]
+    city = _normalize_city(str(form.get("city", ""))[:200])
     notes = str(form.get("festival_notes", "")).strip()[:2000] or None
     rating_raw = str(form.get("rating", "")).strip()
     festival_rating: float | None = None
@@ -554,8 +571,8 @@ async def add_festival(request: Request, pool=Depends(get_pool), user=Depends(re
     import datetime
 
     festival_name = str(form.get("festival_name", "")).strip()[:200]
-    venue = festival_name                                       
-    city = str(form.get("city", "")).strip()[:200]
+    venue = festival_name
+    city = _normalize_city(str(form.get("city", ""))[:200])
     festival_notes = str(form.get("festival_notes", "")).strip()[:2000] or None
     rating_raw = str(form.get("rating", "")).strip()
     festival_rating: float | None = None
@@ -924,7 +941,7 @@ async def _handle_save(request: Request, pool, user: dict, show_id: int | None):
     import datetime
     artist = str(form.get("artist", "")).strip()[:200]
     venue = str(form.get("venue", "")).strip()[:200]
-    city = str(form.get("city", "")).strip()[:200]
+    city = _normalize_city(str(form.get("city", ""))[:200])
     try:
         date = datetime.date.fromisoformat(str(form.get("date", "")).strip())
     except ValueError:
@@ -960,6 +977,22 @@ async def _handle_save(request: Request, pool, user: dict, show_id: int | None):
             support_acts = [s for s in _json.loads(support_raw) if isinstance(s, str)]
         except Exception:
             pass
+
+    headliners_raw = str(form.get("headliners_json", "")).strip() or None
+    co_headliners: list[str] = []
+    if headliners_raw:
+        try:
+            co_headliners = [s for s in _json.loads(headliners_raw) if isinstance(s, str) and s.strip()]
+        except Exception:
+            pass
+    headliners: list[str] = []
+    if artist:
+        seen: set[str] = {artist.lower()}
+        headliners = [artist]
+        for h in co_headliners:
+            if h.lower() not in seen:
+                headliners.append(h)
+                seen.add(h.lower())
 
                                        
     import asyncio
@@ -1013,12 +1046,13 @@ async def _handle_save(request: Request, pool, user: dict, show_id: int | None):
             show_id = await conn.fetchval(
                 "INSERT INTO shows (user_id, artist, venue, city, date, is_festival, festival_name, "
                 "notes, setlist, support_acts, artist_mbid, artist_spotify_id, artist_image_url, "
-                "artist_thumb_url, artist_genres, created_at, rating) VALUES "
-                "($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17) RETURNING id",
+                "artist_thumb_url, artist_genres, created_at, rating, headliners) VALUES "
+                "($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18) RETURNING id",
                 user["id"], artist, venue, city, date, is_festival, festival_name,
                 notes, _json.dumps(setlist_data) if setlist_data else None,
                 support_acts or None,
                 mbid, spotify_id, image_url, thumb_url, genres, now, rating,
+                headliners or None,
             )
                                                             
             if _photo_data and show_id:
@@ -1042,7 +1076,7 @@ async def _handle_save(request: Request, pool, user: dict, show_id: int | None):
                 "UPDATE shows SET artist=$1, venue=$2, city=$3, date=$4, is_festival=$5, "
                 "festival_name=$6, notes=$7, setlist=$8, support_acts=$9, artist_mbid=$10, "
                 "artist_spotify_id=$11, artist_image_url=$12, artist_thumb_url=$13, artist_genres=$14, "
-                "rating=$19, "
+                "rating=$19, headliners=$20, "
                 "photo_url = CASE WHEN $17 THEN $18 ELSE photo_url END "
                 "WHERE id=$15 AND user_id=$16",
                 artist, venue, city, date, is_festival, festival_name,
@@ -1050,10 +1084,26 @@ async def _handle_save(request: Request, pool, user: dict, show_id: int | None):
                 support_acts or None,
                 mbid, spotify_id, image_url, thumb_url, genres, show_id, user["id"],
                 update_photo, _new_photo_url if not remove_photo else None,
-                rating,
+                rating, headliners or None,
             )
 
-                                                                           
+        if artist and date and not is_festival:
+            norm_key = f"{artist.lower()}|{date}|{(venue or '').lower()}"
+            event_id = await conn.fetchval(
+                "INSERT INTO events (normalized_key, artist, date, venue, city) "
+                "VALUES ($1,$2,$3,$4,$5) ON CONFLICT (normalized_key) DO NOTHING RETURNING id",
+                norm_key, artist, date, venue or None, city or None,
+            )
+            if event_id is None:
+                event_id = await conn.fetchval(
+                    "SELECT id FROM events WHERE normalized_key=$1", norm_key
+                )
+            if event_id and show_id:
+                await conn.execute(
+                    "UPDATE shows SET event_id=$1 WHERE id=$2 AND event_id IS DISTINCT FROM $1",
+                    event_id, show_id,
+                )
+
         await _upsert_artist(conn, artist, sp, now)
         for name, sp_result in zip(support_acts, support_sp_results):
             support_sp = sp_result if isinstance(sp_result, dict) else None

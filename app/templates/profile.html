@@ -266,6 +266,7 @@ async function _loadTab(tab) {
     _tabContent.innerHTML = await res.text();
     if (tab === 'all') _initTabFilter();
     else if (tab === 'stats') _initStatsCharts();
+    if (tab === 'all' || tab === 'top') window._initViewToggles?.();
     history.replaceState(null, '', `/concert-tracker/u/${_PROFILE_USER}?tab=${tab}`);
   } finally {
     _tabContent.style.opacity = '';
@@ -284,7 +285,7 @@ function _initTabFilter() {
     const doc = new DOMParser().parseFromString(html, 'text/html');
     const region = document.getElementById('profile-tab-list-region');
     const newRegion = doc.getElementById('profile-tab-list-region');
-    if (region && newRegion) region.replaceWith(newRegion);
+    if (region && newRegion) { region.replaceWith(newRegion); window._initViewToggles?.(); }
     history.replaceState(null, '', `/concert-tracker/u/${_PROFILE_USER}?tab=all&${qs}`);
   }, 250);
   form.querySelectorAll('select').forEach(s => s.addEventListener('change', doFilter));

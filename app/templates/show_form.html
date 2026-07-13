@@ -14,6 +14,7 @@
   <input type="hidden" name="_csrf" value="{{ csrf }}">
   <input type="hidden" name="setlist_json" id="setlist-json" value="{% if show and show.setlist %}{{ show.setlist | tojson }}{% endif %}">
   <input type="hidden" name="support_acts_json" id="support-acts-json" value="{% if show and show.support_acts %}{{ show.support_acts | tojson }}{% endif %}">
+  <input type="hidden" name="headliners_json" id="headliners-json" value="{% if show and show.headliners and show.headliners | length > 1 %}{{ show.headliners[1:] | tojson }}{% else %}[]{% endif %}">
 
   
   <div class="field-group">
@@ -30,7 +31,22 @@
     <div id="artist-genres" class="genre-list" style="margin-top:.4rem"></div>
   </div>
 
-  
+  <div class="field-group" id="co-headliner-group">
+    <label style="display:flex;align-items:center;gap:.5rem">
+      Co-headliners
+      <span class="muted small">(optional — for shared-billing shows)</span>
+    </label>
+    <div id="co-headliner-tags" class="lineup-tags editable-tags"></div>
+    <div class="tag-add-row">
+      <div class="autocomplete-wrap co-hl-ac-wrap" style="flex:1;position:relative">
+        <input type="text" id="co-hl-add-input" placeholder="Add another headliner…"
+               maxlength="200" autocomplete="off">
+        <ul class="autocomplete-list" id="co-hl-ac-list"></ul>
+      </div>
+    </div>
+  </div>
+
+
   <div id="upcoming-panel" style="display:none">
     <button type="button" id="upcoming-toggle" class="upcoming-panel-label upcoming-toggle-btn">
       <span id="upcoming-chevron" class="upcoming-chevron">▾</span>
@@ -112,7 +128,7 @@
         <button type="button" id="support-backfill-btn" class="btn btn-ghost btn-sm">Backfill</button>
       </span>
     </div>
-    <div id="support-placeholder" class="fetch-placeholder">Fill in artist &amp; date to auto-fetch</div>
+    <div id="support-placeholder" class="fetch-placeholder">Fill in artist, date &amp; venue to auto-fetch</div>
     <div id="support-loading" class="fetch-loading" style="display:none">Searching Ticketmaster…</div>
     <div id="support-editor" style="display:none">
       <div id="support-tags" class="lineup-tags editable-tags"></div>
@@ -134,7 +150,7 @@
         <button type="button" id="setlist-backfill-btn" class="btn btn-ghost btn-sm">Backfill</button>
       </span>
     </div>
-    <div id="setlist-placeholder" class="fetch-placeholder">Fill in artist &amp; date to auto-fetch</div>
+    <div id="setlist-placeholder" class="fetch-placeholder">Fill in artist, date &amp; venue to auto-fetch</div>
     <div id="setlist-loading" class="fetch-loading" style="display:none">Searching Setlist.fm…</div>
     <div id="setlist-editor" style="display:none">
       <textarea id="setlist-textarea" rows="10" placeholder="One song per line - edit freely" spellcheck="false"></textarea>
@@ -371,8 +387,9 @@ let pendingFetch = null; // Promise for any in-flight lineup+setlist fetch
 function maybeAutoFetch() {
   const artist = artistInput.value.trim();
   const date   = dateInput.value;
-  if (!artist || !date) return;
-  const key = `${artist}|${date}`;
+  const venue  = venueInput.value.trim();
+  if (!artist || !date || !venue) return;
+  const key = `${artist}|${date}|${venue}`;
   if (key === lastFetchKey) return;
   lastFetchKey = key;
   const p = Promise.all([doFetchLineup(artist, date), doFetchSetlist(artist, date)]);
@@ -653,6 +670,85 @@ showForm.addEventListener('submit', e => {
 
 // Pre-fetch upcoming if editing with an existing artist
 {% if show and show.artist %}fetchUpcoming({{ show.artist | tojson }});{% endif %}
+
+// ── Co-headliner chip widget ─────────────────────────────────────────
+(function() {
+  const hiddenField   = document.getElementById('headliners-json');
+  const tagsContainer = document.getElementById('co-headliner-tags');
+  const addInput      = document.getElementById('co-hl-add-input');
+  const acList        = document.getElementById('co-hl-ac-list');
+  if (!hiddenField || !tagsContainer || !addInput) return;
+
+  let coHeadliners = [];
+  try { coHeadliners = JSON.parse(hiddenField.value || '[]'); } catch(e) {}
+
+  function syncHidden() {
+    hiddenField.value = JSON.stringify(coHeadliners);
+  }
+
+  function renderChips() {
+    tagsContainer.innerHTML = '';
+    coHeadliners.forEach((name, i) => {
+      const chip = document.createElement('span');
+      chip.className = 'lineup-tag';
+      chip.innerHTML = `${esc(name)} <button type="button" class="tag-remove" aria-label="Remove">&times;</button>`;
+      chip.querySelector('.tag-remove').addEventListener('click', () => {
+        coHeadliners.splice(i, 1);
+        renderChips();
+        syncHidden();
+      });
+      tagsContainer.appendChild(chip);
+    });
+  }
+
+  function addHeadliner(name) {
+    const norm = name.trim();
+    const primary = (document.getElementById('artist-input') || {}).value || '';
+    if (!norm || norm.toLowerCase() === primary.toLowerCase()) return;
+    if (coHeadliners.map(n => n.toLowerCase()).includes(norm.toLowerCase())) return;
+    coHeadliners.push(norm);
+    renderChips();
+    syncHidden();
+    addInput.value = '';
+    acList.innerHTML = '';
+    acList.style.display = 'none';
+  }
+
+  // Autocomplete reusing existing artist-search endpoint
+  let acTimer;
+  addInput.addEventListener('input', () => {
+    clearTimeout(acTimer);
+    const q = addInput.value.trim();
+    if (q.length < 2) { acList.innerHTML = ''; acList.style.display = 'none'; return; }
+    acTimer = setTimeout(async () => {
+      try {
+        const r = await fetch(`/concert-tracker/api/artist-search?q=${encodeURIComponent(q)}`);
+        const results = await r.json();
+        acList.innerHTML = '';
+        if (!results.length) { acList.style.display = 'none'; return; }
+        results.slice(0, 6).forEach(a => {
+          const li = document.createElement('li');
+          li.className = 'autocomplete-item';
+          li.textContent = a.name;
+          li.addEventListener('mousedown', e => { e.preventDefault(); addHeadliner(a.name); });
+          acList.appendChild(li);
+        });
+        acList.style.display = '';
+      } catch(e) { acList.style.display = 'none'; }
+    }, 250);
+  });
+
+  addInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); addHeadliner(addInput.value); }
+  });
+
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.co-hl-ac-wrap')) { acList.style.display = 'none'; }
+  });
+
+  renderChips();
+  syncHidden();
+})();
 
 // ── Friend tagging (multi-select) ───────────────────────────────────
 (function() {

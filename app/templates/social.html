@@ -30,14 +30,14 @@
       {% if item.type == 'show' %}
       {% set show = item.show %}
       {% set is_upcoming = show.date | string >= today %}
-      <a href="/concert-tracker/shows/{{ show.id }}" class="show-card{% if is_upcoming %} show-upcoming{% endif %}">
+      <a href="/concert-tracker/shows/{{ show.id }}" class="show-card{% if is_upcoming %} show-upcoming{% endif %}{% if show.photo_url %} has-photo-bg{% endif %}"{% if show.photo_url %} style="--card-photo:url('{{ show.photo_url }}')"{% endif %}>
         {% if show.artist_thumb_url %}
         <img class="show-thumb" src="{{ show.artist_thumb_url }}" alt="{{ show.artist }}" loading="lazy">
         {% else %}
         <div class="show-thumb show-thumb-placeholder" aria-hidden="true">🎵</div>
         {% endif %}
         <div class="show-card-body">
-          <div class="show-artist">{{ show.artist }}{% if is_upcoming %} <span class="badge badge-upcoming">Upcoming</span>{% endif %}</div>
+          <div class="show-artist">{{ (show.headliners | headliner_display) if show.headliners else show.artist }}{% if is_upcoming %} <span class="badge badge-upcoming">Upcoming</span>{% endif %}</div>
           <div class="show-meta">{{ show.venue }} · {{ show.city }}</div>
           <div class="show-meta show-meta-row">
             <span class="feed-user-chip">
@@ -343,7 +343,8 @@ function switchTab(tab, btn) {
       const av = s.user_avatar
         ? `<img src="${_esc(s.user_avatar)}" class="feed-user-avatar" alt="">`
         : `<span class="feed-user-avatar feed-avatar-ph">${_esc(s.username[0].toUpperCase())}</span>`;
-      return `<a href="/concert-tracker/shows/${s.id}" class="show-card">
+      const photoBg = s.photo_url ? ` has-photo-bg" style="--card-photo:url('${_esc(s.photo_url)}')` : ``;
+      return `<a href="/concert-tracker/shows/${s.id}" class="show-card${photoBg}">
         ${thumb}
         <div class="show-card-body">
           <div class="show-artist">${_esc(s.artist)}</div>

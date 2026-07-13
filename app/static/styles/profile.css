@@ -375,3 +375,27 @@ input[type="color"]:disabled { opacity: 0.35; cursor: not-allowed; pointer-event
 .ep-social-website { color: var(--muted); }
 
 .ep-form-actions { display: flex; align-items: center; gap: .75rem; margin-top: .5rem; }
+
+/* View toggle */
+.tab-toolbar { display: flex; justify-content: flex-end; align-items: center; margin: .5rem 0 .75rem; }
+.view-toggle { display: flex; gap: .2rem; }
+.view-toggle-btn { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: .3rem .5rem; color: var(--muted); cursor: pointer; line-height: 1; transition: background .12s, color .12s, border-color .12s; display: flex; align-items: center; }
+.view-toggle-btn.active { background: var(--accent); border-color: var(--accent); color: #000; }
+.view-toggle-btn:hover:not(.active) { border-color: var(--accent); color: var(--accent); }
+
+/* Grid mode */
+.show-list.show-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); gap: .75rem; }
+@media (max-width: 480px) { .show-list.show-grid { grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); } }
+.show-list.show-grid .show-card { flex-direction: column; position: relative; aspect-ratio: 1; padding: 0; overflow: hidden; align-items: stretch; border-radius: var(--radius); }
+.show-list.show-grid .show-thumb { width: 100%; height: 100%; flex-shrink: 0; position: absolute; inset: 0; border-radius: 0; object-fit: cover; }
+.show-list.show-grid .show-thumb-placeholder { width: 100%; height: 100%; flex-shrink: 0; position: absolute; inset: 0; border-radius: 0; font-size: 2.5rem; display: flex; align-items: center; justify-content: center; }
+.show-list.show-grid .show-card-body { position: absolute; bottom: 0; left: 0; right: 0; z-index: 1; background: linear-gradient(to top, rgba(0,0,0,.88) 0%, transparent 100%); padding: 1.5rem .55rem .45rem; }
+.show-list.show-grid .show-artist { font-size: .78rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.show-list.show-grid .show-meta:nth-child(2) { font-size: .65rem; color: rgba(255,255,255,.5); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.show-list.show-grid .show-meta:nth-child(3) { display: none; }
+.show-list.show-grid .show-date { position: absolute; top: .35rem; right: .35rem; z-index: 2; background: rgba(0,0,0,.65); border-radius: var(--radius-sm); padding: .18rem .38rem; text-align: center; backdrop-filter: blur(4px); display: flex; flex-direction: column; align-items: center; }
+.show-list.show-grid .date-day { font-size: .82rem; font-weight: 800; line-height: 1; }
+.show-list.show-grid .date-mon { font-size: .58rem; text-transform: uppercase; letter-spacing: .04em; color: var(--accent); line-height: 1.2; }
+.show-list.show-grid .date-year { display: none; }
+.show-list.show-grid .festival-toggle { display: none; }
+.show-list.show-grid .festival-acts { display: none !important; }

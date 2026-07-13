@@ -16,7 +16,7 @@ import app.spotify as spotify
 import app.musicbrainz as musicbrainz
 import app.lastfm as lastfm
 
-from app.routes import auth, shows, stats, social, artists, notifications, lists
+from app.routes import auth, shows, stats, social, artists, notifications, lists, events
 from app.routes import calendar as cal
 
 @asynccontextmanager
@@ -55,6 +55,7 @@ app.include_router(stats.router, prefix=_base)
 app.include_router(social.router, prefix=_base)
 app.include_router(notifications.router, prefix=_base)
 app.include_router(lists.router, prefix=_base)
+app.include_router(events.router, prefix=_base)
 app.include_router(cal.router, prefix=_base)
 
 class _CSPMiddleware(BaseHTTPMiddleware):
