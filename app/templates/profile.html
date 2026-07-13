@@ -33,7 +33,7 @@
       <div class="profile-stats-row">
         <span><strong>{{ standalone_count }}</strong> <span class="muted">show{{ 's' if standalone_count != 1 else '' }}</span></span>
         {% if festival_count %}<span><strong>{{ festival_count }}</strong> <span class="muted">festival{{ 's' if festival_count != 1 else '' }}</span></span>{% endif %}
-        <a href="/concert-tracker/u/{{ profile.username }}/followers" class="profile-stat-link"><strong>{{ follower_count }}</strong> <span class="muted">follower{{ 's' if follower_count != 1 else '' }}</span></a>
+        <a href="/concert-tracker/u/{{ profile.username }}/followers" class="profile-stat-link"><strong id="js-follower-count">{{ follower_count }}</strong> <span class="muted" id="js-follower-label">follower{{ 's' if follower_count != 1 else '' }}</span></a>
         <a href="/concert-tracker/u/{{ profile.username }}/following" class="profile-stat-link"><strong>{{ following_count }}</strong> <span class="muted">following</span></a>
       </div>
       {% if profile.bio %}<p class="profile-bio">{{ profile.bio }}</p>{% endif %}
@@ -68,19 +68,20 @@
       {% endif %}
     </div>
   </div>
-  <div class="profile-actions">
+  <div class="profile-actions" id="js-follow-wrap"
+    {% if user and not is_own_profile %}data-following="{{ 'true' if is_following else 'false' }}" data-username="{{ profile.username }}" data-csrf="{{ csrf }}"{% endif %}>
     {% if is_own_profile %}
     <a href="/concert-tracker/profile/edit" class="btn btn-ghost">Edit Profile</a>
     {% elif not user %}
     <a href="/concert-tracker/login" class="btn btn-accent">Log in to follow</a>
     {% elif is_following %}
-    <form method="post" action="/concert-tracker/u/unfollow">
+    <form method="post" action="/concert-tracker/u/unfollow" id="js-follow-form">
       <input type="hidden" name="_csrf" value="{{ csrf }}">
       <input type="hidden" name="username" value="{{ profile.username }}">
       <button class="btn btn-ghost">Unfollow</button>
     </form>
     {% else %}
-    <form method="post" action="/concert-tracker/u/follow">
+    <form method="post" action="/concert-tracker/u/follow" id="js-follow-form">
       <input type="hidden" name="_csrf" value="{{ csrf }}">
       <input type="hidden" name="follow_user" value="{{ profile.username }}">
       <button class="btn btn-accent">Follow</button>
@@ -352,5 +353,71 @@ const _urlTab = new URLSearchParams(location.search).get('tab');
 if (_urlTab && _urlTab !== 'recent' && ['top', 'all', 'lists', 'stats'].includes(_urlTab)) {
   _loadTab(_urlTab);
 }
+
+// Follow / unfollow — live count update
+(function () {
+  const wrap = document.getElementById('js-follow-wrap');
+  if (!wrap || wrap.dataset.username === undefined) return;
+
+  let following = wrap.dataset.following === 'true';
+  const username = wrap.dataset.username;
+  const csrf     = wrap.dataset.csrf;
+  const countEl  = document.getElementById('js-follower-count');
+  const labelEl  = document.getElementById('js-follower-label');
+
+  function updateCount(delta) {
+    const n = Math.max(0, parseInt(countEl.textContent, 10) + delta);
+    countEl.textContent = n;
+    labelEl.textContent = n === 1 ? 'follower' : 'followers';
+  }
+
+  function renderButton() {
+    wrap.innerHTML = following
+      ? `<form id="js-follow-form" action="/concert-tracker/u/unfollow" method="post">
+           <input type="hidden" name="_csrf" value="${csrf}">
+           <input type="hidden" name="username" value="${username}">
+           <button class="btn btn-ghost" type="submit">Unfollow</button>
+         </form>`
+      : `<form id="js-follow-form" action="/concert-tracker/u/follow" method="post">
+           <input type="hidden" name="_csrf" value="${csrf}">
+           <input type="hidden" name="follow_user" value="${username}">
+           <button class="btn btn-accent" type="submit">Follow</button>
+         </form>`;
+    attachHandler();
+  }
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    const action = following ? '/concert-tracker/u/unfollow' : '/concert-tracker/u/follow';
+    const body   = following
+      ? `_csrf=${encodeURIComponent(csrf)}&username=${encodeURIComponent(username)}`
+      : `_csrf=${encodeURIComponent(csrf)}&follow_user=${encodeURIComponent(username)}`;
+
+    const btn = wrap.querySelector('button');
+    if (btn) btn.disabled = true;
+
+    try {
+      const res = await fetch(action, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'fetch' },
+        body,
+      });
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      updateCount(data.following ? 1 : -1);
+      following = data.following;
+      renderButton();
+    } catch {
+      if (btn) btn.disabled = false;
+    }
+  }
+
+  function attachHandler() {
+    const form = document.getElementById('js-follow-form');
+    if (form) form.addEventListener('submit', handleSubmit);
+  }
+
+  attachHandler();
+})();
 </script>
 {% endblock %}

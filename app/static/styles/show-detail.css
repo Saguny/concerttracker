@@ -382,6 +382,61 @@
 .event-meta-key { color: var(--muted); flex-shrink: 0; width: 46px; }
 .event-meta-val { color: var(--text); font-weight: 500; }
 
+/* ── Festival detail page: mobile redesign ≤ 560px ────────────────── */
+/* @container moves .festival-layout-side to top (order:-1).
+   On phones that's wrong — users need the festival header first,
+   then a compact artist strip below. Override the container rule. */
+@media (max-width: 560px) {
+  .festival-layout-side { order: 1; }               /* push artists BELOW main card */
+  .festival-layout { gap: .85rem; }
+
+  /* Artists list → horizontal scroll chip strip */
+  .festival-layout-side .detail-support-list {
+    display: flex;
+    flex-direction: row;
+    overflow-x: auto;
+    gap: .35rem;
+    padding: .15rem 0 .6rem;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    /* fade right edge so users know it scrolls */
+    mask-image: linear-gradient(to right, black 88%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to right, black 88%, transparent 100%);
+  }
+  .festival-layout-side .detail-support-list::-webkit-scrollbar { display: none; }
+
+  .festival-layout-side .detail-support-row {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: .3rem;
+    padding: .4rem .35rem;
+    flex-shrink: 0;
+    min-width: 60px;
+    max-width: 68px;
+    border-radius: var(--radius);
+  }
+  .festival-layout-side .detail-support-img {
+    width: 52px; height: 52px;
+    border-radius: 50%;
+  }
+  .festival-layout-side .detail-support-ph {
+    width: 52px; height: 52px;
+    border-radius: 50%;
+    font-size: .85rem;
+  }
+  .festival-layout-side .detail-support-name {
+    font-size: .67rem;
+    white-space: normal;
+    overflow: hidden;
+    text-overflow: clip;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    line-height: 1.2;
+  }
+}
+
 /* ── Mobile show cards + event hero ≤ 480px ───────────────────────── */
 @media (max-width: 480px) {
 
