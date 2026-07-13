@@ -1,88 +1,192 @@
 {% extends "base.html" %}
-{% block title %}{{ event.artist }} · {{ event.date.strftime('%b %d, %Y') }} · Moshd{% endblock %}
+{% block title %}{{ event.artist }}{% if event.venue %} at {{ event.venue }}{% endif %} · {{ event.date.strftime('%b %Y') }} · Moshd{% endblock %}
 {% block content %}
-<div class="detail-wrap">
+<div class="event-page">
 
-  <div class="detail-card">
-    <div class="detail-info">
-      <div class="detail-info-main">
-        <div>
-          <a href="/concert-tracker/artists/{{ event.artist | urlquote }}" class="detail-artist-link">
-            <h1 class="detail-artist-name">{{ event.artist }}</h1>
-          </a>
-          <span class="badge{% if event.event_type == 'verified' %} badge-festival{% else %} badge-ghost{% endif %}" style="margin-top:.35rem;display:inline-block">
-            {{ 'Verified' if event.event_type == 'verified' else 'Community' }}
-          </span>
+  {# ── Hero ─────────────────────────────────────────────────────────── #}
+  <div class="event-hero">
+    {% if hero_url %}
+    <div class="event-hero-bg" style="background-image:url('{{ hero_url }}')"></div>
+    {% endif %}
+    <div class="event-hero-content">
+      <div class="event-poster">
+        {% if hero_url %}
+        <img src="{{ hero_url }}" alt="{{ event.artist }}" class="event-poster-img">
+        {% else %}
+        <div class="event-poster-ph">{{ event.artist[0] | upper }}</div>
+        {% endif %}
+      </div>
+
+      <div class="event-hero-info">
+        <div style="margin-bottom:.4rem">
+          <span class="badge{% if event.event_type == 'verified' %} badge-festival{% else %} badge-ghost{% endif %}">{{ 'Verified' if event.event_type == 'verified' else 'Community' }}</span>
         </div>
-
-        <div class="detail-meta-stack">
-          <span class="detail-date">{{ event.date.strftime('%B %d, %Y').replace(' 0', ' ') }}</span>
+        <a href="/concert-tracker/artists/{{ event.artist | urlquote }}" class="event-artist-link">
+          <h1 class="event-artist-name">{{ event.artist }}</h1>
+        </a>
+        <div class="event-hero-meta">
+          <span class="event-hero-date">{{ event.date.strftime('%B %d, %Y').replace(' 0', ' ') }}</span>
           {% if event.venue %}
           <a href="https://maps.google.com/?q={{ (event.venue ~ (', ' ~ event.city if event.city else '')) | urlquote }}"
-             target="_blank" rel="noopener" class="detail-location-link">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
+             target="_blank" rel="noopener" class="event-hero-venue">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
             {{ event.venue }}{% if event.city %} · {{ event.city }}{% endif %}
           </a>
           {% endif %}
+        </div>
+
+        <div class="event-stats-row">
           {% if avg_rating %}
-          <div style="display:flex;align-items:center;gap:.5rem">
+          <div class="event-stat">
             <span class="rating-stars-display" style="--fill:{{ (avg_rating / 5 * 100)|int }}%">★★★★★</span>
-            <span class="muted small">{{ "%.1f"|format(avg_rating) }} avg · {{ shows | length }} log{{ 's' if shows | length != 1 else '' }}</span>
+            <span class="event-stat-label">{{ "%.1f"|format(avg_rating) }} avg</span>
           </div>
+          <div class="event-stat-sep"></div>
+          {% endif %}
+          <div class="event-stat">
+            <span class="event-stat-val">{{ shows | length }}</span>
+            <span class="event-stat-label">log{{ 's' if shows | length != 1 else '' }}</span>
+          </div>
+          {% if shows | length > 1 %}
+          <div class="event-stat-sep"></div>
+          <div class="event-stat">
+            <span class="event-stat-val">{{ shows | selectattr('username') | list | length }}</span>
+            <span class="event-stat-label">attendee{{ 's' if shows | length != 1 else '' }}</span>
+          </div>
+          {% endif %}
+        </div>
+
+        <div class="event-hero-actions">
+          {% if user %}
+            {% if user_show_id %}
+            <a href="/concert-tracker/shows/{{ user_show_id }}" class="btn btn-sm btn-ghost">View my log</a>
+            <a href="/concert-tracker/shows/{{ user_show_id }}/edit" class="btn btn-sm btn-ghost">Edit log</a>
+            {% else %}
+            <a href="/concert-tracker/shows/add?artist={{ event.artist | urlquote }}&date={{ event.date }}&venue={{ (event.venue or '') | urlquote }}&city={{ (event.city or '') | urlquote }}" class="btn btn-sm btn-accent">+ Log this show</a>
+            {% endif %}
           {% else %}
-          <span class="muted small">{{ shows | length }} log{{ 's' if shows | length != 1 else '' }}</span>
+          <a href="/concert-tracker/login" class="btn btn-sm btn-accent">Log this show</a>
           {% endif %}
           {% if event.setlistfm_id %}
-          <a href="https://www.setlist.fm/setlist/x/{{ event.setlistfm_id }}" target="_blank" rel="noopener" class="setlist-link">View on Setlist.fm ↗</a>
+          <a href="https://www.setlist.fm/setlist/x/{{ event.setlistfm_id }}" target="_blank" rel="noopener" class="btn btn-sm btn-ghost">Setlist.fm ↗</a>
           {% endif %}
         </div>
       </div>
     </div>
   </div>
 
-  {% if shows %}
-  <h2 style="margin:1.5rem 0 .75rem;font-size:1.05rem;font-weight:700">Who was there</h2>
-  <div class="show-list">
-    {% for show in shows %}
-    {% set is_upcoming = show.date | string >= today %}
-    <a href="/concert-tracker/shows/{{ show.id }}" class="show-card{% if is_upcoming %} show-upcoming{% endif %}{% if show.photo_url %} has-photo-bg{% endif %}"{% if show.photo_url %} style="--card-photo:url('{{ show.photo_url }}')"{% endif %}>
-      {% if show.artist_thumb_url %}
-      <img class="show-thumb" src="{{ show.artist_thumb_url }}" alt="{{ show.artist }}" loading="lazy">
-      {% else %}
-      <div class="show-thumb show-thumb-placeholder">🎵</div>
-      {% endif %}
-      <div class="show-card-body">
-        <div class="show-meta show-meta-row">
-          <span class="feed-user-chip">
-            {% if show.avatar_url %}
-            <img src="{{ show.avatar_url }}" class="feed-user-avatar" alt="">
-            {% else %}
-            <span class="feed-user-avatar feed-avatar-ph">{{ show.username[0] | upper }}</span>
-            {% endif %}
-            <a href="/concert-tracker/u/{{ show.username }}" style="color:inherit">{{ show.username }}</a>
-          </span>
-        </div>
-        {% if show.rating %}<div class="show-meta"><span class="rating-badge">★ {{ "%.1f"|format(show.rating|float) }}</span></div>{% endif %}
-        {% if show.notes %}<div class="show-meta" style="font-style:italic;color:var(--muted)">{{ show.notes | truncate(80) }}</div>{% endif %}
-        <div class="show-meta"><span class="feed-interactions">♥ {{ show.like_count }} &nbsp; 💬 {{ show.comment_count }}</span></div>
-      </div>
-      <div class="show-date">
-        <span class="date-day">{{ show.date.strftime('%d') }}</span>
-        <span class="date-mon">{{ show.date.strftime('%b') }}</span>
-        <span class="date-year">{{ show.date.strftime('%Y') }}</span>
-      </div>
-    </a>
-    {% endfor %}
-  </div>
-  {% else %}
-  <p class="muted" style="padding:1.5rem 0">No one has logged this show yet.</p>
-  {% endif %}
+  {# ── Body ─────────────────────────────────────────────────────────── #}
+  <div class="event-body">
 
-  {% if user %}
-  <div style="margin-top:1.5rem">
-    <a href="/concert-tracker/shows/add?artist={{ event.artist | urlquote }}&date={{ event.date }}&venue={{ (event.venue or '') | urlquote }}&city={{ (event.city or '') | urlquote }}" class="btn btn-accent">Log this show</a>
+    {# Main: attendee logs #}
+    <div class="event-main">
+      <h2 class="event-section-title">Who was there <span class="muted" style="font-weight:400;font-size:.95rem">{{ shows | length }}</span></h2>
+
+      {% if shows %}
+      <div class="event-log-list">
+        {% for show in shows %}
+        <div class="event-log-card{% if show.photo_url %} event-log-card-photo{% endif %}"{% if show.photo_url %} style="--log-photo:url('{{ show.photo_url }}')"{% endif %}>
+          {% if show.photo_url %}
+          <div class="event-log-photo-bg"></div>
+          {% endif %}
+          <div class="event-log-card-inner">
+            <div class="event-log-header">
+              <a href="/concert-tracker/u/{{ show.username }}" class="event-log-user">
+                {% if show.avatar_url %}
+                <img src="{{ show.avatar_url }}" class="event-log-avatar" alt="{{ show.username }}">
+                {% else %}
+                <div class="event-log-avatar event-log-avatar-ph">{{ show.username[0] | upper }}</div>
+                {% endif %}
+                <span class="event-log-username">{{ show.username }}</span>
+              </a>
+              {% if show.rating %}
+              <div class="event-log-rating">
+                <span class="rating-stars-display" style="--fill:{{ (show.rating|float / 5 * 100)|int }}%">★★★★★</span>
+                <span class="event-log-rating-val">{{ "%.1f"|format(show.rating|float) }}</span>
+              </div>
+              {% endif %}
+            </div>
+
+            {% if show.notes %}
+            <p class="event-log-notes">"{{ show.notes | truncate(200) }}"</p>
+            {% endif %}
+
+            <div class="event-log-footer">
+              <a href="/concert-tracker/shows/{{ show.id }}" class="event-log-link">View full log →</a>
+              <span class="event-log-interactions">
+                ♥ {{ show.like_count }}&ensp;💬 {{ show.comment_count }}
+              </span>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="event-empty">
+        <p>No one has logged this show yet.</p>
+        {% if user %}
+        <a href="/concert-tracker/shows/add?artist={{ event.artist | urlquote }}&date={{ event.date }}&venue={{ (event.venue or '') | urlquote }}&city={{ (event.city or '') | urlquote }}" class="btn btn-accent">Be the first to log it</a>
+        {% endif %}
+      </div>
+      {% endif %}
+    </div>
+
+    {# Sidebar: ratings + meta #}
+    <aside class="event-sidebar">
+      {% if avg_rating %}
+      <div class="detail-section">
+        <h3 style="font-size:.8rem;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:.75rem;font-weight:700">Ratings</h3>
+        <div class="event-rating-avg">
+          <span class="event-rating-big">{{ "%.1f"|format(avg_rating) }}</span>
+          <span class="rating-stars-display" style="--fill:{{ (avg_rating / 5 * 100)|int }}%;font-size:1rem">★★★★★</span>
+        </div>
+        <div class="rating-hist" style="margin-top:.75rem">
+          {% for star in [5, 4, 3, 2, 1] %}
+          {% set count = rating_dist[star] %}
+          {% set pct = ((count / max_rating_count) * 100)|int if max_rating_count > 0 else 0 %}
+          <div class="rating-hist-row">
+            <span class="rating-hist-label">{{ star }}</span>
+            <div class="rating-hist-bar-wrap">
+              <div class="rating-hist-bar{% if count == 0 %} rating-hist-bar-empty{% endif %}" style="width:{{ pct }}%"></div>
+            </div>
+            <span class="rating-hist-count">{{ count }}</span>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
+      <div class="detail-section">
+        <h3 style="font-size:.8rem;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:.6rem;font-weight:700">Details</h3>
+        <div class="event-meta-list">
+          <div class="event-meta-row">
+            <span class="event-meta-key">Date</span>
+            <span class="event-meta-val">{{ event.date.strftime('%b %-d, %Y') }}</span>
+          </div>
+          {% if event.venue %}
+          <div class="event-meta-row">
+            <span class="event-meta-key">Venue</span>
+            <span class="event-meta-val">{{ event.venue }}</span>
+          </div>
+          {% endif %}
+          {% if event.city %}
+          <div class="event-meta-row">
+            <span class="event-meta-key">City</span>
+            <span class="event-meta-val">{{ event.city }}</span>
+          </div>
+          {% endif %}
+          <div class="event-meta-row">
+            <span class="event-meta-key">Type</span>
+            <span class="event-meta-val">{{ 'Verified' if event.event_type == 'verified' else 'Community' }}</span>
+          </div>
+        </div>
+      </div>
+
+      {% if event.setlistfm_id %}
+      <a href="https://www.setlist.fm/setlist/x/{{ event.setlistfm_id }}" target="_blank" rel="noopener" class="btn btn-ghost" style="width:100%;justify-content:center;text-align:center">View setlist ↗</a>
+      {% endif %}
+    </aside>
   </div>
-  {% endif %}
 
 </div>
 {% endblock %}

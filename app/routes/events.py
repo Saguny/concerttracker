@@ -42,6 +42,24 @@ async def event_detail(
         ratings = [float(s["rating"]) for s in shows if s["rating"] is not None]
         avg_rating = round(sum(ratings) / len(ratings), 1) if ratings else None
 
+        rating_dist = {i: 0 for i in range(1, 6)}
+        for s in shows:
+            if s["rating"] is not None:
+                bucket = max(1, min(5, round(float(s["rating"]))))
+                rating_dist[bucket] += 1
+        max_rating_count = max(rating_dist.values()) if ratings else 1
+
+        hero_url = next((s["artist_thumb_url"] for s in shows if s["artist_thumb_url"]), None)
+        if not hero_url:
+            hero_url = next((s["photo_url"] for s in shows if s["photo_url"]), None)
+
+        user_show_id = None
+        if user:
+            for s in shows:
+                if s["username"] == user["username"]:
+                    user_show_id = s["id"]
+                    break
+
     return templates.TemplateResponse(
         "event_detail.html",
         _ctx(
@@ -50,6 +68,10 @@ async def event_detail(
             event=event,
             shows=shows,
             avg_rating=avg_rating,
+            rating_dist=rating_dist,
+            max_rating_count=max_rating_count,
+            hero_url=hero_url,
+            user_show_id=user_show_id,
             today=time.strftime("%Y-%m-%d"),
             csrf=get_csrf_token(request),
         ),
