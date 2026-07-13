@@ -25,7 +25,9 @@
 .show-card-body { flex: 1; min-width: 0; }
 .show-artist    { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: .4rem; }
 .show-meta      { font-size: .8rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.show-meta-row  { display: flex; align-items: center; gap: .4rem; overflow: visible; }
+.show-meta-row  { display: flex; align-items: center; gap: .4rem; overflow: hidden; }
+.show-meta-row .feed-user-chip   { flex: 1 1 0; min-width: 0; overflow: hidden; }
+.show-meta-row .feed-interactions { flex-shrink: 0; }
 .show-date  { text-align: right; flex-shrink: 0; line-height: 1.1; }
 .date-day   { display: block; font-size: 1.2rem; font-weight: 700; }
 .date-mon   { display: block; font-size: .7rem; text-transform: uppercase; color: var(--muted); }
@@ -379,3 +381,64 @@
 .event-meta-row { display: flex; gap: .5rem; font-size: .83rem; }
 .event-meta-key { color: var(--muted); flex-shrink: 0; width: 46px; }
 .event-meta-val { color: var(--text); font-weight: 500; }
+
+/* ── Mobile show cards + event hero ≤ 480px ───────────────────────── */
+@media (max-width: 480px) {
+
+  /* Show card: tighter padding, smaller thumb */
+  .show-card { padding: .6rem .75rem; gap: .6rem; }
+  .show-thumb, .show-thumb-placeholder { width: 40px; height: 40px; font-size: 1rem; }
+  .show-card-link { gap: .6rem; }
+
+  /* Allow artist name + badges to wrap instead of clipping */
+  .show-artist {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    flex-wrap: wrap;
+    line-height: 1.3;
+  }
+
+  /* Date column: slightly smaller */
+  .date-day { font-size: 1.05rem; }
+  .date-mon, .date-year { font-size: .62rem; }
+
+  /* Festival card: push toggle button below the artist + date row.
+     DOM order: link → toggle → date → actions → acts
+     On mobile: row 1 = link + date + actions, row 2 = toggle, row 3 = acts */
+  .festival-group-card { flex-wrap: wrap; gap: .5rem .6rem; }
+  .festival-group-card .show-card-link { flex: 1 1 0; min-width: 0; order: 0; }
+  .festival-group-card .show-date { order: 1; flex-shrink: 0; }
+  .festival-group-card .show-card-actions { order: 1; flex-shrink: 0; }
+  .festival-toggle { order: 2; flex: 0 0 100%; width: 100%; text-align: left; margin-top: .1rem; }
+  .festival-acts { order: 3; }
+
+  /* Detail card (per-user show detail): less tall image */
+  .detail-square { height: 150px; }
+  .detail-sq-img { height: 150px; }
+  .detail-sq-ph  { height: 150px; font-size: 3rem; }
+  .detail-artist-name { font-size: 1.5rem; }
+
+  /* Event hero: keep poster + info side-by-side on tiny screens,
+     overriding the 680px column layout — less vertical scroll */
+  .event-hero-content {
+    flex-direction: row !important;
+    align-items: flex-start;
+    padding: .9rem 1rem;
+    gap: .85rem;
+    min-height: unset;
+  }
+  .event-poster { width: 80px; height: 80px; }
+  .event-artist-name { font-size: 1.25rem; }
+  .event-hero-date { font-size: .875rem; }
+  .event-hero-venue { font-size: .78rem; }
+  .event-stats-row { gap: .6rem; margin-bottom: .6rem; }
+  .event-stat-val { font-size: 1rem; }
+  .event-stat-label { font-size: .6rem; }
+  .event-hero-actions { gap: .35rem; }
+  .event-hero-actions .btn { font-size: .78rem; padding: .3rem .6rem; }
+
+  /* Hide the support-acts column from the hero on tiny screens —
+     it's already listed in the sidebar below */
+  .event-hero-divider, .event-hero-support { display: none; }
+}

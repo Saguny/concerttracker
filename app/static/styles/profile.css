@@ -402,3 +402,23 @@ input[type="color"]:disabled { opacity: 0.35; cursor: not-allowed; pointer-event
 .show-list.show-grid .date-year { display: none; }
 .show-list.show-grid .festival-toggle { display: none; }
 .show-list.show-grid .festival-acts { display: none !important; }
+
+/* ── Mobile profile fixes ≤ 480px ─────────────────────────────────── */
+@media (max-width: 480px) {
+  /* Festival artist detail grid: 2 columns instead of 1 huge column */
+  .festival-detail-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: .6rem;
+  }
+  .festival-detail-info { padding: .5rem; }
+  .festival-detail-artist { font-size: .85rem; }
+  .festival-detail-meta { font-size: .72rem; }
+
+  /* Feed chip: let avatar show, truncate the name text */
+  .feed-user-chip {
+    max-width: 100%;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+}
