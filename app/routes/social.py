@@ -1,4 +1,3 @@
-import asyncio
 import time
 
 from fastapi import APIRouter, Depends, Request
@@ -515,66 +514,41 @@ async def friend_profile(
         uid = user["id"] if user else None
         fav_names = list(profile["favorite_artists"] or [])
 
-        async def _empty_list():
-            return []
-
-        (
-            recent_rows, per_year, top_artists, top_venues,
-            standalone_count, festival_count, follower_count, following_count,
-            profile_lists, fav_thumb_rows,
-        ) = await asyncio.gather(
-            conn.fetch(
-                "SELECT s.*, f.rating AS festival_rating, "
-                "COALESCE(lc.cnt, 0) AS like_count, COALESCE(cc.cnt, 0) AS comment_count "
-                "FROM shows s LEFT JOIN festivals f ON f.id = s.festival_id "
-                "LEFT JOIN (SELECT show_id, COUNT(*) AS cnt FROM show_likes GROUP BY show_id) lc ON lc.show_id = s.id "
-                "LEFT JOIN (SELECT show_id, COUNT(*) AS cnt FROM show_comments GROUP BY show_id) cc ON cc.show_id = s.id "
-                "WHERE s.user_id = $1 ORDER BY s.created_at DESC LIMIT 20",
-                pid,
-            ),
-            conn.fetch(
-                "SELECT EXTRACT(YEAR FROM date)::int AS year, COUNT(*)::int AS count "
-                "FROM shows WHERE user_id=$1 GROUP BY year ORDER BY year",
-                pid,
-            ),
-            conn.fetch(
-                "SELECT s.artist, COUNT(*)::int AS count, "
-                "COALESCE(MAX(a.thumb_url), MAX(s.artist_thumb_url)) AS thumb_url "
-                "FROM shows s LEFT JOIN artists a ON LOWER(a.name) = LOWER(s.artist) "
-                "WHERE s.user_id=$1 GROUP BY s.artist ORDER BY count DESC LIMIT 5",
-                pid,
-            ),
-            conn.fetch(
-                "SELECT venue, COUNT(*)::int AS count FROM shows WHERE user_id=$1 "
-                "GROUP BY venue ORDER BY count DESC LIMIT 5",
-                pid,
-            ),
-            conn.fetchval(
-                "SELECT COUNT(*) FROM shows WHERE user_id=$1 AND (is_festival = FALSE OR festival_name IS NULL)",
-                pid,
-            ),
-            conn.fetchval(
-                "SELECT COUNT(DISTINCT festival_name) FROM shows WHERE user_id=$1 AND is_festival = TRUE AND festival_name IS NOT NULL",
-                pid,
-            ),
-            conn.fetchval("SELECT COUNT(*) FROM follows WHERE target_id=$1", pid),
-            conn.fetchval("SELECT COUNT(*) FROM follows WHERE user_id=$1", pid),
-            conn.fetch(
-                "SELECT l.id, l.title, l.is_ranked, l.list_type, l.description, COUNT(li.id)::int AS item_count "
-                "FROM lists l LEFT JOIN list_items li ON li.list_id = l.id "
-                "WHERE l.user_id = $1 GROUP BY l.id ORDER BY l.updated_at DESC LIMIT 6",
-                pid,
-            ),
-            conn.fetch("SELECT name, thumb_url FROM artists WHERE name = ANY($1)", fav_names)
-            if fav_names else _empty_list(),
+        recent_rows = await conn.fetch(
+            "SELECT s.*, f.rating AS festival_rating, "
+            "COALESCE(lc.cnt, 0) AS like_count, COALESCE(cc.cnt, 0) AS comment_count "
+            "FROM shows s LEFT JOIN festivals f ON f.id = s.festival_id "
+            "LEFT JOIN (SELECT show_id, COUNT(*) AS cnt FROM show_likes GROUP BY show_id) lc ON lc.show_id = s.id "
+            "LEFT JOIN (SELECT show_id, COUNT(*) AS cnt FROM show_comments GROUP BY show_id) cc ON cc.show_id = s.id "
+            "WHERE s.user_id = $1 ORDER BY s.created_at DESC LIMIT 20",
+            pid,
         )
-        show_count = (standalone_count or 0) + (festival_count or 0)
         is_following = await conn.fetchval(
             "SELECT 1 FROM follows WHERE user_id=$1 AND target_id=$2", uid, pid
         ) if uid else None
         is_follower = await conn.fetchval(
             "SELECT 1 FROM follows WHERE user_id=$1 AND target_id=$2", pid, uid
         ) if uid else None
+        per_year = await conn.fetch(
+            "SELECT EXTRACT(YEAR FROM date)::int AS year, COUNT(*)::int AS count "
+            "FROM shows WHERE user_id=$1 GROUP BY year ORDER BY year",
+            pid,
+        )
+        top_artists = await conn.fetch(
+            "SELECT s.artist, COUNT(*)::int AS count, "
+            "COALESCE(MAX(a.thumb_url), MAX(s.artist_thumb_url)) AS thumb_url "
+            "FROM shows s LEFT JOIN artists a ON LOWER(a.name) = LOWER(s.artist) "
+            "WHERE s.user_id=$1 GROUP BY s.artist ORDER BY count DESC LIMIT 5",
+            pid,
+        )
+        fav_thumb_rows = await conn.fetch(
+            "SELECT name, thumb_url FROM artists WHERE name = ANY($1)", fav_names
+        ) if fav_names else []
+        top_venues = await conn.fetch(
+            "SELECT venue, COUNT(*)::int AS count FROM shows WHERE user_id=$1 "
+            "GROUP BY venue ORDER BY count DESC LIMIT 5",
+            pid,
+        )
         shared = await conn.fetch(
             "SELECT s.artist, s.date, s.venue, s.city, s.artist_thumb_url, s.is_festival, s.festival_name "
             "FROM shows s WHERE s.user_id = $1 AND EXISTS ("
@@ -583,11 +557,28 @@ async def friend_profile(
             ") ORDER BY s.date DESC",
             uid, pid,
         ) if uid else []
+        standalone_count = await conn.fetchval(
+            "SELECT COUNT(*) FROM shows WHERE user_id=$1 AND (is_festival = FALSE OR festival_name IS NULL)",
+            pid,
+        )
+        festival_count = await conn.fetchval(
+            "SELECT COUNT(DISTINCT festival_name) FROM shows WHERE user_id=$1 AND is_festival = TRUE AND festival_name IS NOT NULL",
+            pid,
+        )
+        show_count = (standalone_count or 0) + (festival_count or 0)
+        follower_count = await conn.fetchval("SELECT COUNT(*) FROM follows WHERE target_id=$1", pid)
+        following_count = await conn.fetchval("SELECT COUNT(*) FROM follows WHERE user_id=$1", pid)
         pinned_show = await conn.fetchrow(
             "SELECT id, artist, venue, city, date, artist_thumb_url, is_festival, festival_name "
             "FROM shows WHERE id=$1",
             profile["pinned_show_id"],
         ) if profile["pinned_show_id"] else None
+        profile_lists = await conn.fetch(
+            "SELECT l.id, l.title, l.is_ranked, l.list_type, l.description, COUNT(li.id)::int AS item_count "
+            "FROM lists l LEFT JOIN list_items li ON li.list_id = l.id "
+            "WHERE l.user_id = $1 GROUP BY l.id ORDER BY l.updated_at DESC LIMIT 6",
+            pid,
+        )
 
     fav_thumbs = {r["name"]: r["thumb_url"] for r in fav_thumb_rows}
 
