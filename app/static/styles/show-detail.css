@@ -290,6 +290,16 @@
 
 .event-hero-actions { display: flex; gap: .5rem; flex-wrap: wrap; }
 
+.event-hero-divider { width: 1px; background: rgba(255,255,255,.1); align-self: stretch; flex-shrink: 0; margin: 0 .25rem; }
+.event-hero-support { min-width: 160px; max-width: 200px; flex-shrink: 0; }
+.event-hero-support-label { font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: rgba(255,255,255,.4); display: block; margin-bottom: .5rem; }
+.event-hero-support-list { display: flex; flex-direction: column; gap: .2rem; }
+.event-hero-support-row { display: flex; align-items: center; gap: .5rem; padding: .3rem .25rem; border-radius: var(--radius-sm); text-decoration: none; color: rgba(255,255,255,.75); transition: color .12s, background .12s; }
+.event-hero-support-row:hover { color: #fff; background: rgba(255,255,255,.06); text-decoration: none; }
+.event-hero-support-thumb { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+.event-hero-support-ph { background: rgba(255,255,255,.1); display: flex; align-items: center; justify-content: center; font-size: .72rem; font-weight: 700; }
+.event-hero-support-name { font-size: .8rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
 .event-body { display: grid; grid-template-columns: 1fr 230px; gap: 1.5rem; align-items: start; }
 @media (max-width: 680px) {
   .event-body { grid-template-columns: 1fr; }
