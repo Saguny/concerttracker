@@ -308,7 +308,7 @@ async def search(
                 "FROM shows WHERE artist ILIKE $1 "
                 "AND LOWER(artist) NOT IN (SELECT LOWER(name) FROM artists WHERE name ILIKE $1) "
                 "GROUP BY LOWER(artist) LIMIT 10",
-                f"%{q}%", f"%{q}%",
+                f"%{q}%",
             )
             artists_results = [
                 {"name": r["name"], "image_url": r["image_url"], "thumb_url": r["thumb_url"],
