@@ -260,7 +260,10 @@ input[type="color"]:disabled { opacity: 0.35; cursor: not-allowed; pointer-event
 .profile-bio          { font-size: .875rem; color: var(--muted); margin-top: .3rem; max-width: 480px; }
 
 .profile-layout { display: grid; grid-template-columns: 1fr 260px; gap: 1.5rem; align-items: start; }
-@media (max-width: 768px) { .profile-layout { grid-template-columns: 1fr; } }
+@media (max-width: 768px) {
+  .profile-layout { grid-template-columns: 1fr; }
+  .profile-sidebar { order: -1; }
+}
 
 .mini-bar-row   { display: flex; align-items: center; justify-content: space-between; padding: .35rem 0; border-bottom: 1px solid var(--border); font-size: .85rem; }
 .mini-bar-row:last-child { border-bottom: none; }

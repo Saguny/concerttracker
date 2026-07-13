@@ -109,6 +109,37 @@ img { max-width: 100%; }
 .date-mon { display: block; font-size: .7rem; text-transform: uppercase; color: var(--muted); }
 .date-year { display: block; font-size: .7rem; color: var(--muted); }
 
+@media (max-width: 480px) {
+  .show-card {
+    padding: .6rem .75rem;
+    gap: .55rem;
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+  .show-thumb,
+  .show-thumb-placeholder {
+    width: 40px; height: 40px; font-size: 1rem; margin-top: .1rem;
+  }
+  .show-card-link { gap: .55rem; align-items: flex-start; }
+  .show-artist {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    font-size: .9rem;
+    line-height: 1.3;
+    flex-wrap: wrap;
+  }
+  .show-meta { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: .75rem; }
+  .date-day { font-size: 1rem; }
+  .date-mon { font-size: .65rem; }
+  .date-year { font-size: .65rem; }
+  /* Festival toggle drops to its own full-width row */
+  .festival-group-card { flex-wrap: wrap; align-items: flex-start; }
+  .festival-group-card .show-card-link { flex: 1 1 0; min-width: 0; }
+  .festival-toggle { flex-basis: 100%; width: 100%; order: 4; margin-top: .3rem; text-align: left; }
+  .festival-acts { order: 5; }
+}
+
 .badge { display: inline-block; font-size: .65rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; padding: .15rem .4rem; border-radius: 99px; }
 .badge-festival { background: rgba(245,158,11,.2); color: var(--accent); }
 .badge-upcoming { background: rgba(34,197,94,.2); color: var(--success); }
