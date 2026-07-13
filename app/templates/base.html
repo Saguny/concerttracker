@@ -24,6 +24,12 @@
   </button>
   <a class="nav-brand" href="/concert-tracker/social">Moshd</a>
   <div class="nav-right" id="nav-right">
+    <form class="nav-search-form" method="get" action="/concert-tracker/search" role="search">
+      <input class="nav-search-input" type="text" name="q" placeholder="Search…" autocomplete="off" spellcheck="false" aria-label="Search artists or users">
+      <button type="submit" class="nav-search-btn" aria-label="Search">
+        <svg width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5"/><line x1="13" y1="13" x2="18" y2="18"/></svg>
+      </button>
+    </form>
     <a href="/concert-tracker/shows/add" class="btn btn-sm btn-accent">+ Add Show</a>
   </div>
 
