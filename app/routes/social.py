@@ -388,6 +388,8 @@ async def feed_api(request: Request, pool=Depends(get_pool), user=Depends(requir
         d = dict(r)
         if d.get("date") is not None:
             d["date"] = str(d["date"])
+        if d.get("rating") is not None:
+            d["rating"] = float(d["rating"])
         return d
 
     feed_items: list = []
