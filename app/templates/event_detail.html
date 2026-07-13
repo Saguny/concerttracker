@@ -58,14 +58,23 @@
 
         <div class="event-hero-actions">
           {% if user %}
-            {% if user_show_id %}
-            <a href="/concert-tracker/shows/{{ user_show_id }}" class="btn btn-sm btn-ghost">View my log</a>
-            <a href="/concert-tracker/shows/{{ user_show_id }}/edit" class="btn btn-sm btn-ghost">Edit log</a>
+            {% if is_festival %}
+              {% if user_festival_id %}
+              <a href="/concert-tracker/shows/festival/{{ user_festival_id }}" class="btn btn-sm btn-ghost">View my log</a>
+              <a href="/concert-tracker/shows/festival/{{ user_festival_id }}/edit" class="btn btn-sm btn-ghost">Edit log</a>
+              {% else %}
+              <a href="/concert-tracker/shows/add-festival" class="btn btn-sm btn-accent">+ Log this festival</a>
+              {% endif %}
             {% else %}
-            <a href="/concert-tracker/shows/add?artist={{ event.artist | urlquote }}&date={{ event.date }}&venue={{ (event.venue or '') | urlquote }}&city={{ (event.city or '') | urlquote }}" class="btn btn-sm btn-accent">+ Log this show</a>
+              {% if user_show_id %}
+              <a href="/concert-tracker/shows/{{ user_show_id }}" class="btn btn-sm btn-ghost">View my log</a>
+              <a href="/concert-tracker/shows/{{ user_show_id }}/edit" class="btn btn-sm btn-ghost">Edit log</a>
+              {% else %}
+              <a href="/concert-tracker/shows/add?artist={{ event.artist | urlquote }}&date={{ event.date }}&venue={{ (event.venue or '') | urlquote }}&city={{ (event.city or '') | urlquote }}" class="btn btn-sm btn-accent">+ Log this show</a>
+              {% endif %}
             {% endif %}
           {% else %}
-          <a href="/concert-tracker/login" class="btn btn-sm btn-accent">Log this show</a>
+          <a href="/concert-tracker/login" class="btn btn-sm btn-accent">Log this {{ 'festival' if is_festival else 'show' }}</a>
           {% endif %}
           {% if event.setlistfm_id %}
           <a href="https://www.setlist.fm/setlist/x/{{ event.setlistfm_id }}" target="_blank" rel="noopener" class="btn btn-sm btn-ghost">Setlist.fm ↗</a>
@@ -73,12 +82,14 @@
         </div>
       </div>
 
-      {% if support_artists %}
+      {% set side_artists = lineup if is_festival else support_artists %}
+      {% set side_label = 'Artists' if is_festival else 'Support' %}
+      {% if side_artists %}
       <div class="event-hero-divider"></div>
       <div class="event-hero-support">
-        <span class="event-hero-support-label">Support</span>
+        <span class="event-hero-support-label">{{ side_label }}</span>
         <div class="event-hero-support-list">
-          {% for a in support_artists %}
+          {% for a in side_artists[:10] %}
           <a href="/concert-tracker/artists/{{ a.name | urlquote }}" class="event-hero-support-row">
             {% if a.thumb %}
             <img src="{{ a.thumb }}" class="event-hero-support-thumb" alt="{{ a.name }}">
@@ -88,6 +99,9 @@
             <span class="event-hero-support-name">{{ a.name }}</span>
           </a>
           {% endfor %}
+          {% if side_artists | length > 10 %}
+          <span class="event-hero-support-more">+{{ side_artists | length - 10 }} more</span>
+          {% endif %}
         </div>
       </div>
       {% endif %}
@@ -99,52 +113,54 @@
 
     {# Main: attendee logs #}
     <div class="event-main">
-      <h2 class="event-section-title">Who was there <span class="muted" style="font-weight:400;font-size:.95rem">{{ shows | length }}</span></h2>
+      {% set all_logs = logs if is_festival else shows %}
+      <h2 class="event-section-title">Who was there <span class="muted" style="font-weight:400;font-size:.95rem">{{ all_logs | length }}</span></h2>
 
-      {% if shows %}
+      {% if all_logs %}
       <div class="event-log-list">
-        {% for show in shows %}
-        <div class="event-log-card{% if show.photo_url %} event-log-card-photo{% endif %}"{% if show.photo_url %} style="--log-photo:url('{{ show.photo_url }}')"{% endif %}>
-          {% if show.photo_url %}
-          <div class="event-log-photo-bg"></div>
-          {% endif %}
+        {% for entry in all_logs %}
+        {% set photo = entry.photo_url if not is_festival else None %}
+        <div class="event-log-card{% if photo %} event-log-card-photo{% endif %}"{% if photo %} style="--log-photo:url('{{ photo }}')"{% endif %}>
+          {% if photo %}<div class="event-log-photo-bg"></div>{% endif %}
           <div class="event-log-card-inner">
             <div class="event-log-header">
-              <a href="/concert-tracker/u/{{ show.username }}" class="event-log-user">
-                {% if show.avatar_url %}
-                <img src="{{ show.avatar_url }}" class="event-log-avatar" alt="{{ show.username }}">
+              <a href="/concert-tracker/u/{{ entry.username }}" class="event-log-user">
+                {% if entry.avatar_url %}
+                <img src="{{ entry.avatar_url }}" class="event-log-avatar" alt="{{ entry.username }}">
                 {% else %}
-                <div class="event-log-avatar event-log-avatar-ph">{{ show.username[0] | upper }}</div>
+                <div class="event-log-avatar event-log-avatar-ph">{{ entry.username[0] | upper }}</div>
                 {% endif %}
-                <span class="event-log-username">{{ show.username }}</span>
+                <span class="event-log-username">{{ entry.username }}</span>
               </a>
-              {% if show.rating %}
+              {% if entry.rating %}
               <div class="event-log-rating">
-                <span class="rating-stars-display" style="--fill:{{ (show.rating|float / 5 * 100)|int }}%">★★★★★</span>
-                <span class="event-log-rating-val">{{ "%.1f"|format(show.rating|float) }}</span>
+                <span class="rating-stars-display" style="--fill:{{ (entry.rating|float / 5 * 100)|int }}%">★★★★★</span>
+                <span class="event-log-rating-val">{{ "%.1f"|format(entry.rating|float) }}</span>
               </div>
               {% endif %}
             </div>
 
-            {% if show.support_acts %}
+            {% if not is_festival and entry.support_acts %}
             <div class="event-log-support">
               <span class="event-log-support-label">w/</span>
-              {% for act in show.support_acts[:5] %}
+              {% for act in entry.support_acts[:5] %}
               <a href="/concert-tracker/artists/{{ act | urlquote }}" class="event-log-support-tag">{{ act }}</a>{% if not loop.last and loop.index < 5 %}<span style="color:var(--border)">·</span>{% endif %}
               {% endfor %}
-              {% if show.support_acts | length > 5 %}<span class="event-log-support-more">+{{ show.support_acts | length - 5 }} more</span>{% endif %}
+              {% if entry.support_acts | length > 5 %}<span class="event-log-support-more">+{{ entry.support_acts | length - 5 }} more</span>{% endif %}
             </div>
             {% endif %}
 
-            {% if show.notes %}
-            <p class="event-log-notes">"{{ show.notes | truncate(200) }}"</p>
+            {% if entry.notes %}
+            <p class="event-log-notes">"{{ entry.notes | truncate(200) }}"</p>
             {% endif %}
 
             <div class="event-log-footer">
-              <a href="/concert-tracker/shows/{{ show.id }}" class="event-log-link">View full log →</a>
-              <span class="event-log-interactions">
-                ♥ {{ show.like_count }}&ensp;💬 {{ show.comment_count }}
-              </span>
+              {% if is_festival %}
+              <a href="/concert-tracker/shows/festival/{{ entry.id }}" class="event-log-link">View full log →</a>
+              {% else %}
+              <a href="/concert-tracker/shows/{{ entry.id }}" class="event-log-link">View full log →</a>
+              {% endif %}
+              <span class="event-log-interactions">♥ {{ entry.like_count }}&ensp;💬 {{ entry.comment_count }}</span>
             </div>
           </div>
         </div>
@@ -152,9 +168,13 @@
       </div>
       {% else %}
       <div class="event-empty">
-        <p>No one has logged this show yet.</p>
+        <p>No one has logged this {{ 'festival' if is_festival else 'show' }} yet.</p>
         {% if user %}
-        <a href="/concert-tracker/shows/add?artist={{ event.artist | urlquote }}&date={{ event.date }}&venue={{ (event.venue or '') | urlquote }}&city={{ (event.city or '') | urlquote }}" class="btn btn-accent">Be the first to log it</a>
+          {% if is_festival %}
+          <a href="/concert-tracker/shows/add-festival" class="btn btn-accent">Be the first to log it</a>
+          {% else %}
+          <a href="/concert-tracker/shows/add?artist={{ event.artist | urlquote }}&date={{ event.date }}&venue={{ (event.venue or '') | urlquote }}&city={{ (event.city or '') | urlquote }}" class="btn btn-accent">Be the first to log it</a>
+          {% endif %}
         {% endif %}
       </div>
       {% endif %}

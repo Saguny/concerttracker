@@ -28,6 +28,86 @@ async def event_detail(
         if not event:
             return RedirectResponse("/concert-tracker/social", status_code=302)
 
+        is_festival = event["event_type"] == "festival"
+
+        if is_festival:
+            # Each "log" is a festivals row (one per user)
+            logs = await conn.fetch(
+                "SELECT f.id, f.festival_name, f.rating, f.festival_notes AS notes, "
+                "f.created_at, u.username, u.avatar_url, "
+                "COALESCE(lc.cnt, 0) AS like_count, COALESCE(cc.cnt, 0) AS comment_count "
+                "FROM festivals f "
+                "JOIN users u ON u.id = f.user_id "
+                "LEFT JOIN ("
+                "  SELECT s.festival_id, COUNT(*) AS cnt FROM show_likes sl "
+                "  JOIN shows s ON s.id = sl.show_id GROUP BY s.festival_id"
+                ") lc ON lc.festival_id = f.id "
+                "LEFT JOIN ("
+                "  SELECT s.festival_id, COUNT(*) AS cnt FROM show_comments sc "
+                "  JOIN shows s ON s.id = sc.show_id GROUP BY s.festival_id"
+                ") cc ON cc.festival_id = f.id "
+                "WHERE f.event_id = $1 ORDER BY f.created_at DESC",
+                event_id,
+            )
+
+            festival_ids = [r["id"] for r in logs]
+
+            # Deduplicated artist lineup from all shows in all logged festivals
+            lineup_rows = await conn.fetch(
+                "SELECT DISTINCT s.artist, a.thumb_url "
+                "FROM shows s "
+                "LEFT JOIN artists a ON a.name = s.artist "
+                "WHERE s.festival_id = ANY($1) AND s.artist IS NOT NULL "
+                "ORDER BY s.artist",
+                festival_ids,
+            ) if festival_ids else []
+
+            lineup = [{"name": r["artist"], "thumb": r["thumb_url"]} for r in lineup_rows]
+
+            # Hero image: first artist thumb from lineup, or first user avatar
+            hero_url = next((a["thumb"] for a in lineup if a["thumb"]), None)
+            if not hero_url and logs:
+                hero_url = logs[0]["avatar_url"]
+
+            ratings = [float(r["rating"]) for r in logs if r["rating"] is not None]
+            avg_rating = round(sum(ratings) / len(ratings), 1) if ratings else None
+
+            rating_dist = {i: 0 for i in range(1, 6)}
+            for r in logs:
+                if r["rating"] is not None:
+                    bucket = max(1, min(5, round(float(r["rating"]))))
+                    rating_dist[bucket] += 1
+            max_rating_count = max(rating_dist.values()) if ratings else 1
+
+            user_festival_id = None
+            if user:
+                for r in logs:
+                    if r["username"] == user["username"]:
+                        user_festival_id = r["id"]
+                        break
+
+            return templates.TemplateResponse(
+                "event_detail.html",
+                _ctx(
+                    request, user,
+                    event=event,
+                    is_festival=True,
+                    logs=logs,
+                    shows=[],
+                    lineup=lineup,
+                    support_artists=[],
+                    avg_rating=avg_rating,
+                    rating_dist=rating_dist,
+                    max_rating_count=max_rating_count,
+                    hero_url=hero_url,
+                    user_show_id=None,
+                    user_festival_id=user_festival_id,
+                    today=time.strftime("%Y-%m-%d"),
+                    csrf=get_csrf_token(request),
+                ),
+            )
+
+        # ── Regular show event ────────────────────────────────────────
         shows = await conn.fetch(
             "SELECT s.id, s.artist, s.venue, s.city, s.date, s.rating, s.photo_url, "
             "s.artist_thumb_url, s.notes, s.support_acts, u.username, u.avatar_url, "
@@ -79,16 +159,19 @@ async def event_detail(
     return templates.TemplateResponse(
         "event_detail.html",
         _ctx(
-            request,
-            user,
+            request, user,
             event=event,
+            is_festival=False,
+            logs=[],
             shows=shows,
+            lineup=[],
+            support_artists=support_artists,
             avg_rating=avg_rating,
             rating_dist=rating_dist,
             max_rating_count=max_rating_count,
             hero_url=hero_url,
             user_show_id=user_show_id,
-            support_artists=support_artists,
+            user_festival_id=None,
             today=time.strftime("%Y-%m-%d"),
             csrf=get_csrf_token(request),
         ),

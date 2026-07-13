@@ -26,6 +26,30 @@ _CITY_ALIASES: dict[str, str] = {
     "köln": "Köln",
 }
 
+async def _link_festival_event(conn, festival_id: int, festival_name: str, city: str | None) -> None:
+    first_date = await conn.fetchval(
+        "SELECT MIN(date) FROM shows WHERE festival_id = $1", festival_id
+    )
+    if not first_date:
+        return
+    year_str = str(first_date.year)
+    norm_key = f"{festival_name.lower()}|{year_str}|{(city or '').lower()}"
+    event_id = await conn.fetchval(
+        "INSERT INTO events (normalized_key, artist, date, venue, city, event_type) "
+        "VALUES ($1,$2,$3,$4,$5,'festival') ON CONFLICT (normalized_key) DO NOTHING RETURNING id",
+        norm_key, festival_name, first_date, festival_name, city or None,
+    )
+    if event_id is None:
+        event_id = await conn.fetchval(
+            "SELECT id FROM events WHERE normalized_key = $1", norm_key
+        )
+    if event_id:
+        await conn.execute(
+            "UPDATE festivals SET event_id = $1 WHERE id = $2 AND event_id IS DISTINCT FROM $1",
+            event_id, festival_id,
+        )
+
+
 def _normalize_city(city: str) -> str:
     city = city.strip()
     normalized = (
@@ -218,6 +242,7 @@ async def festival_detail(
             user_liked=bool(user_liked),
             comments=list(comments),
             festival_notes=festival_notes,
+            festival_event_id=fest["event_id"],
             owner_user=owner_user,
             is_own=is_own,
             csrf=get_csrf_token(request),
@@ -396,6 +421,9 @@ async def festival_edit_save(
                     "INSERT INTO show_attendees (show_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
                     s["id"], user["id"],
                 )
+
+    async with pool.acquire() as conn:
+        await _link_festival_event(conn, festival_id, festival_name, city)
 
     flash(request, "Festival updated!", "success")
     return RedirectResponse("/concert-tracker/shows", status_code=302)
@@ -653,6 +681,8 @@ async def add_festival(request: Request, pool=Depends(get_pool), user=Depends(re
                     "INSERT INTO show_attendees (show_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
                     s["id"], user["id"],
                 )
+
+        await _link_festival_event(conn, festival_id, festival_name, city)
 
     flash(request, f"Logged {len(selected)} set{'s' if len(selected) != 1 else ''}!", "success")
     return RedirectResponse(f"/concert-tracker/shows/festival/{festival_id}", status_code=302)

@@ -52,6 +52,9 @@
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
                 {{ city }}
               </a>
+              {% if festival_event_id %}
+              <a href="/concert-tracker/events/{{ festival_event_id }}" class="badge badge-ghost" style="text-decoration:none">Who else was there ↑</a>
+              {% endif %}
             </div>
 
             <div class="detail-actions-row">
