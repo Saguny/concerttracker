@@ -255,8 +255,9 @@
 }
 .event-hero-content {
   position: relative; z-index: 1;
-  padding: 2rem 2rem 1.75rem;
-  display: flex; align-items: flex-end; gap: 1.75rem;
+  padding: 1.75rem 2rem;
+  display: flex; align-items: center; gap: 1.75rem;
+  min-height: 220px;
 }
 .event-poster {
   flex-shrink: 0; width: 148px; height: 148px;
@@ -326,6 +327,11 @@
 .event-log-rating .rating-stars-display { font-size: .85rem; }
 .event-log-rating-val { font-size: .78rem; color: var(--muted); }
 
+.event-log-support { display: flex; align-items: center; gap: .3rem; flex-wrap: wrap; margin: .3rem 0 .1rem; }
+.event-log-support-label { font-size: .75rem; color: var(--muted); font-weight: 600; flex-shrink: 0; }
+.event-log-support-tag { font-size: .75rem; color: var(--muted); text-decoration: none; }
+.event-log-support-tag:hover { color: var(--text); text-decoration: none; }
+.event-log-support-more { font-size: .75rem; color: var(--muted); }
 .event-log-notes { font-size: .855rem; color: var(--muted); line-height: 1.55; margin: .35rem 0; font-style: italic; }
 .event-log-footer { display: flex; align-items: center; justify-content: space-between; margin-top: .55rem; }
 .event-log-link { font-size: .78rem; color: var(--accent); text-decoration: none; }

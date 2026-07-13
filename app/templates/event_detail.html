@@ -107,6 +107,16 @@
               {% endif %}
             </div>
 
+            {% if show.support_acts %}
+            <div class="event-log-support">
+              <span class="event-log-support-label">w/</span>
+              {% for act in show.support_acts[:5] %}
+              <a href="/concert-tracker/artists/{{ act | urlquote }}" class="event-log-support-tag">{{ act }}</a>{% if not loop.last and loop.index < 5 %}<span style="color:var(--border)">·</span>{% endif %}
+              {% endfor %}
+              {% if show.support_acts | length > 5 %}<span class="event-log-support-more">+{{ show.support_acts | length - 5 }} more</span>{% endif %}
+            </div>
+            {% endif %}
+
             {% if show.notes %}
             <p class="event-log-notes">"{{ show.notes | truncate(200) }}"</p>
             {% endif %}
