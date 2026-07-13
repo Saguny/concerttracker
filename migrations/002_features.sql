@@ -2,6 +2,14 @@
 -- Add year column so the same festival name can recur across years
 ALTER TABLE festivals ADD COLUMN IF NOT EXISTS year INT;
 
+-- Remove year=NULL ghost rows created when migration 001 re-runs after the year-based
+-- unique constraint is in place (NULL doesn't conflict with 2025, so 001 inserts a duplicate).
+DELETE FROM festivals
+WHERE year IS NULL
+  AND (user_id, festival_name) IN (
+    SELECT user_id, festival_name FROM festivals WHERE year IS NOT NULL
+  );
+
 -- Backfill year from the earliest show date for each festival
 UPDATE festivals f
 SET year = (

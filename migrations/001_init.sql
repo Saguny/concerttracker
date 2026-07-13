@@ -120,7 +120,7 @@ END $$;
 
 ALTER TABLE shows ADD COLUMN IF NOT EXISTS festival_id INT REFERENCES festivals(id);
 
--- backfill festivals from shows (idempotent: ON CONFLICT DO NOTHING)
+-- backfill festivals from shows (idempotent: skip if any row already exists for that user+name)
 INSERT INTO festivals (user_id, festival_name, city, festival_notes, created_at)
 SELECT
     s.user_id,
@@ -130,6 +130,10 @@ SELECT
     MIN(s.created_at)
 FROM shows s
 WHERE s.is_festival = TRUE AND s.festival_name IS NOT NULL
+  AND NOT EXISTS (
+    SELECT 1 FROM festivals f2
+    WHERE f2.user_id = s.user_id AND f2.festival_name = s.festival_name
+  )
 GROUP BY s.user_id, s.festival_name
 ON CONFLICT DO NOTHING;
 
