@@ -419,6 +419,19 @@ input[type="color"]:disabled { opacity: 0.35; cursor: not-allowed; pointer-event
   .cal-grid { min-width: 440px; }
 }
 
+/* ── Profile overflow containment ──────────────────────────────────── */
+/* Grid children must have min-width: 0 or content breaks out of columns */
+.profile-main,
+.profile-sidebar { min-width: 0; }
+/* Profile info (username + stats) must not push past avatar on narrow screens */
+.profile-info { min-width: 0; }
+/* Stats row can wrap on very narrow viewports */
+.profile-stats-row { flex-wrap: wrap; gap: .5rem 1.25rem; }
+/* Mini-bar label: use flex truncation instead of a fixed 180px cap */
+.mini-bar-label { flex: 1; min-width: 0; max-width: none; }
+/* Chart.js canvas must never exceed its container */
+.profile-sidebar canvas { max-width: 100%; display: block; }
+
 /* ── Mobile profile fixes ≤ 480px ─────────────────────────────────── */
 @media (max-width: 480px) {
   /* Festival artist detail grid: 2 columns instead of 1 huge column */

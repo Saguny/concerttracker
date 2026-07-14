@@ -16,18 +16,6 @@
   <input type="hidden" name="support_acts_json" id="support-acts-json" value="{% if show and show.support_acts %}{{ show.support_acts | tojson }}{% endif %}">
   <input type="hidden" name="headliners_json" id="headliners-json" value="{% if show and show.headliners and show.headliners | length > 1 %}{{ show.headliners[1:] | tojson }}{% else %}[]{% endif %}">
 
-  {% if not show %}
-  <!-- FIX [2.3]: 3-step progressive form — reduce first-screen overwhelm for new shows -->
-  <div class="form-step-indicator" id="fsi">
-    <div class="fsi-step fsi-active" data-step-target="1"><div class="fsi-dot">1</div><div class="fsi-label">The Show</div></div>
-    <div class="fsi-line"></div>
-    <div class="fsi-step" data-step-target="2"><div class="fsi-dot">2</div><div class="fsi-label">Your Experience</div></div>
-    <div class="fsi-line"></div>
-    <div class="fsi-step" data-step-target="3"><div class="fsi-dot">3</div><div class="fsi-label">Full Details</div></div>
-  </div>
-  <div class="form-step-body" data-step="1">
-  {% endif %}
-
   <div class="field-group">
     <label>Headliner <span class="required">*</span></label>
     <div class="autocomplete-wrap" id="artist-wrap">
@@ -96,15 +84,6 @@
   </div>
   {% endif %}
 
-  {% if not show %}
-  <div class="form-step-nav">
-    <div></div>
-    <button type="button" class="btn btn-accent form-step-next" data-goto="2">Rate the show →</button>
-  </div>
-  </div><!-- /step 1 -->
-  <div class="form-step-body" data-step="2" style="display:none">
-  {% endif %}
-
   <div class="field-group">
     <label>Notes</label>
     <textarea name="notes" rows="3" maxlength="1000" placeholder="How was it?">{{ show.notes if show else '' }}</textarea>
@@ -138,18 +117,6 @@
     {% endif %}
     <input type="file" name="photo" accept="image/*">
   </div>
-
-  {% if not show %}
-  <div class="form-step-nav">
-    <button type="button" class="btn btn-ghost form-step-back" data-goto="1">← Back</button>
-    <div style="display:flex;gap:.5rem">
-      <button type="submit" class="btn btn-ghost">Log now</button>
-      <button type="button" class="btn btn-accent form-step-next" data-goto="3">Add setlist →</button>
-    </div>
-  </div>
-  </div><!-- /step 2 -->
-  <div class="form-step-body" data-step="3" style="display:none">
-  {% endif %}
 
   <div class="setlist-panel">
     <div class="setlist-header">
@@ -201,21 +168,10 @@
   </div>
   {% endif %}
 
-  {% if not show %}
-  <div class="form-step-nav">
-    <button type="button" class="btn btn-ghost form-step-back" data-goto="2">← Back</button>
-    <div style="display:flex;gap:.5rem">
-      <a href="/concert-tracker/shows" class="btn btn-ghost">Cancel</a>
-      <button type="submit" class="btn btn-accent">Log Show</button>
-    </div>
-  </div>
-  </div><!-- /step 3 -->
-  {% else %}
   <div class="form-actions">
-    <a href="/concert-tracker/shows/{{ show.id }}" class="btn btn-ghost">Cancel</a>
-    <button type="submit" class="btn btn-accent">Save Changes</button>
+    <a href="{% if show %}/concert-tracker/shows/{{ show.id }}{% else %}/concert-tracker/shows{% endif %}" class="btn btn-ghost">Cancel</a>
+    <button type="submit" class="btn btn-accent">{% if show %}Save Changes{% else %}Log Show{% endif %}</button>
   </div>
-  {% endif %}
 </form>
 
 {% if show %}
@@ -889,42 +845,6 @@ showForm.addEventListener('submit', e => {
 
   starsRow.addEventListener('mouseleave', () => renderStars(selected));
   clearBtn.addEventListener('click', () => setRating(null));
-})();
-
-/* FIX [2.3]: 3-step progressive form navigation */
-(function() {
-  const stepBodies = document.querySelectorAll('.form-step-body');
-  if (!stepBodies.length) return; // edit mode: no steps, exit
-  const fsi = document.getElementById('fsi');
-
-  function goToStep(n) {
-    stepBodies.forEach(b => { b.style.display = +b.dataset.step === n ? '' : 'none'; });
-    if (fsi) {
-      fsi.querySelectorAll('.fsi-step').forEach(s => {
-        const t = +s.dataset.stepTarget;
-        s.classList.toggle('fsi-active', t === n);
-        s.classList.toggle('fsi-done', t < n);
-      });
-    }
-    if (fsi) fsi.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-  }
-
-  document.querySelectorAll('.form-step-next').forEach(btn => {
-    btn.addEventListener('click', function() {
-      const goto = +this.dataset.goto;
-      if (goto === 2) {
-        // Validate required fields in step 1 before proceeding
-        const step1 = document.querySelector('.form-step-body[data-step="1"]');
-        const inputs = step1 ? step1.querySelectorAll('input[required], textarea[required], select[required]') : [];
-        for (const inp of inputs) { if (!inp.reportValidity()) return; }
-      }
-      goToStep(goto);
-    });
-  });
-
-  document.querySelectorAll('.form-step-back').forEach(btn => {
-    btn.addEventListener('click', function() { goToStep(+this.dataset.goto); });
-  });
 })();
 
 /* FIX [4.3]: Inline delete confirmation — replaces window.confirm() */

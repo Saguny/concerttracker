@@ -203,13 +203,20 @@
   gap: .15rem; flex: 1; color: var(--muted); font-size: .65rem; font-weight: 500;
   text-decoration: none; padding: .25rem 0; transition: color .15s;
   -webkit-tap-highlight-color: transparent;
+  /* prevent icon shrink when browser chrome hides on scroll */
+  min-height: 58px; flex-shrink: 0;
 }
+.bottom-nav-item svg { width: 22px; height: 22px; flex-shrink: 0; display: block; }
 .bottom-nav-item:hover, .bottom-nav-item.active { color: var(--text); text-decoration: none; }
 .bottom-nav-cta {
-  color: var(--accent); position: relative; top: -6px;
+  position: relative; top: -6px;
   background: var(--accent); color: #000;
   border-radius: 50%; width: 48px; height: 48px; flex: none;
   padding: 0; align-self: center; box-shadow: 0 4px 12px rgba(0,0,0,.4);
+  min-height: auto;
 }
-.bottom-nav-cta svg { margin: 0; }
+.bottom-nav-cta svg { width: 22px; height: 22px; }
 .bottom-nav-cta span { display: none; }
+
+/* FIX: GPU layer on bottom nav prevents resize flicker when browser toolbar hides */
+.bottom-nav { will-change: transform; transform: translateZ(0); }
