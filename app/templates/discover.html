@@ -5,13 +5,17 @@
   <h1>Discover People</h1>
 </div>
 
+<!-- FIX [3.3/5.5]: Enhanced filter bar with connection context hint -->
 <form class="filter-bar" method="get" action="/concert-tracker/discover" id="discover-form">
-  <input type="text" name="q" placeholder="Search artists or users…" value="{{ q }}" autocomplete="off" id="discover-q">
+  <input type="text" name="q" placeholder="Search by name or artist…" value="{{ q }}" autocomplete="off" id="discover-q">
   <button type="submit" class="btn btn-accent">Search</button>
   {% if q %}
   <a href="/concert-tracker/discover" class="btn btn-ghost">Clear</a>
   {% endif %}
 </form>
+{% if not q %}
+<p class="discover-hint muted small">Find people who've seen the same artists as you, or search by username.</p>
+{% endif %}
 
 {% if q and artist_rows %}
 <h2 class="discover-section-heading">Artists</h2>
@@ -55,7 +59,13 @@
       {% endif %}
     </a>
     <div class="discover-info">
-      <a href="/concert-tracker/u/{{ u.username }}" class="discover-username">{{ u.username }}</a>
+      <div class="discover-username-row">
+        <a href="/concert-tracker/u/{{ u.username }}" class="discover-username">{{ u.username }}</a>
+        <!-- FIX [3.3/5.5]: Relational badge — surface existing connection context at a glance -->
+        {% if u.id in following_ids %}
+        <span class="badge badge-following">Following</span>
+        {% endif %}
+      </div>
       <div class="discover-meta">
         <span>{{ u.show_count }} show{{ 's' if u.show_count != 1 else '' }}</span>
         <span>{{ u.follower_count }} follower{{ 's' if u.follower_count != 1 else '' }}</span>

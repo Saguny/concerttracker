@@ -1,5 +1,27 @@
 {% extends "base.html" %}
-{% block title %}Calendar · Concert Tracker{% endblock %}
+{% block title %}Calendar · Moshd{% endblock %}
+{% block head %}
+<!-- FIX [5.6]: Visual differentiation — past shows dim, upcoming shows glow, today cell is anchored -->
+<style>
+.cal-show { opacity: .5; border-left: 2px solid transparent; }
+.cal-show-upcoming {
+  opacity: 1;
+  background: var(--accent-dim);
+  border-left-color: var(--accent);
+  font-weight: 600;
+}
+.cal-day-today { background: rgba(255,255,255,.04); border-radius: var(--radius-sm); }
+.cal-day-today .cal-day-num {
+  background: var(--accent);
+  color: #000;
+  border-radius: 50%;
+  width: 22px; height: 22px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-weight: 700;
+  font-size: .8rem;
+}
+</style>
+{% endblock %}
 {% block content %}
 <div class="page-header">
   <div class="cal-nav">

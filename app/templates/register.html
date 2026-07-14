@@ -1,26 +1,54 @@
 {% extends "base.html" %}
-{% block title %}Register · Concert Tracker{% endblock %}
+{% block title %}Join Moshd · Your concert diary{% endblock %}
 {% block content %}
-<div class="auth-wrap">
-  <h1 class="auth-title">Create Account</h1>
-  <p class="auth-sub">You need an invite code to join.</p>
-  {% if error %}<div class="flash flash-error">{{ error }}</div>{% endif %}
-  <form method="post" action="/concert-tracker/register" class="auth-form">
-    <input type="hidden" name="_csrf" value="{{ csrf }}">
-    <label>Username
-      <input type="text" name="username" autocomplete="username" autofocus required pattern="[a-zA-Z0-9_]{3,32}" title="3–32 chars, letters/numbers/underscores">
-    </label>
-    <label>Email
-      <input type="email" name="email" autocomplete="email" required>
-    </label>
-    <label>Password
-      <input type="password" name="password" autocomplete="new-password" minlength="8" required>
-    </label>
-    <label>Invite Code
-      <input type="text" name="invite_code" value="{{ prefill_code or '' }}" required>
-    </label>
-    <button type="submit" class="btn btn-accent btn-full">Create Account</button>
-  </form>
-  <p class="auth-footer">Already have an account? <a href="/concert-tracker/login">Sign in</a></p>
+<!-- FIX [1.1]: 50/50 split-screen — left panel sells the value prop before asking for anything -->
+<div class="auth-split">
+  <div class="auth-split-left" aria-hidden="true">
+    <div class="auth-preview-inner">
+      <div class="auth-preview-logo">Moshd</div>
+      <h2 class="auth-preview-headline">Your concert diary.</h2>
+      <p class="auth-preview-sub">Log every show. See your music year in review. Find friends who were there too.</p>
+      <div class="auth-preview-tiles">
+        <div class="auth-preview-tile">
+          <span class="auth-preview-icon">★</span>
+          <span>Rate and review every gig</span>
+        </div>
+        <div class="auth-preview-tile">
+          <span class="auth-preview-icon">♥</span>
+          <span>See what friends are seeing</span>
+        </div>
+        <div class="auth-preview-tile">
+          <span class="auth-preview-icon">♪</span>
+          <span>Auto-fetch setlists and support acts</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="auth-split-right">
+    <div class="auth-wrap">
+      <h1 class="auth-title">Join Moshd</h1>
+      <p class="auth-sub">You need an invite code to join.</p>
+      {% if error %}<div class="flash flash-error">{{ error }}</div>{% endif %}
+      <form method="post" action="/concert-tracker/register" class="auth-form">
+        <input type="hidden" name="_csrf" value="{{ csrf }}">
+        <label>Username
+          <input type="text" name="username" autocomplete="username" autofocus required pattern="[a-zA-Z0-9_]{3,32}" title="3–32 chars, letters/numbers/underscores">
+        </label>
+        <label>Email
+          <input type="email" name="email" autocomplete="email" required>
+        </label>
+        <label>Password
+          <input type="password" name="password" autocomplete="new-password" minlength="8" required>
+        </label>
+        <!-- FIX [1.3]: Invite code helper text — address the "I don't have one" moment before it causes drop-off -->
+        <label>Invite Code
+          <input type="text" name="invite_code" value="{{ prefill_code or '' }}" required>
+        </label>
+        <p class="field-hint">No code? Ask a friend who's already on Moshd, or <a href="/concert-tracker/waitlist" class="field-hint-link">join the waitlist →</a></p>
+        <button type="submit" class="btn btn-accent btn-full">Create Account</button>
+      </form>
+      <p class="auth-footer">Already have an account? <a href="/concert-tracker/login">Sign in</a></p>
+    </div>
+  </div>
 </div>
 {% endblock %}

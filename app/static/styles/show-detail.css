@@ -18,7 +18,8 @@
 .festival-group-card.toggle-hover .festival-toggle { border-color: var(--accent) !important; color: var(--accent); }
 .show-upcoming { border-left: 3px solid var(--accent); }
 .show-card.has-photo-bg { position: relative; overflow: hidden; }
-.show-card.has-photo-bg::before { content: ''; position: absolute; inset: 0; background-image: var(--card-photo); background-size: cover; background-position: center; filter: blur(22px) brightness(0.22) saturate(1.3); transform: scale(1.12); z-index: 0; }
+/* FIX [P-2]: Reduce blur radius and add will-change to promote to its own compositor layer */
+.show-card.has-photo-bg::before { content: ''; position: absolute; inset: 0; background-image: var(--card-photo); background-size: cover; background-position: center; will-change: filter; filter: blur(14px) brightness(0.22) saturate(1.2); transform: scale(1.12); z-index: 0; }
 .show-card.has-photo-bg > * { position: relative; z-index: 1; }
 .show-thumb { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
 .show-thumb-placeholder { width: 48px; height: 48px; border-radius: 50%; background: var(--surface2); display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0; }
@@ -80,10 +81,11 @@
 .detail-support-ph    { background: var(--surface2); display: flex; align-items: center; justify-content: center; font-size: .8rem; font-weight: 700; color: var(--muted); }
 .detail-support-name  { font-size: .825rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-@media (max-width: 620px) {
+/* FIX [L-7]: Fire the detail-card column-stack earlier (680px) to prevent content overflow between 620-700px */
+@media (max-width: 680px) {
   .detail-card    { flex-direction: column; padding: 1rem; }
-  .detail-square  { width: 100%; height: 180px; }
-  .detail-sq-img  { width: 100%; height: 180px; }
+  .detail-square  { width: 100%; height: auto; aspect-ratio: 1; }
+  .detail-sq-img  { width: 100%; height: 100%; }
   .detail-info    { flex-direction: column; }
   .detail-info-divider { width: 100%; height: 1px; margin: .75rem 0; }
   .detail-support-col  { max-width: none; }
@@ -94,6 +96,11 @@
 .festival-layout-main .detail-card { margin-bottom: 0; }
 .festival-layout-side { width: 260px; flex-shrink: 0; }
 @container (max-width: 560px) { .festival-layout { flex-direction: column; } .festival-layout-side { width: 100%; order: -1; } }
+/* FIX [L-4] & [CB-5]: @media fallback for browsers without container query support (Chrome <105, Firefox <110, Safari <16) */
+@media (max-width: 560px) {
+  .festival-layout { flex-direction: column; }
+  .festival-layout-side { width: 100%; order: -1; }
+}
 
 .detail-columns { display: grid; grid-template-columns: 1fr 280px; gap: 1.5rem; align-items: start; }
 @media (max-width: 700px) { .detail-columns { grid-template-columns: 1fr; } }
@@ -232,6 +239,8 @@
 .artist-row   { display: flex; align-items: center; gap: .65rem; padding: .45rem .65rem; border-radius: var(--radius-sm); background: var(--surface); border: 1px solid var(--border); cursor: pointer; transition: border-color .12s, background .12s; user-select: none; }
 .artist-row:hover { border-color: var(--accent); background: var(--surface2); }
 .artist-row:has(.artist-check:checked) { border-color: rgba(245,158,11,.4); background: var(--accent-dim); }
+/* FIX [CB-2]: .is-checked mirrors the :has() rule for Firefox <121 which doesn't support :has() */
+.artist-row.is-checked { border-color: rgba(245,158,11,.4); background: var(--accent-dim); }
 .artist-headliner { border-color: rgba(245,158,11,.25); }
 .artist-row input[type="checkbox"] { width: 16px; height: 16px; flex-shrink: 0; accent-color: var(--accent); }
 .artist-name          { flex: 1; font-size: .875rem; font-weight: 500; }
@@ -249,10 +258,12 @@
   margin-bottom: 1.5rem; background: var(--surface); border: 1px solid var(--border);
   min-height: 260px;
 }
+/* FIX [P-2]: Reduce blur radius and promote to compositor layer for scroll performance */
 .event-hero-bg {
   position: absolute; inset: 0;
   background-size: cover; background-position: center top;
-  filter: blur(32px) brightness(0.16) saturate(1.5);
+  will-change: filter;
+  filter: blur(20px) brightness(0.16) saturate(1.4);
   transform: scale(1.15); z-index: 0;
 }
 .event-hero-content {
@@ -309,6 +320,9 @@
   .event-hero-content { flex-direction: column; align-items: flex-start; padding: 1.25rem; gap: 1rem; }
   .event-poster { width: 100px; height: 100px; }
   .event-artist-name { font-size: 1.6rem; }
+  /* FIX [L-6]: Support column stretches to full width in column layout — remove constraints */
+  .event-hero-support { min-width: 0; max-width: none; width: 100%; }
+  .event-hero-divider { display: none; }
 }
 
 .event-section-title { font-size: 1rem; font-weight: 700; margin-bottom: .85rem; display: flex; align-items: baseline; gap: .4rem; }
@@ -320,10 +334,12 @@
   border-radius: var(--radius); transition: border-color .15s;
 }
 .event-log-card:hover { border-color: rgba(255,255,255,.14); }
+/* FIX [P-2]: Reduce blur radius and add will-change for GPU compositing on feed log cards */
 .event-log-card.event-log-card-photo::before {
   content: ''; position: absolute; inset: 0;
   background-image: var(--log-photo); background-size: cover; background-position: center;
-  filter: blur(24px) brightness(0.18) saturate(1.3);
+  will-change: filter;
+  filter: blur(14px) brightness(0.18) saturate(1.2);
   transform: scale(1.12); z-index: 0;
 }
 .event-log-card-inner { position: relative; z-index: 1; padding: .9rem 1.1rem; }

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Stats · Concert Tracker{% endblock %}
+{% block title %}Stats · Moshd{% endblock %}
 {% block head %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 {% endblock %}
@@ -11,32 +11,34 @@
 <div id="stats-error" style="display:none" class="empty-state">
   <p>Couldn't load stats -please refresh the page.</p>
 </div>
+<!-- FIX [5.3]: Narrative labels + hours tile — give each number human meaning -->
 <div class="stats-hero" id="stats-hero" style="display:none">
-  <div class="stat-tile"><span class="stat-num" id="s-total">-</span><span class="stat-label">Total Shows</span></div>
-  <div class="stat-tile"><span class="stat-num" id="s-upcoming">-</span><span class="stat-label">Upcoming</span></div>
+  <div class="stat-tile"><span class="stat-num" id="s-total">-</span><span class="stat-label">Shows logged</span></div>
+  <div class="stat-tile"><span class="stat-num" id="s-hours">-</span><span class="stat-label">hrs of live music</span></div>
+  <div class="stat-tile"><span class="stat-num" id="s-upcoming">-</span><span class="stat-label">Coming up</span></div>
   <div class="stat-tile"><span class="stat-num" id="s-festival">-</span><span class="stat-label">Festivals</span></div>
-  <div class="stat-tile"><span class="stat-num" id="s-artists">-</span><span class="stat-label">Unique Artists</span></div>
+  <div class="stat-tile"><span class="stat-num" id="s-artists">-</span><span class="stat-label">Artists seen</span></div>
 </div>
 
 <div class="charts-grid">
   <div class="chart-card chart-wide">
-    <h3>Shows Per Year</h3>
+    <h3>Your show-going, year by year</h3>
     <canvas id="chart-years"></canvas>
   </div>
   <div class="chart-card">
-    <h3>Busiest Months</h3>
+    <h3>When do you go most?</h3>
     <canvas id="chart-months"></canvas>
   </div>
   <div class="chart-card">
-    <h3>Festival vs Standalone</h3>
+    <h3>Festivals vs. solo nights out</h3>
     <canvas id="chart-kind"></canvas>
   </div>
   <div class="chart-card">
-    <h3>Top Artists</h3>
+    <h3>Artists you can't get enough of</h3>
     <canvas id="chart-artists"></canvas>
   </div>
   <div class="chart-card">
-    <h3>Top Venues</h3>
+    <h3>Your go-to venues</h3>
     <canvas id="chart-venues"></canvas>
   </div>
 </div>
@@ -63,6 +65,8 @@ async function loadStats() {
   }
 
   document.getElementById('s-total').textContent = d.total;
+  /* FIX [5.3]: Hours tile — avg concert ~2.5 hrs gives a satisfying "wow" number */
+  document.getElementById('s-hours').textContent = '~' + Math.round((d.total || 0) * 2.5);
   document.getElementById('s-upcoming').textContent = d.upcoming;
   document.getElementById('s-festival').textContent = d.festival;
   document.getElementById('s-artists').textContent = d.unique_artists ?? d.top_artists.length;

@@ -17,7 +17,8 @@
 }
 
 html { font-size: 15px; }
-body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; line-height: 1.5; min-height: 100vh; }
+/* FIX [CB-1]: iOS Safari 100vh includes browser chrome — use 100dvh where supported */
+body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; line-height: 1.5; min-height: 100vh; min-height: 100dvh; }
 a { color: var(--accent); text-decoration: none; }
 a:hover { text-decoration: underline; }
 input, select, textarea, button { font: inherit; }
@@ -41,7 +42,8 @@ img { max-width: 100%; }
 .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; gap: 1rem; flex-wrap: wrap; }
 .page-header h1 { font-size: 1.5rem; font-weight: 700; }
 
-.flash { position: fixed; top: 1rem; left: 50%; transform: translateX(-50%); z-index: 9999; padding: .65rem 1.25rem; border-radius: var(--radius-sm); font-size: .875rem; white-space: nowrap; pointer-events: none; box-shadow: 0 4px 16px rgba(0,0,0,.4); }
+/* FIX [L-1]: Flash overflow — allow wrapping & clamp width on narrow screens */
+.flash { position: fixed; top: 1rem; left: 50%; transform: translateX(-50%); z-index: 9999; padding: .65rem 1.25rem; border-radius: var(--radius-sm); font-size: .875rem; white-space: normal; max-width: min(480px, calc(100vw - 2rem)); text-align: center; pointer-events: none; box-shadow: 0 4px 16px rgba(0,0,0,.4); }
 .flash-info    { background: rgba(59,130,246,.15); border: 1px solid rgba(59,130,246,.3); color: var(--blue); }
 .flash-error   { background: rgba(239,68,68,.15);  border: 1px solid rgba(239,68,68,.3);  color: var(--danger); }
 .flash-success  { background: rgba(34,197,94,.15);  border: 1px solid rgba(34,197,94,.3);  color: var(--success); }

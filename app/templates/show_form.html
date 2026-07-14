@@ -16,7 +16,18 @@
   <input type="hidden" name="support_acts_json" id="support-acts-json" value="{% if show and show.support_acts %}{{ show.support_acts | tojson }}{% endif %}">
   <input type="hidden" name="headliners_json" id="headliners-json" value="{% if show and show.headliners and show.headliners | length > 1 %}{{ show.headliners[1:] | tojson }}{% else %}[]{% endif %}">
 
-  
+  {% if not show %}
+  <!-- FIX [2.3]: 3-step progressive form — reduce first-screen overwhelm for new shows -->
+  <div class="form-step-indicator" id="fsi">
+    <div class="fsi-step fsi-active" data-step-target="1"><div class="fsi-dot">1</div><div class="fsi-label">The Show</div></div>
+    <div class="fsi-line"></div>
+    <div class="fsi-step" data-step-target="2"><div class="fsi-dot">2</div><div class="fsi-label">Your Experience</div></div>
+    <div class="fsi-line"></div>
+    <div class="fsi-step" data-step-target="3"><div class="fsi-dot">3</div><div class="fsi-label">Full Details</div></div>
+  </div>
+  <div class="form-step-body" data-step="1">
+  {% endif %}
+
   <div class="field-group">
     <label>Headliner <span class="required">*</span></label>
     <div class="autocomplete-wrap" id="artist-wrap">
@@ -85,6 +96,15 @@
   </div>
   {% endif %}
 
+  {% if not show %}
+  <div class="form-step-nav">
+    <div></div>
+    <button type="button" class="btn btn-accent form-step-next" data-goto="2">Rate the show →</button>
+  </div>
+  </div><!-- /step 1 -->
+  <div class="form-step-body" data-step="2" style="display:none">
+  {% endif %}
+
   <div class="field-group">
     <label>Notes</label>
     <textarea name="notes" rows="3" maxlength="1000" placeholder="How was it?">{{ show.notes if show else '' }}</textarea>
@@ -119,7 +139,18 @@
     <input type="file" name="photo" accept="image/*">
   </div>
 
-  
+  {% if not show %}
+  <div class="form-step-nav">
+    <button type="button" class="btn btn-ghost form-step-back" data-goto="1">← Back</button>
+    <div style="display:flex;gap:.5rem">
+      <button type="submit" class="btn btn-ghost">Log now</button>
+      <button type="button" class="btn btn-accent form-step-next" data-goto="3">Add setlist →</button>
+    </div>
+  </div>
+  </div><!-- /step 2 -->
+  <div class="form-step-body" data-step="3" style="display:none">
+  {% endif %}
+
   <div class="setlist-panel">
     <div class="setlist-header">
       <span>Support Acts <span class="muted" style="font-weight:400;font-size:.8rem">- who else played</span></span>
@@ -170,19 +201,36 @@
   </div>
   {% endif %}
 
-  <div class="form-actions">
-    <a href="{% if show %}/concert-tracker/shows/{{ show.id }}{% else %}/concert-tracker/shows{% endif %}" class="btn btn-ghost">Cancel</a>
-    <button type="submit" class="btn btn-accent">{% if show %}Save Changes{% else %}Log Show{% endif %}</button>
+  {% if not show %}
+  <div class="form-step-nav">
+    <button type="button" class="btn btn-ghost form-step-back" data-goto="2">← Back</button>
+    <div style="display:flex;gap:.5rem">
+      <a href="/concert-tracker/shows" class="btn btn-ghost">Cancel</a>
+      <button type="submit" class="btn btn-accent">Log Show</button>
+    </div>
   </div>
+  </div><!-- /step 3 -->
+  {% else %}
+  <div class="form-actions">
+    <a href="/concert-tracker/shows/{{ show.id }}" class="btn btn-ghost">Cancel</a>
+    <button type="submit" class="btn btn-accent">Save Changes</button>
+  </div>
+  {% endif %}
 </form>
 
 {% if show %}
-<form method="post" action="/concert-tracker/shows/{{ show.id }}/delete"
-      onsubmit="return confirm('Delete this show? This cannot be undone.')"
-      style="margin-top:2rem;padding-top:1.5rem;border-top:1px solid var(--border)">
-  <input type="hidden" name="_csrf" value="{{ csrf }}">
-  <button type="submit" class="btn btn-danger">Delete Show</button>
-</form>
+<!-- FIX [4.3]: Inline delete confirmation — replace window.confirm() (janky, unbranded) with in-page UI -->
+<div style="margin-top:2rem;padding-top:1.5rem;border-top:1px solid var(--border)">
+  <form method="post" action="/concert-tracker/shows/{{ show.id }}/delete" id="delete-show-form">
+    <input type="hidden" name="_csrf" value="{{ csrf }}">
+    <button type="button" class="btn btn-danger" id="delete-show-btn">Delete Show</button>
+    <span class="delete-inline-confirm" id="delete-inline-confirm" style="display:none">
+      <span class="muted small">This cannot be undone.</span>
+      <button type="submit" class="btn btn-danger btn-sm">Yes, delete</button>
+      <button type="button" class="btn btn-ghost btn-sm" id="delete-cancel-btn">Cancel</button>
+    </span>
+  </form>
+</div>
 {% endif %}
 
 <style>
@@ -240,8 +288,7 @@ async function fetchArtists(q) {
   try {
     const res = await fetch(`/concert-tracker/api/artist-search?q=${encodeURIComponent(q)}`);
     const data = await res.json();
-    if (!data.length) { hideList(artistList); return; }
-    artistList.innerHTML = data.map(a => `
+    const resultItems = data.map(a => `
       <li class="ac-item" data-name="${esc(a.name)}" data-thumb="${esc(a.thumb_url||'')}" data-genres="${esc((a.genres||[]).join(', '))}">
         ${a.thumb_url ? `<img src="${esc(a.thumb_url)}" class="ac-thumb">` : '<div class="ac-thumb ac-thumb-ph">🎵</div>'}
         <div class="ac-info">
@@ -249,6 +296,16 @@ async function fetchArtists(q) {
           ${a.genres && a.genres.length ? `<div class="ac-meta">${esc(a.genres.join(' · '))}</div>` : ''}
         </div>
       </li>`).join('');
+    /* FIX [3.1]: Always append a "use this name as-is" fallback — user is never stuck when search returns nothing */
+    const fallback = `
+      <li class="ac-item ac-item-fallback" data-name="${esc(q)}" data-thumb="" data-genres="">
+        <div class="ac-thumb ac-thumb-ph" style="font-size:.85rem;font-weight:700">+</div>
+        <div class="ac-info">
+          <div class="ac-name">Log show for &ldquo;${esc(q)}&rdquo;</div>
+          <div class="ac-meta">Use this name as-is</div>
+        </div>
+      </li>`;
+    artistList.innerHTML = resultItems + fallback;
     showList(artistList);
     artistList.querySelectorAll('.ac-item').forEach(el => {
       el.addEventListener('mousedown', e => {
@@ -832,6 +889,92 @@ showForm.addEventListener('submit', e => {
 
   starsRow.addEventListener('mouseleave', () => renderStars(selected));
   clearBtn.addEventListener('click', () => setRating(null));
+})();
+
+/* FIX [2.3]: 3-step progressive form navigation */
+(function() {
+  const stepBodies = document.querySelectorAll('.form-step-body');
+  if (!stepBodies.length) return; // edit mode: no steps, exit
+  const fsi = document.getElementById('fsi');
+
+  function goToStep(n) {
+    stepBodies.forEach(b => { b.style.display = +b.dataset.step === n ? '' : 'none'; });
+    if (fsi) {
+      fsi.querySelectorAll('.fsi-step').forEach(s => {
+        const t = +s.dataset.stepTarget;
+        s.classList.toggle('fsi-active', t === n);
+        s.classList.toggle('fsi-done', t < n);
+      });
+    }
+    if (fsi) fsi.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  document.querySelectorAll('.form-step-next').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const goto = +this.dataset.goto;
+      if (goto === 2) {
+        // Validate required fields in step 1 before proceeding
+        const step1 = document.querySelector('.form-step-body[data-step="1"]');
+        const inputs = step1 ? step1.querySelectorAll('input[required], textarea[required], select[required]') : [];
+        for (const inp of inputs) { if (!inp.reportValidity()) return; }
+      }
+      goToStep(goto);
+    });
+  });
+
+  document.querySelectorAll('.form-step-back').forEach(btn => {
+    btn.addEventListener('click', function() { goToStep(+this.dataset.goto); });
+  });
+})();
+
+/* FIX [4.3]: Inline delete confirmation — replaces window.confirm() */
+(function() {
+  const btn = document.getElementById('delete-show-btn');
+  const confirmWrap = document.getElementById('delete-inline-confirm');
+  const cancelBtn = document.getElementById('delete-cancel-btn');
+  if (!btn || !confirmWrap) return;
+  btn.addEventListener('click', () => {
+    btn.style.display = 'none';
+    confirmWrap.style.display = 'inline-flex';
+  });
+  if (cancelBtn) cancelBtn.addEventListener('click', () => {
+    confirmWrap.style.display = 'none';
+    btn.style.display = '';
+  });
+})();
+
+/* FIX [4.4]: Inline duplicate detection — warn before submit if artist+date already logged */
+(function() {
+  const dupWarn = document.createElement('p');
+  dupWarn.className = 'dup-warn muted small';
+  dupWarn.style.display = 'none';
+  const fsiEl = document.getElementById('fsi');
+  if (fsiEl) fsiEl.insertAdjacentElement('afterend', dupWarn);
+
+  async function checkDuplicate() {
+    const artist = (document.getElementById('artist-input') || {}).value?.trim();
+    const date = (document.getElementById('date-input') || {}).value;
+    if (!artist || !date) { dupWarn.style.display = 'none'; return; }
+    try {
+      const r = await fetch(`/concert-tracker/api/check-duplicate?artist=${encodeURIComponent(artist)}&date=${encodeURIComponent(date)}`, { headers: { 'X-Requested-With': 'fetch' } });
+      if (!r.ok) { dupWarn.style.display = 'none'; return; }
+      const d = await r.json();
+      if (d.found) {
+        dupWarn.textContent = `Heads up — you may have already logged ${artist} on ${date}.`;
+        dupWarn.style.display = 'block';
+      } else {
+        dupWarn.style.display = 'none';
+      }
+    } catch { dupWarn.style.display = 'none'; }
+  }
+
+  const _origSelectArtist = selectArtist;
+  window.selectArtist = function(name, thumb, genres) {
+    _origSelectArtist(name, thumb, genres);
+    checkDuplicate();
+  };
+  const dateInp = document.getElementById('date-input');
+  if (dateInp) dateInp.addEventListener('change', checkDuplicate);
 })();
 </script>
 

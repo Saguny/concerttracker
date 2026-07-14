@@ -14,6 +14,9 @@
 }
 .nav-brand { font-weight: 700; font-size: 1.05rem; color: var(--text); white-space: nowrap; }
 .nav-brand:hover { text-decoration: none; }
+/* FIX [1.2]: Brand tagline */
+.nav-tagline { font-size: .72rem; color: var(--muted); white-space: nowrap; }
+@media (max-width: 900px) { .nav-tagline { display: none; } }
 .nav-links { display: flex; gap: 1rem; }
 .nav-links a { color: var(--muted); font-size: .9rem; transition: color .15s; }
 .nav-links a:hover, .nav-links a.active { color: var(--text); text-decoration: none; }
@@ -22,10 +25,11 @@
 .nav-muted { color: var(--muted); font-size: .85rem; }
 .nav-muted:hover { color: var(--text); }
 
+/* FIX [A-3]: Hamburger was 36x36px — the primary mobile nav trigger must hit 44x44px */
 .nav-hamburger {
   display: none; flex-direction: column; justify-content: center; gap: 5px;
-  background: transparent; border: none; cursor: pointer; padding: .4rem;
-  width: 36px; height: 36px;
+  background: transparent; border: none; cursor: pointer; padding: .5rem;
+  min-width: 44px; min-height: 44px; width: auto; height: auto;
 }
 .nav-hamburger span {
   display: block; height: 2px; background: var(--text);
@@ -156,9 +160,15 @@
 }
 .nav-search-btn:hover { color: var(--text); }
 
+/* FIX [2.4]: Bottom nav for mobile — thumb-reachable primary navigation */
+.bottom-nav { display: none; }
+
 @media (max-width: 640px) {
   .nav { padding: 0 1rem; gap: .75rem; }
   .nav-hamburger { display: flex; }
+  /* FIX [2.4]: Hide desktop nav links on mobile — bottom nav takes over */
+  .nav-links { display: none !important; }
+  .nav-right .btn-accent { display: none; }
   .nav-right {
     display: none; position: fixed; top: 56px; left: 0; right: 0;
     flex-direction: column; align-items: stretch; gap: .5rem;
@@ -170,7 +180,36 @@
   .nav-utils { margin-left: auto; gap: .5rem; }
   .nav-notif-dropdown { min-width: min(300px, 100vw); right: 0; }
   .nav-dropdown { min-width: 220px; }
+  /* FIX [CB-6]: On very narrow screens the right-anchored notification dropdown can clip — flip to left-anchor */
+  @media (max-width: 400px) {
+    .nav-notif-dropdown { right: auto; left: 0; }
+  }
   .nav-username { display: none; }
   .nav-search-form { width: 100%; }
   .nav-search-input { width: 100%; flex: 1; }
+
+  /* FIX [2.4]: Show bottom nav on mobile */
+  .bottom-nav {
+    display: flex; position: fixed; bottom: 0; left: 0; right: 0;
+    height: 58px; background: var(--surface); border-top: 1px solid var(--border);
+    z-index: 100; align-items: stretch; justify-content: space-around;
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+  .main { padding-bottom: 70px; }
 }
+
+.bottom-nav-item {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: .15rem; flex: 1; color: var(--muted); font-size: .65rem; font-weight: 500;
+  text-decoration: none; padding: .25rem 0; transition: color .15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.bottom-nav-item:hover, .bottom-nav-item.active { color: var(--text); text-decoration: none; }
+.bottom-nav-cta {
+  color: var(--accent); position: relative; top: -6px;
+  background: var(--accent); color: #000;
+  border-radius: 50%; width: 48px; height: 48px; flex: none;
+  padding: 0; align-self: center; box-shadow: 0 4px 12px rgba(0,0,0,.4);
+}
+.bottom-nav-cta svg { margin: 0; }
+.bottom-nav-cta span { display: none; }

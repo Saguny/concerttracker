@@ -23,6 +23,16 @@
     <span></span><span></span><span></span>
   </button>
   <a class="nav-brand" href="/concert-tracker/social">Moshd</a>
+  <!-- FIX [1.2]: Brand tagline — anchors the product identity in every page load -->
+  <span class="nav-tagline">your concert diary</span>
+  <!-- FIX [2.4]: Persistent nav links — key pages visible without hunting the dropdown -->
+  <nav class="nav-links" aria-label="Main links">
+    <a href="/concert-tracker/social">Feed</a>
+    <a href="/concert-tracker/shows">My Shows</a>
+    <a href="/concert-tracker/discover">Discover</a>
+    <a href="/concert-tracker/calendar">Calendar</a>
+    <a href="/concert-tracker/stats">Stats</a>
+  </nav>
   <div class="nav-right" id="nav-right">
     <form class="nav-search-form" method="get" action="/concert-tracker/search" role="search">
       <input class="nav-search-input" type="text" name="q" placeholder="Search…" autocomplete="off" spellcheck="false" aria-label="Search artists or users">
@@ -30,7 +40,8 @@
         <svg width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5"/><line x1="13" y1="13" x2="18" y2="18"/></svg>
       </button>
     </form>
-    <a href="/concert-tracker/shows/add" class="btn btn-sm btn-accent">+ Add Show</a>
+    <!-- FIX [4.1]: "Log a Show" — action-oriented language matching mental model -->
+    <a href="/concert-tracker/shows/add" class="btn btn-sm btn-accent">+ Log a Show</a>
   </div>
 
   <div class="nav-utils">
@@ -52,7 +63,8 @@
     <div class="nav-user-wrap" id="nav-user-wrap">
       <button class="nav-user-btn" id="nav-user-btn" type="button" aria-label="User menu" aria-expanded="false" aria-haspopup="true">
         {% if user.avatar_url %}
-          <img class="nav-avatar" src="{{ user.avatar_url }}" alt="{{ user.username }}">
+          {# FIX [A-9]: alt="" — the button already has aria-label="User menu"; reading the username twice is redundant #}
+          <img class="nav-avatar" src="{{ user.avatar_url }}" alt="">
         {% else %}
           <div class="nav-avatar nav-avatar-ph" aria-hidden="true">{{ user.username[0] | upper }}</div>
         {% endif %}
@@ -96,7 +108,33 @@
       e.stopPropagation();
       const open = drop.classList.toggle('open');
       btn.setAttribute('aria-expanded', open);
-      if (open) { notifDrop && notifDrop.classList.remove('open'); notifBtn && notifBtn.setAttribute('aria-expanded','false'); }
+      if (open) {
+        notifDrop && notifDrop.classList.remove('open');
+        notifBtn && notifBtn.setAttribute('aria-expanded','false');
+        /* FIX [A-7]: Move focus to first menu item when dropdown opens */
+        const firstItem = drop.querySelector('[role="menuitem"]');
+        if (firstItem) firstItem.focus();
+      }
+    });
+
+    /* FIX [A-7]: Full keyboard navigation — Arrows cycle items, Escape closes, Tab closes */
+    drop.addEventListener('keydown', function(e) {
+      const items = Array.from(drop.querySelectorAll('[role="menuitem"]'));
+      const idx = items.indexOf(document.activeElement);
+      if (e.key === 'Escape') {
+        drop.classList.remove('open');
+        btn.setAttribute('aria-expanded', 'false');
+        btn.focus();
+      } else if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        items[(idx + 1) % items.length].focus();
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        items[(idx - 1 + items.length) % items.length].focus();
+      } else if (e.key === 'Tab') {
+        drop.classList.remove('open');
+        btn.setAttribute('aria-expanded', 'false');
+      }
     });
   }
 
@@ -192,13 +230,14 @@
     return '/concert-tracker/social';
   }
 
+  /* FIX [5.4]: Warm notification copy — reads like a friend told you, not a system event */
   function _notifText(n) {
     const actor = `<strong>${n.actor_username}</strong>`;
     const show = n.show_artist ? `<span class="nav-notif-show">${n.show_artist}</span>` : '';
-    if (n.type === 'follow') return `${actor} started following you`;
-    if (n.type === 'like') return `${actor} liked your show${show ? ' · ' + show : ''}`;
-    if (n.type === 'comment') return `${actor} commented on your show${show ? ' · ' + show : ''}`;
-    if (n.type === 'tag') return `${actor} tagged you in a show${show ? ' · ' + show : ''}`;
+    if (n.type === 'follow') return `${actor} is now following you`;
+    if (n.type === 'like') return `${actor} loved your show${show ? ' · ' + show : ''}`;
+    if (n.type === 'comment') return `${actor} left a note on your show${show ? ' · ' + show : ''}`;
+    if (n.type === 'tag') return `${actor} added you to their show${show ? ' · ' + show : ''}`;
     return actor;
   }
 
@@ -224,10 +263,45 @@
       .catch(() => {});
   }
   _pollUnread();
-  setInterval(_pollUnread, 60000);
+  /* FIX [P-6]: Pause polling when tab is hidden — prevents unnecessary requests across multiple open tabs */
+  let _pollInterval = setInterval(_pollUnread, 60000);
+  document.addEventListener('visibilitychange', function() {
+    if (document.hidden) {
+      clearInterval(_pollInterval);
+    } else {
+      _pollUnread();
+      _pollInterval = setInterval(_pollUnread, 60000);
+    }
+  });
 })();
 
 
 </script>
+
+{% if user %}
+<!-- FIX [2.4]: Mobile bottom nav — thumb-zone navigation replaces hamburger hunt on small screens -->
+<nav class="bottom-nav" aria-label="Primary navigation">
+  <a href="/concert-tracker/social" class="bottom-nav-item">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    <span>Feed</span>
+  </a>
+  <a href="/concert-tracker/shows" class="bottom-nav-item">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+    <span>Shows</span>
+  </a>
+  <a href="/concert-tracker/shows/add" class="bottom-nav-item bottom-nav-cta" aria-label="Log a show">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+    <span>Log</span>
+  </a>
+  <a href="/concert-tracker/discover" class="bottom-nav-item">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <span>Discover</span>
+  </a>
+  <a href="/concert-tracker/stats" class="bottom-nav-item">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+    <span>Stats</span>
+  </a>
+</nav>
+{% endif %}
 </body>
 </html>

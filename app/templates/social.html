@@ -116,9 +116,15 @@
     {% endif %}
   </div>
 
+  <!-- FIX [2.1]: Sidebar tab switcher — collapse 3 parallel sections into one tabbed panel to cut cognitive load -->
   <aside class="social-sidebar">
-    <section class="social-section">
-      <h2>Leaderboard</h2>
+    <div class="sidebar-tabs">
+      <button class="sidebar-tab active" data-panel="leaderboard">Scores</button>
+      {% if mutuals %}<button class="sidebar-tab" data-panel="circle">Circle</button>{% endif %}
+      <button class="sidebar-tab" data-panel="following">Following <span class="sidebar-tab-count">{{ following | length }}</span></button>
+    </div>
+
+    <div class="sidebar-panel" data-panel="leaderboard">
       <div class="lb-tabs">
         <button class="lb-tab active" onclick="switchTab('all', this)">All Time</button>
         <button class="lb-tab" onclick="switchTab('year', this)">This Year</button>
@@ -141,30 +147,10 @@
         </li>
         {% endfor %}
       </ol>
-    </section>
-
-    <section class="social-section">
-      <h2>Following <span class="muted">{{ following | length }}</span></h2>
-      {% for f in following %}
-      <div class="follow-row {% if f.id in (mutuals | map(attribute='id') | list) %}follow-row-mutual{% endif %}">
-        {% if f.avatar_url %}
-        <img src="{{ f.avatar_url }}" class="follow-avatar" alt="{{ f.username }}">
-        {% else %}
-        <div class="follow-avatar follow-avatar-ph">{{ f.username[0] | upper }}</div>
-        {% endif %}
-        <a href="/concert-tracker/u/{{ f.username }}">{{ f.username }}</a>
-        {% if f.id in (mutuals | map(attribute='id') | list) %}
-        <span class="badge badge-mutual">mutual</span>
-        {% endif %}
-      </div>
-      {% else %}
-      <p class="muted small">Not following anyone yet.</p>
-      {% endfor %}
-    </section>
+    </div>
 
     {% if mutuals %}
-    <section class="social-section">
-      <h2>Your Circle</h2>
+    <div class="sidebar-panel" data-panel="circle" style="display:none">
       <div class="circle-avatars">
         <a href="/concert-tracker/u/{{ user.username }}" class="circle-avatar-link" title="{{ user.username }} (you)">
           {% if user.avatar_url %}
@@ -205,14 +191,48 @@
       {% if not shared_artists and not shared_cities %}
       <p class="muted small">No shared shows yet.</p>
       {% endif %}
-    </section>
+    </div>
     {% endif %}
+
+    <div class="sidebar-panel" data-panel="following" style="display:none">
+      {% for f in following %}
+      <div class="follow-row {% if f.id in (mutuals | map(attribute='id') | list) %}follow-row-mutual{% endif %}">
+        {% if f.avatar_url %}
+        <img src="{{ f.avatar_url }}" class="follow-avatar" alt="{{ f.username }}">
+        {% else %}
+        <div class="follow-avatar follow-avatar-ph">{{ f.username[0] | upper }}</div>
+        {% endif %}
+        <a href="/concert-tracker/u/{{ f.username }}">{{ f.username }}</a>
+        {% if f.id in (mutuals | map(attribute='id') | list) %}
+        <span class="badge badge-mutual">mutual</span>
+        {% endif %}
+      </div>
+      {% else %}
+      <p class="muted small">Not following anyone yet. <a href="/concert-tracker/discover">Find people →</a></p>
+      {% endfor %}
+    </div>
   </aside>
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script>
+/* FIX [2.1]: Sidebar panel tab switcher */
+(function() {
+  const tabs = document.querySelectorAll('.sidebar-tab');
+  const panels = document.querySelectorAll('.sidebar-panel');
+  tabs.forEach(function(tab) {
+    tab.addEventListener('click', function() {
+      tabs.forEach(function(t) { t.classList.remove('active'); });
+      this.classList.add('active');
+      var target = this.dataset.panel;
+      panels.forEach(function(p) {
+        p.style.display = p.dataset.panel === target ? '' : 'none';
+      });
+    });
+  });
+})();
+
 function toggleFestival(btn) {
   const acts = btn.closest('.festival-group-card').querySelector('.festival-acts');
   const open = !acts.classList.contains('festival-acts-hidden');

@@ -149,7 +149,10 @@ function _initLike() {
     const data = await _xpost(form.action, new FormData(form));
     const btn = form.querySelector('.btn-like');
     btn.classList.toggle('liked', data.liked);
-    btn.innerHTML = (data.liked ? '&#x2665;' : '&#x2661;') + ' <span>' + data.count + '</span>';
+    /* FIX [A-8]: Update aria-pressed + aria-label so screen readers announce the new state */
+    btn.setAttribute('aria-pressed', data.liked ? 'true' : 'false');
+    btn.setAttribute('aria-label', (data.liked ? 'Unlike' : 'Like') + ' (' + data.count + ' ' + (data.count === 1 ? 'like' : 'likes') + ')');
+    btn.innerHTML = (data.liked ? '&#x2665;' : '&#x2661;') + ' <span aria-hidden="true">' + data.count + '</span>';
   });
 }
 
@@ -341,6 +344,18 @@ document.addEventListener('submit', async e => {
            <button class="btn btn-sm btn-accent">Follow</button>
          </form>`;
   }
+});
+
+/* FIX [CB-2]: :has() fallback for Firefox <121 — toggle .is-checked class via JS
+   CSS rule: .artist-row.is-checked { border-color: rgba(245,158,11,.4); background: var(--accent-dim); } */
+document.addEventListener('change', function(e) {
+  const cb = e.target;
+  if (!cb.matches('.artist-check')) return;
+  cb.closest('.artist-row')?.classList.toggle('is-checked', cb.checked);
+});
+/* Apply .is-checked to any pre-checked boxes on page load */
+document.querySelectorAll('.artist-check:checked').forEach(function(cb) {
+  cb.closest('.artist-row')?.classList.add('is-checked');
 });
 
 window._initAutocompleteKeys = function(input, list, onSelect) {

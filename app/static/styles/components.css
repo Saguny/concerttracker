@@ -57,12 +57,31 @@
   color: var(--text);
   width: 100%;
 }
+/* FIX [A-2]: Replace bare outline:none with a visible focus ring for keyboard users.
+   border-color change is kept as a secondary signal; the 2px outline is the primary one. */
 .field-group input:focus,  .field-group select:focus,  .field-group textarea:focus,
 .auth-form input:focus,    .auth-form textarea:focus,   .auth-form select:focus,
 .show-form input:focus,    .show-form select:focus,     .show-form textarea:focus,
 .follow-form input:focus,
 .tag-add-row input:focus,
 .list-create-form input[type="text"]:focus { outline: none; border-color: var(--accent); }
+
+/* FIX [A-2]: :focus-visible ring for keyboard-only navigation (doesn't fire on mouse click) */
+.field-group input:focus-visible,  .field-group select:focus-visible,  .field-group textarea:focus-visible,
+.auth-form input:focus-visible,    .auth-form textarea:focus-visible,   .auth-form select:focus-visible,
+.show-form input:focus-visible,    .show-form select:focus-visible,     .show-form textarea:focus-visible,
+.follow-form input:focus-visible,
+.tag-add-row input:focus-visible,
+.list-create-form input[type="text"]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* FIX [A-2]: Global :focus-visible for all interactive elements (buttons, links, tabs) */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
 .show-form textarea { resize: vertical; }
 
 .filter-bar { display: flex; gap: .5rem; margin-bottom: 1.25rem; flex-wrap: wrap; }
@@ -157,15 +176,23 @@
 .upcoming-date { font-size: .75rem; color: var(--accent); }
 
 .like-form { display: inline; }
+/* FIX [A-4]: btn-like was ~30px tall — raise padding to clear 44px touch target */
 .btn-like {
   display: inline-flex; align-items: center; gap: .4rem;
   background: var(--surface); border: 1px solid var(--border);
-  border-radius: 99px; padding: .35rem .85rem;
+  border-radius: 99px; padding: .55rem .85rem; min-height: 44px;
   font-size: .9rem; cursor: pointer; color: var(--muted);
   transition: border-color .15s, color .15s, background .15s;
 }
 .btn-like:hover { border-color: #e05; color: #e05; }
 .btn-like.liked { border-color: #e05; color: #e05; background: rgba(238,0,85,.08); }
+/* FIX [P-4]: Prevent micro-CLS when like count changes digit length */
+.btn-like span {
+  font-variant-numeric: tabular-nums;
+  min-width: 2ch;
+  display: inline-block;
+  text-align: center;
+}
 
 .comments-section { margin-top: 0; }
 .comment-list     { display: flex; flex-direction: column; gap: .75rem; margin-bottom: 1.25rem; }
@@ -187,16 +214,21 @@
 }
 .comment-input:focus { outline: none; border-color: var(--accent); }
 .comment-form-actions { display: flex; justify-content: flex-end; margin-top: .5rem; }
+/* FIX [A-1]: Comment delete button was ~8x22px — expand to 44x44px minimum touch target */
 .btn-icon-danger {
   position: absolute; top: 0; right: 0;
   background: transparent; border: none; color: var(--muted);
-  font-size: 1.1rem; cursor: pointer; line-height: 1; padding: 0 .2rem;
+  font-size: 1.1rem; cursor: pointer; line-height: 1;
+  padding: .6rem .5rem;
+  min-width: 44px; min-height: 44px;
+  display: inline-flex; align-items: center; justify-content: center;
 }
 .btn-icon-danger:hover { color: var(--danger); }
 
 .editable-tags { min-height: 2rem; }
 .editable-tag  { display: inline-flex; align-items: center; gap: .3rem; padding-right: .35rem; }
-.tag-remove    { background: none; border: none; padding: 0; color: var(--muted); font-size: .9rem; cursor: pointer; line-height: 1; }
+/* FIX [A-6]: tag-remove had zero padding — near-zero tap target, expand to minimum usable size */
+.tag-remove    { background: none; border: none; padding: .35rem .4rem; color: var(--muted); font-size: .9rem; cursor: pointer; line-height: 1; min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
 .tag-remove:hover { color: var(--danger); }
 .tag-add-row   { display: flex; gap: .4rem; margin-top: .65rem; align-items: center; }
 .tag-add-row input { flex: 1; width: auto; padding: .35rem .65rem; font-size: .8rem; }
@@ -647,3 +679,130 @@ input[type="radio"] { accent-color: var(--accent); }
 .list-added   { opacity: .7; }
 
 .page-header-actions { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+
+/* ── UX Prescription additions ──────────────────────────────────────────────── */
+
+/* FIX [1.1]: Auth split-screen layout */
+.auth-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  min-height: calc(100vh - 56px);
+  align-items: stretch;
+}
+.auth-split-left {
+  background: linear-gradient(160deg, var(--surface2) 0%, var(--bg) 100%);
+  border-right: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  padding: 2.5rem 2rem;
+}
+.auth-split-right {
+  display: flex; align-items: center; justify-content: center;
+  padding: 2.5rem 2rem;
+}
+.auth-preview-inner { max-width: 340px; }
+.auth-preview-logo { font-size: 1.5rem; font-weight: 800; color: var(--accent); margin-bottom: 1.25rem; }
+.auth-preview-headline { font-size: 1.75rem; font-weight: 700; line-height: 1.2; margin: 0 0 .75rem; }
+.auth-preview-sub { color: var(--muted); font-size: .95rem; line-height: 1.55; margin: 0 0 1.75rem; }
+.auth-preview-tiles { display: flex; flex-direction: column; gap: .6rem; }
+.auth-preview-tile {
+  display: flex; align-items: center; gap: .75rem;
+  font-size: .875rem; color: var(--muted);
+}
+.auth-preview-icon { font-size: 1.1rem; color: var(--accent); flex-shrink: 0; width: 1.5rem; text-align: center; }
+@media (max-width: 680px) {
+  .auth-split { grid-template-columns: 1fr; }
+  .auth-split-left { display: none; }
+}
+
+/* FIX [1.3]: Field hint text */
+.field-hint { font-size: .8rem; color: var(--muted); margin: .25rem 0 0; }
+.field-hint-link { color: var(--accent); }
+.field-hint-link:hover { text-decoration: underline; }
+
+/* FIX [2.1]: Sidebar tab switcher */
+.sidebar-tabs {
+  display: flex; border-bottom: 1px solid var(--border);
+  margin-bottom: .75rem; gap: 0;
+}
+.sidebar-tab {
+  flex: 1; padding: .5rem .4rem; background: transparent; border: none;
+  border-bottom: 2px solid transparent; cursor: pointer;
+  font-size: .78rem; font-weight: 500; color: var(--muted);
+  transition: color .15s, border-color .15s;
+  margin-bottom: -1px;
+}
+.sidebar-tab:hover { color: var(--text); }
+.sidebar-tab.active { color: var(--text); border-bottom-color: var(--accent); }
+.sidebar-tab-count {
+  background: var(--surface2); color: var(--muted);
+  font-size: .68rem; padding: .05em .35em; border-radius: 999px;
+  margin-left: .2rem; vertical-align: 1px;
+}
+.sidebar-panel { min-height: 0; }
+
+/* FIX [2.3]: 3-step form indicator */
+.form-step-indicator {
+  display: flex; align-items: center; gap: 0;
+  margin: 0 0 1.5rem; padding: .75rem 0;
+  border-bottom: 1px solid var(--border);
+}
+.fsi-step {
+  display: flex; flex-direction: column; align-items: center; gap: .3rem;
+  opacity: .4; transition: opacity .2s;
+}
+.fsi-step.fsi-active { opacity: 1; }
+.fsi-step.fsi-done { opacity: .75; }
+.fsi-dot {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: var(--surface2); border: 2px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: .8rem; font-weight: 700; color: var(--muted);
+  transition: background .2s, border-color .2s, color .2s;
+}
+.fsi-active .fsi-dot { background: var(--accent); border-color: var(--accent); color: #000; }
+.fsi-done .fsi-dot { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+.fsi-label { font-size: .7rem; color: var(--muted); white-space: nowrap; }
+.fsi-active .fsi-label { color: var(--text); font-weight: 600; }
+.fsi-line { flex: 1; height: 2px; background: var(--border); margin: 0 .5rem; align-self: center; margin-bottom: 1.35rem; }
+
+.form-step-nav {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-top: 1.25rem; padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+/* FIX [3.1]: Fallback autocomplete item style */
+.ac-item-fallback { border-top: 1px solid var(--border); opacity: .8; }
+.ac-item-fallback:hover { opacity: 1; }
+
+/* FIX [3.3/5.5]: Discover relational badge + layout */
+.discover-username-row { display: flex; align-items: center; gap: .45rem; flex-wrap: wrap; }
+.badge-following {
+  font-size: .68rem; font-weight: 600; padding: .1em .45em;
+  border-radius: 999px; border: 1px solid var(--accent);
+  color: var(--accent); background: var(--accent-dim);
+  white-space: nowrap;
+}
+.discover-hint { margin-top: -.25rem; margin-bottom: 1rem; }
+
+/* FIX [4.3]: Inline delete confirmation */
+.delete-inline-confirm {
+  display: inline-flex; align-items: center; gap: .6rem;
+  margin-left: .5rem;
+}
+
+/* FIX [4.4]: Duplicate show warning */
+.dup-warn {
+  background: rgba(245,158,11,.1); border: 1px solid rgba(245,158,11,.3);
+  border-radius: var(--radius-sm); padding: .5rem .75rem;
+  margin-bottom: .75rem;
+}
+
+/* FIX [3.2/5.2]: Post-log reward flash — make the success moment feel celebratory */
+.flash-success {
+  background: linear-gradient(135deg, var(--accent-dim) 0%, rgba(245,158,11,.08) 100%);
+  border: 1px solid rgba(245,158,11,.35);
+  color: var(--text);
+  font-weight: 500;
+}
+.flash-success::before { content: '★ '; color: var(--accent); }
