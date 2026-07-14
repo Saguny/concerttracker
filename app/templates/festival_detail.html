@@ -93,6 +93,12 @@
         </div>
       </div>
 
+      {% if festival_photo_url %}
+      <div class="detail-section">
+        <img src="{{ festival_photo_url }}" alt="Festival photo" style="width:100%;border-radius:var(--radius);max-height:480px;object-fit:cover;display:block">
+      </div>
+      {% endif %}
+
       {% if festival_notes %}
       <div class="detail-notes">{{ festival_notes }}</div>
       {% endif %}

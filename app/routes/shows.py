@@ -243,6 +243,7 @@ async def festival_detail(
             user_liked=bool(user_liked),
             comments=list(comments),
             festival_notes=festival_notes,
+            festival_photo_url=fest["photo_url"],
             festival_event_id=fest["event_id"],
             owner_user=owner_user,
             is_own=is_own,
@@ -256,7 +257,7 @@ async def festival_edit_page(
 ):
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
-            "SELECT festival_name, city, festival_notes, rating FROM festivals WHERE id = $1 AND user_id = $2",
+            "SELECT festival_name, city, festival_notes, rating, photo_url FROM festivals WHERE id = $1 AND user_id = $2",
             festival_id, user["id"],
         )
         if not row:
@@ -292,6 +293,7 @@ async def festival_edit_page(
              city=row["city"] or "",
              festival_notes=row["festival_notes"] or "",
              festival_rating=float(row["rating"]) if row["rating"] is not None else None,
+             festival_photo_url=row["photo_url"],
              existing_shows=existing_shows,
              taggable=taggable,
              csrf=get_csrf_token(request)),
@@ -329,6 +331,17 @@ async def festival_edit_save(
         flash(request, "Festival name is required.", "error")
         return RedirectResponse(f"/concert-tracker/shows/festival/{festival_id}/edit", status_code=302)
 
+    remove_photo = form.get("remove_photo") == "on"
+    _fest_photo_data: bytes | None = None
+    _fest_photo_ct: str | None = None
+    photo_file = form.get("photo")
+    if not remove_photo and photo_file and hasattr(photo_file, "filename") and photo_file.filename:
+        _fest_photo_data = await photo_file.read()
+        _fest_photo_ct = photo_file.content_type or "application/octet-stream"
+        if len(_fest_photo_data) > 15 * 1024 * 1024:
+            flash(request, "Photo too large (max 15 MB)", "error")
+            return RedirectResponse(f"/concert-tracker/shows/festival/{festival_id}/edit", status_code=302)
+
     now = int(time.time())
     new_artists = [a for a in submitted if not a.get("show_id")]
 
@@ -348,6 +361,15 @@ async def festival_edit_save(
             "UPDATE festivals SET festival_name = $1, city = $2, festival_notes = $3, rating = $4 WHERE id = $5",
             festival_name, city, notes, festival_rating, festival_id,
         )
+        if remove_photo:
+            await conn.execute("UPDATE festivals SET photo_url = NULL WHERE id = $1", festival_id)
+        elif _fest_photo_data:
+            from app.r2 import upload_festival_photo as _up_fp
+            try:
+                _fp_url = await _up_fp(festival_id, _fest_photo_data, _fest_photo_ct)
+                await conn.execute("UPDATE festivals SET photo_url = $1 WHERE id = $2", _fp_url, festival_id)
+            except Exception:
+                pass
         await conn.execute(
             "UPDATE shows SET festival_name = $1, venue = $1, city = $2 WHERE festival_id = $3 AND user_id = $4",
             festival_name, city, festival_id, user["id"],
@@ -627,6 +649,16 @@ async def add_festival(request: Request, pool=Depends(get_pool), user=Depends(re
         flash(request, "Select at least one artist and fill in the festival details.", "error")
         return RedirectResponse("/concert-tracker/shows/add-festival", status_code=302)
 
+    _new_photo_data: bytes | None = None
+    _new_photo_ct: str | None = None
+    new_photo_file = form.get("photo")
+    if new_photo_file and hasattr(new_photo_file, "filename") and new_photo_file.filename:
+        _new_photo_data = await new_photo_file.read()
+        _new_photo_ct = new_photo_file.content_type or "application/octet-stream"
+        if len(_new_photo_data) > 15 * 1024 * 1024:
+            flash(request, "Photo too large (max 15 MB)", "error")
+            return RedirectResponse("/concert-tracker/shows/add-festival", status_code=302)
+
     now = int(time.time())
 
     import asyncio
@@ -641,6 +673,13 @@ async def add_festival(request: Request, pool=Depends(get_pool), user=Depends(re
             "INSERT INTO festivals (user_id, festival_name, city, festival_notes, rating, created_at) VALUES ($1,$2,$3,$4,$5,$6) RETURNING id",
             user["id"], festival_name, city, festival_notes, festival_rating, now,
         )
+        if _new_photo_data and festival_id:
+            from app.r2 import upload_festival_photo as _up_fp
+            try:
+                _fp_url = await _up_fp(festival_id, _new_photo_data, _new_photo_ct)
+                await conn.execute("UPDATE festivals SET photo_url = $1 WHERE id = $2", _fp_url, festival_id)
+            except Exception:
+                pass
         for artist_data, sp, sl in zip(selected, sp_results, sl_results):
             sp = sp if isinstance(sp, dict) else None
             sl = sl if isinstance(sl, dict) else None

@@ -90,7 +90,45 @@
   </div>
 </div>
 
-<div class="profile-layout">
+<div class="profile-content-wrap">
+
+  <!-- Featured sidebar: first in DOM so it appears above shows on mobile.
+       On desktop, CSS grid places it in the right column. -->
+  <aside class="profile-sidebar-featured">
+    {% if pinned_show %}
+    <section class="social-section">
+      <h2>Pinned Show</h2>
+      <a href="/concert-tracker/shows/{{ pinned_show.id }}" class="pinned-show-card">
+        <div class="pinned-show-thumb-wrap">
+          {% if pinned_show.artist_thumb_url %}
+          <img class="pinned-show-thumb" src="{{ pinned_show.artist_thumb_url }}" alt="{{ pinned_show.artist }}" loading="lazy">
+          {% else %}
+          <div class="pinned-show-thumb pinned-show-thumb-ph">{{ pinned_show.artist[0] | upper }}</div>
+          {% endif %}
+        </div>
+        <div class="pinned-show-info">
+          <div class="pinned-show-artist">{{ pinned_show.festival_name if pinned_show.is_festival and pinned_show.festival_name else pinned_show.artist }}{% if pinned_show.is_festival %} <span class="badge badge-festival">Festival</span>{% endif %}</div>
+          <div class="pinned-show-meta">{{ pinned_show.venue }} · {{ pinned_show.city }}</div>
+          <div class="pinned-show-date">{{ pinned_show.date.strftime('%d %b %Y') }}</div>
+        </div>
+      </a>
+    </section>
+    {% endif %}
+
+    {% if favorite_artists %}
+    <section class="social-section">
+      <h2>Favorite Artists</h2>
+      {% for a in favorite_artists %}
+      <a href="/concert-tracker/artists/{{ a.name | urlquote }}" class="mini-bar-row mini-bar-link">
+        {% if a.thumb_url %}<img class="mini-bar-thumb" src="{{ a.thumb_url }}" alt="" loading="lazy">
+        {% else %}<div class="mini-bar-thumb mini-bar-thumb-ph">{{ a.name[0] | upper }}</div>{% endif %}
+        <span class="mini-bar-label">{{ a.name }}</span>
+      </a>
+      {% endfor %}
+    </section>
+    {% endif %}
+  </aside>
+
   <div class="profile-main">
     {% if shared and not is_own_profile %}
     <section class="social-section">
@@ -156,40 +194,8 @@
     </section>
   </div>
 
-  <aside class="profile-sidebar">
-    {% if pinned_show %}
-    <section class="social-section">
-      <h2>Pinned Show</h2>
-      <a href="/concert-tracker/shows/{{ pinned_show.id }}" class="pinned-show-card">
-        <div class="pinned-show-thumb-wrap">
-          {% if pinned_show.artist_thumb_url %}
-          <img class="pinned-show-thumb" src="{{ pinned_show.artist_thumb_url }}" alt="{{ pinned_show.artist }}" loading="lazy">
-          {% else %}
-          <div class="pinned-show-thumb pinned-show-thumb-ph">{{ pinned_show.artist[0] | upper }}</div>
-          {% endif %}
-        </div>
-        <div class="pinned-show-info">
-          <div class="pinned-show-artist">{{ pinned_show.festival_name if pinned_show.is_festival and pinned_show.festival_name else pinned_show.artist }}{% if pinned_show.is_festival %} <span class="badge badge-festival">Festival</span>{% endif %}</div>
-          <div class="pinned-show-meta">{{ pinned_show.venue }} · {{ pinned_show.city }}</div>
-          <div class="pinned-show-date">{{ pinned_show.date.strftime('%d %b %Y') }}</div>
-        </div>
-      </a>
-    </section>
-    {% endif %}
-
-    {% if favorite_artists %}
-    <section class="social-section">
-      <h2>Favorite Artists</h2>
-      {% for a in favorite_artists %}
-      <a href="/concert-tracker/artists/{{ a.name | urlquote }}" class="mini-bar-row mini-bar-link">
-        {% if a.thumb_url %}<img class="mini-bar-thumb" src="{{ a.thumb_url }}" alt="" loading="lazy">
-        {% else %}<div class="mini-bar-thumb mini-bar-thumb-ph">{{ a.name[0] | upper }}</div>{% endif %}
-        <span class="mini-bar-label">{{ a.name }}</span>
-      </a>
-      {% endfor %}
-    </section>
-    {% endif %}
-
+  <!-- Charts sidebar: appears after shows on mobile, right column bottom on desktop -->
+  <aside class="profile-sidebar-charts">
     <section class="social-section">
       <h2>Shows Per Year</h2>
       <canvas id="chart-years"></canvas>
@@ -215,6 +221,7 @@
       {% else %}<p class="muted small">None yet.</p>{% endfor %}
     </section>
   </aside>
+
 </div>
 
 </div>{# end profile-wrap #}

@@ -78,6 +78,28 @@ async def upload_show_photo(show_id: int, data: bytes, content_type: str) -> str
     await asyncio.get_running_loop().run_in_executor(None, _run)
     return f"{PUBLIC_URL()}/{key}?v={int(time.time())}"
 
+async def upload_festival_photo(festival_id: int, data: bytes, content_type: str) -> str:
+    """Upload a festival photo to R2, return the public URL. Raises ValueError on bad input."""
+    if content_type not in ALLOWED_TYPES:
+        raise ValueError(f"Unsupported file type: {content_type}")
+    if len(data) > MAX_BYTES:
+        raise ValueError("File too large (max 15 MB)")
+
+    key = f"festival-photos/{festival_id}"
+
+    def _run():
+        compressed, ct = _compress(data, content_type, 1920, 1920)
+        _client().put_object(
+            Bucket=BUCKET(),
+            Key=key,
+            Body=compressed,
+            ContentType=ct,
+            CacheControl="public, max-age=31536000",
+        )
+
+    await asyncio.get_running_loop().run_in_executor(None, _run)
+    return f"{PUBLIC_URL()}/{key}?v={int(time.time())}"
+
 async def upload_banner(user_id: int, data: bytes, content_type: str) -> str:
     """Upload banner bytes to R2, return the public URL. Raises ValueError on bad input."""
     if content_type not in ALLOWED_TYPES:

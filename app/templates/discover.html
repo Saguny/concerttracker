@@ -19,7 +19,7 @@
   <button class="discover-tab {% if q and not artist_rows %}active{% endif %}" data-tab="people">People</button>
 </div>
 
-<!-- For You tab: artist results or prompt -->
+<!-- For You tab: search results, personalized recommendations, or prompt -->
 <div class="discover-tab-panel" data-tab="artists" {% if q and not artist_rows %}style="display:none"{% endif %}>
   {% if q and artist_rows %}
   <div class="artist-search-grid">
@@ -40,11 +40,31 @@
     </a>
     {% endfor %}
   </div>
+  {% elif recommended_artists %}
+  <p class="muted small" style="margin-bottom:.75rem">Based on your show history</p>
+  <div class="artist-search-grid">
+    {% for a in recommended_artists %}
+    <a href="/concert-tracker/discover?q={{ a.name | urlencode }}" class="artist-search-card">
+      {% if a.thumb_url %}
+      <img src="{{ a.thumb_url }}" class="artist-search-thumb" alt="{{ a.name }}" loading="lazy">
+      {% else %}
+      <div class="artist-search-thumb artist-search-thumb-ph">{{ a.name[0] | upper }}</div>
+      {% endif %}
+      <div class="artist-search-info">
+        <div class="artist-search-name">{{ a.name }}</div>
+        <div class="artist-search-meta muted small">{{ a.logger_count }} logger{{ 's' if a.logger_count != 1 else '' }}</div>
+        {% if a.upcoming_count %}
+        <div class="artist-search-meta small" style="color:var(--accent)">{{ a.upcoming_count }} upcoming</div>
+        {% endif %}
+      </div>
+    </a>
+    {% endfor %}
+  </div>
   {% else %}
   <div class="discover-artist-prompt">
     <div class="discover-artist-prompt-icon">♪</div>
     <p>Search for an artist above to see everyone else who's seen them.</p>
-    <p class="muted small">Great way to find people with the same taste.</p>
+    <p class="muted small">Log some shows first and we'll recommend artists here.</p>
   </div>
   {% endif %}
 </div>

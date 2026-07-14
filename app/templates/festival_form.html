@@ -6,7 +6,7 @@
   <a href="/concert-tracker/shows/add-festival" class="log-tab active">Log a Festival</a>
 </div>
 
-<form method="post" action="/concert-tracker/shows/add-festival" class="show-form" id="festival-form">
+<form method="post" action="/concert-tracker/shows/add-festival" class="show-form" id="festival-form" enctype="multipart/form-data">
   <input type="hidden" name="_csrf" value="{{ csrf }}">
   <input type="hidden" name="festival_name" id="festival-name-hidden">
   <input type="hidden" name="artists_json" id="artists-json">
@@ -79,6 +79,11 @@
       <span class="rating-label" id="rating-label"></span>
       <button type="button" class="rating-clear-btn" id="rating-clear" style="display:none">Clear</button>
     </div>
+  </div>
+
+  <div class="field-group">
+    <label>Photo <span class="muted small">(optional · max 15 MB)</span></label>
+    <input type="file" name="photo" accept="image/*">
   </div>
 
   <div class="form-actions">

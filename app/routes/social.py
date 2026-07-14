@@ -453,6 +453,7 @@ async def unfollow(request: Request, pool=Depends(get_pool), user=Depends(requir
 async def discover_page(request: Request, pool=Depends(get_pool), user=Depends(require_user), q: str = "", page: int = 1):
     limit = 24
     offset = (page - 1) * limit
+    recommended_artists: list = []
     async with pool.acquire() as conn:
         if q:
             rows = await conn.fetch(
@@ -483,13 +484,30 @@ async def discover_page(request: Request, pool=Depends(get_pool), user=Depends(r
             )
             total = await conn.fetchval("SELECT COUNT(*) FROM users WHERE id != $1", user["id"])
             artist_rows = []
+            recommended_artists = await conn.fetch(
+                "SELECT "
+                "  COALESCE(MAX(a.name), LOWER(s.artist)) AS name, "
+                "  COALESCE(MAX(a.thumb_url), MAX(s.artist_thumb_url)) AS thumb_url, "
+                "  COUNT(DISTINCT s2.user_id)::int AS logger_count, "
+                "  COUNT(DISTINCT CASE WHEN s2.date > CURRENT_DATE THEN s2.id END)::int AS upcoming_count "
+                "FROM shows s "
+                "LEFT JOIN artists a ON LOWER(a.name) = LOWER(s.artist) "
+                "LEFT JOIN shows s2 ON LOWER(s2.artist) = LOWER(s.artist) "
+                "WHERE s.user_id = $1 "
+                "GROUP BY LOWER(s.artist) "
+                "ORDER BY COUNT(DISTINCT s.id) DESC, logger_count DESC "
+                "LIMIT 12",
+                user["id"],
+            )
         i_follow = await conn.fetch("SELECT target_id FROM follows WHERE user_id=$1", user["id"])
     following_ids = {r["target_id"] for r in i_follow}
     pages = (total + limit - 1) // limit
     return templates.TemplateResponse(
         "discover.html",
         _ctx(request, user, rows=rows, following_ids=following_ids,
-             q=q, page=page, pages=pages, artist_rows=list(artist_rows), csrf=get_csrf_token(request)),
+             q=q, page=page, pages=pages, artist_rows=list(artist_rows),
+             recommended_artists=recommended_artists,
+             csrf=get_csrf_token(request)),
     )
 
 @router.get("/api/feed")

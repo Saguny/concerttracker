@@ -266,10 +266,28 @@ input[type="color"]:disabled { opacity: 0.35; cursor: not-allowed; pointer-event
 .profile-avatar-ph    { width: 72px; height: 72px; border-radius: 50%; background: var(--accent); color: #000; display: flex; align-items: center; justify-content: center; font-size: 1.75rem; font-weight: 800; flex-shrink: 0; }
 .profile-bio          { font-size: .875rem; color: var(--muted); margin-top: .3rem; max-width: 480px; }
 
-.profile-layout { display: grid; grid-template-columns: 1fr 260px; gap: 1.5rem; align-items: start; }
+/* Desktop: 2-column grid. Featured sidebar in right-col row 1, charts in right-col row 2.
+   Main spans both right-column rows on the left. */
+.profile-content-wrap {
+  display: grid;
+  grid-template-columns: 1fr 260px;
+  grid-template-rows: auto auto;
+  gap: 1.5rem;
+  align-items: start;
+}
+.profile-sidebar-featured { grid-column: 2; grid-row: 1; min-width: 0; }
+.profile-main            { grid-column: 1; grid-row: 1 / 3; min-width: 0; }
+.profile-sidebar-charts  { grid-column: 2; grid-row: 2; min-width: 0; }
+
+/* Mobile: single column, natural DOM order puts featured first, then main, then charts */
 @media (max-width: 768px) {
-  .profile-layout { grid-template-columns: 1fr; }
-  .profile-sidebar { order: -1; }
+  .profile-content-wrap {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto;
+  }
+  .profile-sidebar-featured { grid-column: 1; grid-row: 1; }
+  .profile-main             { grid-column: 1; grid-row: 2; }
+  .profile-sidebar-charts   { grid-column: 1; grid-row: 3; }
 }
 
 .mini-bar-row   { display: flex; align-items: center; justify-content: space-between; padding: .35rem 0; border-bottom: 1px solid var(--border); font-size: .85rem; }
@@ -420,17 +438,73 @@ input[type="color"]:disabled { opacity: 0.35; cursor: not-allowed; pointer-event
 }
 
 /* ── Profile overflow containment ──────────────────────────────────── */
-/* Grid children must have min-width: 0 or content breaks out of columns */
-.profile-main,
-.profile-sidebar { min-width: 0; }
-/* Profile info (username + stats) must not push past avatar on narrow screens */
 .profile-info { min-width: 0; }
-/* Stats row can wrap on very narrow viewports */
 .profile-stats-row { flex-wrap: wrap; gap: .5rem 1.25rem; }
-/* Mini-bar label: use flex truncation instead of a fixed 180px cap */
 .mini-bar-label { flex: 1; min-width: 0; max-width: none; }
-/* Chart.js canvas must never exceed its container */
-.profile-sidebar canvas { max-width: 100%; display: block; }
+.profile-sidebar-charts canvas { max-width: 100%; display: block; }
+
+/* ── Mobile profile header: centered card-style layout ─────────────── */
+@media (max-width: 640px) {
+  /* Stack header vertically and center everything */
+  .profile-header {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: .65rem;
+    margin-bottom: 1.25rem;
+  }
+  .profile-header-left {
+    flex-direction: column;
+    align-items: center;
+    gap: .6rem;
+    width: 100%;
+  }
+  .profile-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+  }
+  .profile-info h1 { font-size: 1.25rem; justify-content: center; flex-wrap: wrap; }
+  .profile-stats-row { justify-content: center; }
+  .profile-bio { text-align: center; max-width: 100%; }
+  .profile-location { text-align: center; }
+  .profile-social-links { justify-content: center; }
+
+  /* Larger, more prominent avatar on mobile */
+  .profile-avatar,
+  .profile-avatar-ph { width: 88px; height: 88px; }
+  .profile-avatar-ph { font-size: 2.1rem; }
+
+  /* When banner exists: reduce banner height, let avatar ring overlap it naturally */
+  .profile-banner-outer { aspect-ratio: 3 / 1; max-height: 130px; }
+  .has-banner .profile-header { padding: 0; margin-top: -44px; }
+
+  /* Unpin the Edit/Follow button from the banner corner — put it below bio */
+  .has-banner .profile-actions {
+    position: static;
+  }
+  .has-banner .profile-actions .btn {
+    background: var(--surface2) !important;
+    border-color: var(--border) !important;
+    color: var(--text) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  /* Full-width centred action button */
+  .profile-actions {
+    width: 100%;
+    justify-content: center;
+    flex-direction: column;
+    align-items: center;
+  }
+  .profile-actions .btn {
+    width: 100%;
+    max-width: 280px;
+    min-height: 44px;
+  }
+}
 
 /* ── Mobile profile fixes ≤ 480px ─────────────────────────────────── */
 @media (max-width: 480px) {
